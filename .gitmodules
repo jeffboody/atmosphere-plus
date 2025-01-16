@@ -1,0 +1,36 @@
+[submodule "app/src/main/cpp/texgz"]
+	path = app/src/main/cpp/texgz
+	url = git@github.com:jeffboody/texgz.git
+[submodule "app/src/main/cpp/libexpat"]
+	path = app/src/main/cpp/libexpat
+	url = git@github.com:jeffboody/libexpat.git
+[submodule "app/src/main/cpp/libvkk"]
+	path = app/src/main/cpp/libvkk
+	url = git@github.com:jeffboody/libvkk.git
+[submodule "app/src/main/cpp/libcc"]
+	path = app/src/main/cpp/libcc
+	url = git@github.com:jeffboody/libcc.git
+[submodule "app/src/main/cpp/lodepng"]
+	path = app/src/main/cpp/lodepng
+	url = git@github.com:lvandeve/lodepng.git
+[submodule "app/src/main/cpp/libxmlstream"]
+	path = app/src/main/cpp/libxmlstream
+	url = git@github.com:jeffboody/libxmlstream.git
+[submodule "app/src/main/cpp/jpeg"]
+	path = app/src/main/cpp/jpeg
+	url = git@github.com:jeffboody/myjpeg.git
+[submodule "app/src/main/java/com/jeffboody/vkk"]
+	path = app/src/main/java/com/jeffboody/vkk
+	url = git@github.com:jeffboody/vkk-java.git
+[submodule "app/src/main/cpp/libbfs"]
+	path = app/src/main/cpp/libbfs
+	url = git@github.com:jeffboody/libbfs.git
+[submodule "app/src/main/cpp/libsqlite3"]
+	path = app/src/main/cpp/libsqlite3
+	url = git@github.com:jeffboody/libsqlite3.git
+[submodule "app/src/main/cpp/libgltf"]
+	path = app/src/main/cpp/libgltf
+	url = git@github.com:jeffboody/libgltf.git
+[submodule "app/src/main/cpp/jsmn"]
+	path = app/src/main/cpp/jsmn
+	url = git@github.com:zserge/jsmn.git
