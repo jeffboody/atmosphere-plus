@@ -1,10 +1,12 @@
-Rendering Parametrizable Planetary Atmospheres with Multiple Scattering in Real-Time
-====================================================================================
+Atmospheric Rendering
+=====================
 
-References
-----------
+This atmospheric rendering implementation is based on the
+[Rendering Parametrizable Planetary Atmospheres with Multiple Scattering in Real-Time](http://www.klayge.org/material/4_0/Atmospheric/Rendering%20Parametrizable%20Planetary%20Atmospheres%20with%20Multiple%20Scattering%20in%20Real-Time.pdf)
+paper by Oskar Elek.
 
-* [Rendering Parametrizable Planetary Atmospheres with Multiple Scattering in Real-Time](http://www.klayge.org/material/4_0/Atmospheric/Rendering%20Parametrizable%20Planetary%20Atmospheres%20with%20Multiple%20Scattering%20in%20Real-Time.pdf)
+For additional details please see my
+[notes](docs/notes.pdf).
 
 License
 =======
