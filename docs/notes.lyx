@@ -90,9 +90,9 @@ About
 \end_layout
 
 \begin_layout Standard
-These notes are intended to augment the atmospheric rendering algorithm
+These notes are intended to augment the atmospheric rendering algorithms
  described by the Rendering Parametrizable Planetary Atmospheres with Multiple
- Scattering in Real-Time paper.
+ Scattering in Real-Time paper and the Atmospheric Rendering implementation.
 \end_layout
 
 \begin_layout Section
@@ -360,11 +360,11 @@ The parameter
 \end_inset
 
  are in the range 
-\begin_inset Formula $\left(-0.75,-0.999\right)$
+\begin_inset Formula $\left[-0.75,-0.999\right]$
 \end_inset
 
- and the Accurate Atmospheric Scattering implementation uses 
-\begin_inset Formula $g=-0.99$
+ and the Atmospheric Rendering implementation uses a default value of 
+\begin_inset Formula $g=-0.85$
 \end_inset
 
 .
@@ -592,12 +592,7 @@ Where the following parameters are defined:
 \begin_inset Formula $I_{I}\left(\lambda\right)$
 \end_inset
 
-: The spectral intensity of incident light from the Sun may be modeled using
- white light, 
-\begin_inset Formula $I_{I}\left(r,g,b\right)=\left(1.0,1.0,1.0\right)$
-\end_inset
-
-.
+: The spectral intensity of incident light from the Sun.
 \end_layout
 
 \begin_layout Itemize
@@ -652,6 +647,10 @@ Where the following parameters are defined:
 \begin_inset Formula $P$
 \end_inset
 
+, 
+\begin_inset Formula $h=\left|P\right|-R_{p}$
+\end_inset
+
 
 \end_layout
 
@@ -687,8 +686,7 @@ Where the following parameters are defined:
 \begin_inset Formula $P_{c}$
 \end_inset
 
-: The intersection point with the upper atmosphere boundary of the ray from
- 
+: The nearest intersection point along the ray from 
 \begin_inset Formula $P$
 \end_inset
 
@@ -696,7 +694,20 @@ Where the following parameters are defined:
 \begin_inset Formula $-L$
 \end_inset
 
- to the Sun.
+ to the Sun (e.g.
+ the atmosphere boundary or the Earth's surface).
+ If the ray intersects the Earth then the point 
+\begin_inset Formula $P$
+\end_inset
+
+ is shadowed by the Earth and does not contribute to the single-scattering
+ intensity.
+ However, the point 
+\begin_inset Formula $P$
+\end_inset
+
+ may still contribute to the multiple scattering intensity as described
+ in the next section.
 \end_layout
 
 \begin_layout Standard
@@ -706,15 +717,6 @@ The phase function
 
  can be excluded from integration if we assume all light rays coming from
  the Sun are parallel.
-\end_layout
-
-\begin_layout Standard
-If the sample point 
-\begin_inset Formula $P$
-\end_inset
-
- is shadowed by the Earth then it does not contribute to the single-scattering
- intensity.
 \end_layout
 
 \begin_layout Standard
@@ -1152,7 +1154,7 @@ To precompute every scattering intensity from every position
 
 \begin_layout Itemize
 Altitude: 
-\begin_inset Formula $h=\left(0,H_{a}\right)$
+\begin_inset Formula $h\in\left[0,H_{a}\right]$
 \end_inset
 
  where 
@@ -1164,7 +1166,7 @@ Altitude:
 
 \begin_layout Itemize
 View-Zenith Angle: 
-\begin_inset Formula $\phi=\left(0,\pi\right)$
+\begin_inset Formula $\phi\in\left[0,\pi\right]$
 \end_inset
 
  where 
@@ -1176,7 +1178,7 @@ View-Zenith Angle:
 
 \begin_layout Itemize
 Sun-Zenith Angle 
-\begin_inset Formula $\delta=\left(0,\pi\right)$
+\begin_inset Formula $\delta\in\left[0,\pi\right]$
 \end_inset
 
  where 
@@ -1188,7 +1190,7 @@ Sun-Zenith Angle
 
 \begin_layout Itemize
 Sun-View Azimuth 
-\begin_inset Formula $\omega=\left(0,\pi\right)$
+\begin_inset Formula $\omega\in\left[0,\pi\right]$
 \end_inset
 
  where 
@@ -1388,20 +1390,24 @@ L=-Sun
 
 \begin_layout Standard
 The parameters 
-\begin_inset Formula $\left(h,\phi,\delta\right)$
+\begin_inset Formula $\left(h,\cos\left(\phi\right),\cos\left(\delta\right)\right)$
 \end_inset
 
  may be converted to 3D texture coordinates 
 \begin_inset Formula $\left(u,v,w\right)$
 \end_inset
 
- for array lookups.
+ for array lookups as described by the Efficient and Dynamic Atmospheric
+ Scattering paper.
+ These ad-hoc non-linear equations are designed to reduce the texture parameteri
+zation space by eliminating unused values and improving precision for critical
+ values.
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-u=\sqrt{\left(h^{2}-R_{p}^{2}\right)/\left(R_{a}^{2}-R_{p}^{2}\right)}
+u=\sqrt{\frac{h}{R_{a}-R_{p}}}
 \]
 
 \end_inset
@@ -1412,7 +1418,10 @@ u=\sqrt{\left(h^{2}-R_{p}^{2}\right)/\left(R_{a}^{2}-R_{p}^{2}\right)}
 \begin_layout Standard
 \begin_inset Formula 
 \[
-v=\left(1+\cos\left(\phi\right)\right)/2
+v=\left\{ \begin{array}{c}
+0.5\left(\frac{\cos\left(\phi\right)-c_{h}}{1-c_{h}}\right)^{0.2}+0.5,\cos\left(\phi\right)>c_{h}\\
+0.5\left(\frac{c_{h}-\cos\left(\phi\right)}{1+c_{h}}\right)^{0.2},\cos\left(\phi\right)\leq c_{h}
+\end{array}\right.
 \]
 
 \end_inset
@@ -1423,7 +1432,7 @@ v=\left(1+\cos\left(\phi\right)\right)/2
 \begin_layout Standard
 \begin_inset Formula 
 \[
-w=\left(1-e^{-2.8\cos\left(\delta\right)-0.8}\right)/\left(1-e^{-3.6}\right)
+c_{h}=-\frac{\sqrt{h\cdot\left(2R_{p}+h\right)}}{R_{p}+h}
 \]
 
 \end_inset
@@ -1432,30 +1441,14 @@ w=\left(1-e^{-2.8\cos\left(\delta\right)-0.8}\right)/\left(1-e^{-3.6}\right)
 \end_layout
 
 \begin_layout Standard
-As described by the Precomputed Atmospheric Scattering paper, the equations
- for 
-\begin_inset Formula $u$
+\begin_inset Formula 
+\[
+w=0.5\left(\frac{\tan^{-1}\left(\max\left(\cos\left(\delta\right),-0.1975\right)\cdot\tan\left(1.26\cdot1.1\right)\right)}{1.1}+\left(1-0.26\right)\right)
+\]
+
 \end_inset
 
- and 
-\begin_inset Formula $w$
-\end_inset
 
- use ad-hoc non-linear equations so as to get better precision near the
- ground and for Sun-Zenith angles near 90 degrees.
- As a result, the equation for 
-\begin_inset Formula $w$
-\end_inset
-
- may have negative values (for 
-\begin_inset Formula $\delta\apprge105$
-\end_inset
-
- degrees) and should be clamped to the range 
-\begin_inset Formula $\left[0,1\right]$
-\end_inset
-
-.
 \end_layout
 
 \begin_layout Standard
@@ -1465,7 +1458,7 @@ The 3D texture coordinates may be converted back to parameters as follows.
 \begin_layout Standard
 \begin_inset Formula 
 \[
-h=\sqrt{\left(R_{a}^{2}-R_{p}^{2}\right)u^{2}+R_{p}^{2}}
+h=u^{2}\left(R_{a}-R_{p}\right)
 \]
 
 \end_inset
@@ -1476,7 +1469,10 @@ h=\sqrt{\left(R_{a}^{2}-R_{p}^{2}\right)u^{2}+R_{p}^{2}}
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\phi=acos\left(2v-1\right)
+\cos\left(\phi\right)=\left\{ \begin{array}{c}
+c_{h}+\left(v-0.5\right)^{5}\cdot\left(1-c_{h}\right),v>0.5\\
+c_{h}-v^{5}\cdot\left(1+c_{h}\right),v\leq0.5
+\end{array}\right.
 \]
 
 \end_inset
@@ -1487,7 +1483,7 @@ h=\sqrt{\left(R_{a}^{2}-R_{p}^{2}\right)u^{2}+R_{p}^{2}}
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\delta=acos\left(-\left(ln\left(1-\left(1-e^{-3.6}\right)w\right)+0.8\right)/2.8\right)
+\cos\left(\delta\right)=\frac{\tan\left(\left(2w-1+0.26\right)\cdot0.75\right)}{\tan\left(1.26\cdot0.75\right)}
 \]
 
 \end_inset
@@ -1546,32 +1542,23 @@ i=x+y*width+z*width*height
 \end_layout
 
 \begin_layout Standard
-The Rendering Parametrizable Planetary Atmospheres with Multiple Scattering
- in Real-Time paper uses the texture dimensions.
+The Efficient and Dynamic Atmospheric Scattering paper uses the following
+ texture dimensions where optional optimizations discussed for 
+\begin_inset Formula $v$
+\end_inset
+
+ component.
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\left(width,height,depth\right)=\left(32,256,32\right)
+\left(width,height,depth\right)=\left(32,256|128|64,32\right)
 \]
 
 \end_inset
 
 
-\end_layout
-
-\begin_layout Standard
-Since the 
-\begin_inset Formula $h$
-\end_inset
-
- and 
-\begin_inset Formula $\delta$
-\end_inset
-
- parameter conversions optimize the parameter space, fewer samples are required
- to represent the width and depth dimensions.
 \end_layout
 
 \begin_layout Standard
@@ -1634,6 +1621,162 @@ The the Sun-View Azimuth
 \end_inset
 
  described in other sections.
+\end_layout
+
+\begin_layout Subsection
+Spectral Intensity of Incident Light
+\end_layout
+
+\begin_layout Standard
+The Atmospheric Rendering implementation defines the spectral intensity
+ of incident light 
+\begin_inset Formula $I_{I}\left(\lambda\right)$
+\end_inset
+
+ from the Sun.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+I_{I}\left(\lambda\right)=SpectralIrridence\left(\lambda\right)\cdot Exposure\cdot SpectralToRGB\left(\lambda\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The spectral irradiance measures the power density of solar radiation at
+ specific wavelengths (from measured values found in tables).
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+SpectralIrridence\left(r,g,b\right)=\left(0.1526,0.191,0.208\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The exposure represents the amount of light exposure which scales the overall
+ intensity.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+Exposure=1.0
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The spectral to RGB constants are used to convert specific wavelengths into
+ high dynamic range RGB values.
+ These constants were calculated by converting wavelengths into CIE XYZ
+ color space, then converting XYZ to RGB, followed by normalization and
+ scaling.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+SpectralToRGB\left(r,g,b\right)=\left(133.3209,88.51855,112.7552\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The spectral intensity of incident light 
+\begin_inset Formula $I_{I}\left(r,g,b\right)$
+\end_inset
+
+:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+I_{I}\left(r,g,b\right)=\left(20.344770,16.907042,23.453083\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Tone Mapping and Gamma Correction
+\end_layout
+
+\begin_layout Standard
+The scattering intensity equations inherently output high dynamic range
+ (HDR) intensities and must be transformed for display on standard devices.
+\end_layout
+
+\begin_layout Standard
+Tone mapping transforms the high dynamic range (HDR) intensities such that
+ the colors are mapped to a displayable range while preserving contrast
+ in low-intensity areas and compressing high-intensity values.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+ToneMapping\left(r,g,b\right)=1.0-\exp\left(-\left(r,g,b\right)\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Gamma correction helps to distribute the compressed values more evenly across
+ the perceptual range of human vision.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+GammaCorrection(r,g,b)=\left(r,g,b\right)^{1.0/2.2}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The combined tone mapping and gamma correction transformation of the scattering
+ intensity 
+\begin_inset Formula $I_{S}\left(r,g,b\right)$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+I_{S}\left(r,g,b\right)=\left(1.0-\exp\left(-I_{S}\left(r,g,b\right)\right)\right)^{1.0/2.2}
+\]
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Subsection
@@ -1715,6 +1858,26 @@ ary%20Atmospheres%20with%20Multiple%20Scattering%20in%20Real-Time.pdf
 
 \end_deeper
 \begin_layout Itemize
+Atmospheric Rendering
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+https://github.com/danielshervheim/atmosphere
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Efficient and Dynamic Atmospheric Scattering
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+https://publications.lib.chalmers.se/records/fulltext/203057/203057.pdf
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
 Display of The Earth Taking into Account Atmospheric Scattering
 \end_layout
 
@@ -1743,26 +1906,6 @@ Accurate Atmospheric Scattering
 \begin_layout Itemize
 https://developer.nvidia.com/gpugems/gpugems2/part-ii-shading-lighting-and-shadows
 /chapter-16-accurate-atmospheric-scattering
-\end_layout
-
-\end_deeper
-\begin_layout Itemize
-Atmospheric Rendering
-\end_layout
-
-\begin_deeper
-\begin_layout Itemize
-https://github.com/danielshervheim/atmosphere
-\end_layout
-
-\end_deeper
-\begin_layout Itemize
-Efficient and Dynamic Atmospheric Scattering
-\end_layout
-
-\begin_deeper
-\begin_layout Itemize
-https://publications.lib.chalmers.se/records/fulltext/203057/203057.pdf
 \end_layout
 
 \end_deeper
@@ -1807,6 +1950,16 @@ https://github.com/SebLague/Solar-System
 
 \begin_layout Itemize
 https://www.youtube.com/watch?v=DxfEbulyFcY
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Trapezoidal Rule
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+https://en.wikipedia.org/wiki/Trapezoidal_rule
 \end_layout
 
 \end_deeper

@@ -8,22 +8,26 @@ OBJECTS  = $(TARGET).o $(CLASSES:%=%.o)
 HFILES   = $(CLASSES:%=%.h)
 OPT      = -O2 -Wall
 CFLAGS   = $(OPT) -I.
-LDFLAGS  = -Llibcc -lcc -lm
+LDFLAGS  = -Ltexgz -ltexgz -Llibcc -lcc -lz -lm
 CCC      = gcc
 
-all: $(TARGET) libcc
+all: $(TARGET) libcc texgz
 
-$(TARGET): $(OBJECTS) libcc
+$(TARGET): $(OBJECTS) libcc texgz
 	$(CCC) $(OPT) $(OBJECTS) -o $@ $(LDFLAGS)
 
-.PHONY: libcc
+.PHONY: libcc texgz
 
 libcc:
 	$(MAKE) -C libcc
 
+texgz:
+	$(MAKE) -C texgz
+
 clean:
 	rm -f $(OBJECTS) *~ \#*\# $(TARGET)
 	$(MAKE) -C libcc clean
-	rm libcc
+	$(MAKE) -C texgz clean
+	rm libcc texgz lodepng
 
 $(OBJECTS): $(HFILES)
