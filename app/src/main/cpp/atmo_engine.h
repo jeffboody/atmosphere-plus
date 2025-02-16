@@ -30,6 +30,21 @@
 typedef struct atmo_engine_s
 {
 	vkk_engine_t* engine;
+
+	float h;
+	float phi;
+
+	uint32_t        sphere_ic;
+	vkk_indexType_e sphere_it;
+	vkk_buffer_t*   sphere_ib;
+	vkk_buffer_t*   sphere_vb;
+	vkk_buffer_t*   sphere_nb;
+
+	vkk_uniformSetFactory_t* planet_usf0;
+	vkk_pipelineLayout_t*    planet_pl;
+	vkk_graphicsPipeline_t*  planet_gp;
+	vkk_buffer_t*            planet_ub000_mvp;
+	vkk_uniformSet_t*        planet_us0;
 } atmo_engine_t;
 
 atmo_engine_t* atmo_engine_new(vkk_engine_t* engine);
