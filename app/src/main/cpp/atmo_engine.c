@@ -229,16 +229,16 @@ atmo_engine_t* atmo_engine_new(vkk_engine_t* engine)
 		return NULL;
 	}
 
-	self->engine = engine;
-	self->h      = 0.1f;
-	self->phi    = 90.0f;
+	self->engine   = engine;
+	self->ctrl_h   = 0.1f;
+	self->ctrl_phi = 0.5f;
 
 	if(atmo_engine_importSphere(self) == 0)
 	{
 		goto failure;
 	}
 
-	vkk_uniformBinding_t planet_ub0_array[] =
+	vkk_uniformBinding_t scene_ub0_array[] =
 	{
 		// ub000_mvp
 		{
@@ -248,16 +248,42 @@ atmo_engine_t* atmo_engine_new(vkk_engine_t* engine)
 		},
 	};
 
-	self->planet_usf0 = vkk_uniformSetFactory_new(engine, um, 1,
-	                                              planet_ub0_array);
-	if(self->planet_usf0 == NULL)
+	self->scene_usf0 = vkk_uniformSetFactory_new(engine, um, 1,
+	                                             scene_ub0_array);
+	if(self->scene_usf0 == NULL)
 	{
 		goto failure;
 	}
 
-	self->planet_pl = vkk_pipelineLayout_new(engine, 1,
-                                             &self->planet_usf0);
-	if(self->planet_pl == NULL)
+	self->scene_pl = vkk_pipelineLayout_new(engine, 1,
+	                                        &self->scene_usf0);
+	if(self->scene_pl == NULL)
+	{
+		goto failure;
+	}
+
+	self->scene_ub000_mvp = vkk_buffer_new(engine, um,
+	                                       VKK_BUFFER_USAGE_UNIFORM,
+	                                       sizeof(cc_mat4f_t),
+	                                       NULL);
+	if(self->scene_ub000_mvp == NULL)
+	{
+		goto failure;
+	}
+
+	vkk_uniformAttachment_t scene_ua0_array[] =
+	{
+		// ub000_mvp
+		{
+			.binding = 0,
+			.type    = VKK_UNIFORM_TYPE_BUFFER,
+			.buffer  = self->scene_ub000_mvp,
+		},
+	};
+	self->scene_us0 = vkk_uniformSet_new(engine, 0, 1,
+	                                     scene_ua0_array,
+	                                     self->scene_usf0);
+	if(self->scene_us0 == NULL)
 	{
 		goto failure;
 	}
@@ -281,14 +307,14 @@ atmo_engine_t* atmo_engine_new(vkk_engine_t* engine)
 	vkk_graphicsPipelineInfo_t planet_gpi =
 	{
 		.renderer          = rend,
-		.pl                = self->planet_pl,
+		.pl                = self->scene_pl,
 		.vs                = "shaders/planet_vert.spv",
 		.fs                = "shaders/planet_frag.spv",
 		.vb_count          = 2,
 		.vbi               = planet_vbi_array,
 		.primitive         = VKK_PRIMITIVE_TRIANGLE_LIST,
 		.primitive_restart = 0,
-		.cull_back         = 1,
+		.cull_mode         = VKK_CULL_MODE_BACK,
 		.depth_test        = 1,
 		.depth_write       = 1,
 		.blend_mode        = VKK_BLEND_MODE_DISABLED,
@@ -300,28 +326,33 @@ atmo_engine_t* atmo_engine_new(vkk_engine_t* engine)
 		goto failure;
 	}
 
-	self->planet_ub000_mvp = vkk_buffer_new(engine, um,
-	                                        VKK_BUFFER_USAGE_UNIFORM,
-	                                        sizeof(cc_mat4f_t),
-	                                        NULL);
-	if(self->planet_ub000_mvp == NULL)
+	vkk_vertexBufferInfo_t sky_vbi_array[] =
 	{
-		goto failure;
-	}
-
-	vkk_uniformAttachment_t planet_ua0_array[] =
-	{
-		// ub000_mvp
+		// vertex
 		{
-			.binding = 0,
-			.type    = VKK_UNIFORM_TYPE_BUFFER,
-			.buffer  = self->planet_ub000_mvp,
+			.location   = 0,
+			.components = 3,
+			.format     = VKK_VERTEX_FORMAT_FLOAT,
 		},
 	};
-	self->planet_us0 = vkk_uniformSet_new(engine, 0, 1,
-	                                      planet_ua0_array,
-	                                      self->planet_usf0);
-	if(self->planet_us0 == NULL)
+
+	vkk_graphicsPipelineInfo_t sky_gpi =
+	{
+		.renderer          = rend,
+		.pl                = self->scene_pl,
+		.vs                = "shaders/sky_vert.spv",
+		.fs                = "shaders/sky_frag.spv",
+		.vb_count          = 1,
+		.vbi               = sky_vbi_array,
+		.primitive         = VKK_PRIMITIVE_TRIANGLE_LIST,
+		.primitive_restart = 0,
+		.cull_mode         = VKK_CULL_MODE_FRONT,
+		.depth_test        = 1,
+		.depth_write       = 1,
+		.blend_mode        = VKK_BLEND_MODE_DISABLED,
+	};
+	self->sky_gp = vkk_graphicsPipeline_new(engine, &sky_gpi);
+	if(self->sky_gp == NULL)
 	{
 		goto failure;
 	}
@@ -342,14 +373,15 @@ void atmo_engine_delete(atmo_engine_t** _self)
 	atmo_engine_t* self = *_self;
 	if(self)
 	{
+		vkk_graphicsPipeline_delete(&self->sky_gp);
+		vkk_graphicsPipeline_delete(&self->planet_gp);
+		vkk_uniformSet_delete(&self->scene_us0);
+		vkk_buffer_delete(&self->scene_ub000_mvp);
+		vkk_pipelineLayout_delete(&self->scene_pl);
+		vkk_uniformSetFactory_delete(&self->scene_usf0);
 		vkk_buffer_delete(&self->sphere_nb);
 		vkk_buffer_delete(&self->sphere_vb);
 		vkk_buffer_delete(&self->sphere_ib);
-		vkk_uniformSet_delete(&self->planet_us0);
-		vkk_buffer_delete(&self->planet_ub000_mvp);
-		vkk_graphicsPipeline_delete(&self->planet_gp);
-		vkk_pipelineLayout_delete(&self->planet_pl);
-		vkk_uniformSetFactory_delete(&self->planet_usf0);
 		FREE(self);
 		*_self = NULL;
 	}
@@ -364,7 +396,7 @@ void atmo_engine_draw(atmo_engine_t* self)
 
 	float clear_color[4] =
 	{
-		0.53f, 0.81f, 0.98f, 1.0f,
+		0.0f, 0.0f, 0.0f, 1.0f,
 	};
 
 	if(vkk_renderer_beginDefault(rend, VKK_RENDERER_MODE_DRAW,
@@ -384,11 +416,13 @@ void atmo_engine_draw(atmo_engine_t* self)
 		fovy /= aspect;
 	}
 
+	// clamp h to avoid near clipping plane
 	float Rp  = 6371000.0f;
 	float Ra  = 6471000.0f;
 	float Ha  = Ra - Rp;
-	float h   = cc_clamp(self->h*Ha, 3.0f, Ha);
-	float phi = cc_deg2rad(cc_clamp(self->phi, 0.0f, 180.0f));
+	float h   = cc_clamp(self->ctrl_h*Ha, 3.0f, Ha - 10.0f);
+	float phi = cc_deg2rad(cc_clamp(180.0f*self->ctrl_phi,
+	                                0.0f, 180.0f));
 
 	cc_vec3f_t eye =
 	{
@@ -415,16 +449,16 @@ void atmo_engine_draw(atmo_engine_t* self)
 
 	cc_mat4f_t mvp;
 	cc_mat4f_perspective(&mvp, 1, fovy, aspect,
-	                     0.5f*h, 2.0f*Ra);
+	                     2.0f, 2.0f*Ra);
 	cc_mat4f_lookat(&mvp, 0,
 	                eye.x, eye.y, eye.z,
 	                at.x,  at.y,  at.z,
 	                up.x,  up.y,  up.z);
-	vkk_renderer_updateBuffer(rend, self->planet_ub000_mvp,
+	vkk_renderer_updateBuffer(rend, self->scene_ub000_mvp,
 	                          sizeof(cc_mat4f_t),
 	                          (const void*) &mvp);
 	vkk_renderer_bindGraphicsPipeline(rend, self->planet_gp);
-	vkk_renderer_bindUniformSets(rend, 1, &self->planet_us0);
+	vkk_renderer_bindUniformSets(rend, 1, &self->scene_us0);
 
 	vkk_buffer_t* vertex_buffers[] =
 	{
@@ -435,6 +469,14 @@ void atmo_engine_draw(atmo_engine_t* self)
 	                         self->sphere_it,
 	                         self->sphere_ib,
 	                         vertex_buffers);
+
+	vkk_renderer_bindGraphicsPipeline(rend, self->sky_gp);
+
+	vkk_renderer_drawIndexed(rend, self->sphere_ic, 1,
+	                         self->sphere_it,
+	                         self->sphere_ib,
+	                         vertex_buffers);
+
 	vkk_renderer_end(rend);
 }
 
@@ -452,26 +494,28 @@ int atmo_engine_event(atmo_engine_t* self,
 	}
 	else if(e->keycode == 'i')
 	{
-		self->h = cc_clamp(self->h - 0.05f, 0.0f, 1.0f);
+		self->ctrl_h = cc_clamp(self->ctrl_h - 0.05f,
+		                        0.0f, 1.0f);
 	}
 	else if(e->keycode == 'o')
 	{
-		self->h = cc_clamp(self->h + 0.05f, 0.0f, 1.0f);
+		self->ctrl_h = cc_clamp(self->ctrl_h + 0.05f,
+		                        0.0f, 1.0f);
 	}
 	else if(e->keycode == 'j')
 	{
-		self->phi = cc_clamp(self->phi + 5.0f,
-		                     0.0f, 180.0f);
+		self->ctrl_phi = cc_clamp(self->ctrl_phi + 0.05f,
+		                          0.0f, 1.0f);
 	}
 	else if(e->keycode == 'k')
 	{
-		self->phi = cc_clamp(self->phi - 5.0f,
-		                     0.0f, 180.0f);
+		self->ctrl_phi = cc_clamp(self->ctrl_phi - 0.05f,
+		                          0.0f, 1.0f);
 	}
 	else if(e->keycode == 'r')
 	{
-		self->h   = 0.1f;
-		self->phi = 90.0f;
+		self->ctrl_h   = 0.1f;
+		self->ctrl_phi = 0.5f;
 	}
 
 	return 1;
