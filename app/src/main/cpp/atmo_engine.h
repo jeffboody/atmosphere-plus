@@ -40,7 +40,6 @@ typedef struct atmo_engine_s
 	vkk_indexType_e sphere_it;
 	vkk_buffer_t*   sphere_ib;
 	vkk_buffer_t*   sphere_vb;
-	vkk_buffer_t*   sphere_nb;
 
 	vkk_uniformSetFactory_t* scene_usf0;
 	vkk_pipelineLayout_t*    scene_pl;

@@ -63,24 +63,11 @@ atmo_engine_loadSphere(atmo_engine_t* self,
 		return 0;
 	}
 
-	gltf_accessor_t* a_nb;
-	a_nb = gltf_file_getAccessor(glb, 1);
-	if((a_nb == NULL) ||
-	   (a_nb->has_bufferView == 0)   ||
-	   (a_nb->bufferView     != 1)   ||
-	   (a_nb->type           != at3) ||
-	   (a_nb->componentType  != ctf) ||
-	   (a_nb->count          != a_vb->count))
-	{
-		LOGE("invalid");
-		return 0;
-	}
-
 	gltf_accessor_t* a_ib;
-	a_ib = gltf_file_getAccessor(glb, 2);
+	a_ib = gltf_file_getAccessor(glb, 1);
 	if((a_ib == NULL) ||
 	   (a_ib->has_bufferView == 0)   ||
-	   (a_ib->bufferView     != 2)   ||
+	   (a_ib->bufferView     != 1)   ||
 	   (a_ib->type           != at1) ||
 	   (a_ib->componentType  != ctus))
 	{
@@ -89,25 +76,20 @@ atmo_engine_loadSphere(atmo_engine_t* self,
 	}
 
 	gltf_bufferView_t* bv_vb;
-	gltf_bufferView_t* bv_nb;
 	gltf_bufferView_t* bv_ib;
 	bv_vb = gltf_file_getBufferView(glb, 0);
-	bv_nb = gltf_file_getBufferView(glb, 1);
-	bv_ib = gltf_file_getBufferView(glb, 2);
-	if((bv_vb == NULL) || (bv_nb == NULL) || (bv_ib == NULL))
+	bv_ib = gltf_file_getBufferView(glb, 1);
+	if((bv_vb == NULL) || (bv_ib == NULL))
 	{
 		LOGE("invalid");
 		return 0;
 	}
 
 	const char* buf_vb;
-	const char* buf_nb;
 	const char* buf_ib;
 	buf_vb = gltf_file_getBuffer(glb, bv_vb);
-	buf_nb = gltf_file_getBuffer(glb, bv_nb);
 	buf_ib = gltf_file_getBuffer(glb, bv_ib);
-	if((buf_vb == NULL) || (buf_nb == NULL) ||
-	   (buf_ib == NULL))
+	if((buf_vb == NULL) || (buf_ib == NULL))
 	{
 		LOGE("invalid");
 		return 0;
@@ -132,16 +114,6 @@ atmo_engine_loadSphere(atmo_engine_t* self,
 	                                 a_vb->count*sizeof(cc_vec3f_t),
 	                                 buf_vb);
 	if(self->sphere_vb == NULL)
-	{
-		return 0;
-	}
-
-	self->sphere_nb = vkk_buffer_new(self->engine,
-	                                 VKK_UPDATE_MODE_STATIC,
-	                                 VKK_BUFFER_USAGE_VERTEX,
-	                                 a_nb->count*sizeof(cc_vec3f_t),
-	                                 buf_nb);
-	if(self->sphere_nb == NULL)
 	{
 		return 0;
 	}
@@ -319,12 +291,6 @@ atmo_engine_t* atmo_engine_new(vkk_engine_t* engine)
 			.components = 3,
 			.format     = VKK_VERTEX_FORMAT_FLOAT,
 		},
-		// normal
-		{
-			.location   = 1,
-			.components = 3,
-			.format     = VKK_VERTEX_FORMAT_FLOAT,
-		},
 	};
 
 	vkk_graphicsPipelineInfo_t planet_gpi =
@@ -333,7 +299,7 @@ atmo_engine_t* atmo_engine_new(vkk_engine_t* engine)
 		.pl                = self->scene_pl,
 		.vs                = "shaders/planet_vert.spv",
 		.fs                = "shaders/planet_frag.spv",
-		.vb_count          = 2,
+		.vb_count          = 1,
 		.vbi               = planet_vbi_array,
 		.primitive         = VKK_PRIMITIVE_TRIANGLE_LIST,
 		.primitive_restart = 0,
@@ -403,7 +369,6 @@ void atmo_engine_delete(atmo_engine_t** _self)
 		vkk_buffer_delete(&self->scene_ub000_mvp);
 		vkk_pipelineLayout_delete(&self->scene_pl);
 		vkk_uniformSetFactory_delete(&self->scene_usf0);
-		vkk_buffer_delete(&self->sphere_nb);
 		vkk_buffer_delete(&self->sphere_vb);
 		vkk_buffer_delete(&self->sphere_ib);
 		FREE(self);
@@ -484,7 +449,7 @@ void atmo_engine_draw(atmo_engine_t* self)
 
 	cc_mat4f_t mvp;
 	cc_mat4f_perspective(&mvp, 1, fovy, aspect,
-	                     2.0f, 2.0f*Ra);
+	                     1.0f, 2.0f*Ra);
 	cc_mat4f_lookat(&mvp, 0,
 	                eye.x, eye.y, eye.z,
 	                at.x,  at.y,  at.z,
@@ -501,9 +466,8 @@ void atmo_engine_draw(atmo_engine_t* self)
 	vkk_buffer_t* vertex_buffers[] =
 	{
 		self->sphere_vb,
-		self->sphere_nb,
 	};
-	vkk_renderer_drawIndexed(rend, self->sphere_ic, 2,
+	vkk_renderer_drawIndexed(rend, self->sphere_ic, 1,
 	                         self->sphere_it,
 	                         self->sphere_ib,
 	                         vertex_buffers);
