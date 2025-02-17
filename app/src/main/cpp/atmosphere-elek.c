@@ -25,7 +25,7 @@
 
 #define LOG_TAG "atmo"
 #include "libcc/cc_log.h"
-#include "atmo_engine.h"
+#include "atmo_renderer.h"
 
 /***********************************************************
 * callbacks                                                *
@@ -35,21 +35,21 @@ void* atmo_onCreate(vkk_engine_t* engine)
 {
 	ASSERT(engine);
 
-	return (void*) atmo_engine_new(engine);
+	return (void*) atmo_renderer_new(engine);
 }
 
 void atmo_onDestroy(void** _priv)
 {
 	ASSERT(_priv);
 
-	atmo_engine_delete((atmo_engine_t**) _priv);
+	atmo_renderer_delete((atmo_renderer_t**) _priv);
 }
 
 void atmo_onDraw(void* priv)
 {
 	ASSERT(priv);
 
-	atmo_engine_draw((atmo_engine_t*) priv);
+	atmo_renderer_draw((atmo_renderer_t*) priv);
 }
 
 void atmo_onPause(void* priv)
@@ -64,7 +64,7 @@ int atmo_onEvent(void* priv, vkk_platformEvent_t* event)
 	ASSERT(priv);
 	ASSERT(event);
 
-	return atmo_engine_event((atmo_engine_t*) priv, event);
+	return atmo_renderer_event((atmo_renderer_t*) priv, event);
 }
 
 vkk_platformInfo_t VKK_PLATFORM_INFO =

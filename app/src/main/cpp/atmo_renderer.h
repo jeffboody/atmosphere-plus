@@ -21,13 +21,13 @@
  *
  */
 
-#ifndef atmo_engine_H
-#define atmo_engine_H
+#ifndef atmo_renderer_H
+#define atmo_renderer_H
 
 #include "libvkk/vkk_platform.h"
 #include "libvkk/vkk.h"
 
-typedef struct atmo_engine_s
+typedef struct atmo_renderer_s
 {
 	vkk_engine_t* engine;
 
@@ -49,12 +49,12 @@ typedef struct atmo_engine_s
 
 	vkk_graphicsPipeline_t*  planet_gp;
 	vkk_graphicsPipeline_t*  sky_gp;
-} atmo_engine_t;
+} atmo_renderer_t;
 
-atmo_engine_t* atmo_engine_new(vkk_engine_t* engine);
-void           atmo_engine_delete(atmo_engine_t** _self);
-void           atmo_engine_draw(atmo_engine_t* self);
-int            atmo_engine_event(atmo_engine_t* self,
-                                 vkk_platformEvent_t* event);
+atmo_renderer_t* atmo_renderer_new(vkk_engine_t* engine);
+void             atmo_renderer_delete(atmo_renderer_t** _self);
+void             atmo_renderer_draw(atmo_renderer_t* self);
+int              atmo_renderer_event(atmo_renderer_t* self,
+                                     vkk_platformEvent_t* event);
 
 #endif

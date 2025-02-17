@@ -33,15 +33,15 @@
 #include "libcc/cc_log.h"
 #include "libcc/cc_memory.h"
 #include "libgltf/gltf.h"
-#include "atmo_engine.h"
+#include "atmo_renderer.h"
 
 /***********************************************************
 * private                                                  *
 ***********************************************************/
 
 static int
-atmo_engine_loadSphere(atmo_engine_t* self,
-                       gltf_file_t* glb)
+atmo_renderer_loadSphere(atmo_renderer_t* self,
+                         gltf_file_t* glb)
 {
 	ASSERT(self);
 	ASSERT(glb);
@@ -121,7 +121,7 @@ atmo_engine_loadSphere(atmo_engine_t* self,
 	return 1;
 }
 
-static int atmo_engine_importSphere(atmo_engine_t* self)
+static int atmo_renderer_importSphere(atmo_renderer_t* self)
 {
 	ASSERT(self);
 
@@ -158,7 +158,7 @@ static int atmo_engine_importSphere(atmo_engine_t* self)
 		goto fail_glb;
 	}
 
-	if(atmo_engine_loadSphere(self, glb) == 0)
+	if(atmo_renderer_loadSphere(self, glb) == 0)
 	{
 		goto fail_parse;
 	}
@@ -184,7 +184,7 @@ static int atmo_engine_importSphere(atmo_engine_t* self)
 * public                                                   *
 ***********************************************************/
 
-atmo_engine_t* atmo_engine_new(vkk_engine_t* engine)
+atmo_renderer_t* atmo_renderer_new(vkk_engine_t* engine)
 {
 	ASSERT(engine);
 
@@ -193,8 +193,9 @@ atmo_engine_t* atmo_engine_new(vkk_engine_t* engine)
 
 	vkk_updateMode_e um = vkk_renderer_updateMode(rend);
 
-	atmo_engine_t* self;
-	self = (atmo_engine_t*) CALLOC(1, sizeof(atmo_engine_t));
+	atmo_renderer_t* self;
+	self = (atmo_renderer_t*)
+	       CALLOC(1, sizeof(atmo_renderer_t));
 	if(self == NULL)
 	{
 		LOGE("CALLOC failed");
@@ -207,7 +208,7 @@ atmo_engine_t* atmo_engine_new(vkk_engine_t* engine)
 	self->ctrl_delta = 0.0f;
 	self->ctrl_omega = 0.0f;
 
-	if(atmo_engine_importSphere(self) == 0)
+	if(atmo_renderer_importSphere(self) == 0)
 	{
 		goto failure;
 	}
@@ -351,15 +352,15 @@ atmo_engine_t* atmo_engine_new(vkk_engine_t* engine)
 
 	// failure
 	failure:
-		atmo_engine_delete(&self);
+		atmo_renderer_delete(&self);
 	return NULL;
 }
 
-void atmo_engine_delete(atmo_engine_t** _self)
+void atmo_renderer_delete(atmo_renderer_t** _self)
 {
 	ASSERT(_self);
 
-	atmo_engine_t* self = *_self;
+	atmo_renderer_t* self = *_self;
 	if(self)
 	{
 		vkk_graphicsPipeline_delete(&self->sky_gp);
@@ -376,7 +377,7 @@ void atmo_engine_delete(atmo_engine_t** _self)
 	}
 }
 
-void atmo_engine_draw(atmo_engine_t* self)
+void atmo_renderer_draw(atmo_renderer_t* self)
 {
 	ASSERT(self);
 
@@ -482,8 +483,8 @@ void atmo_engine_draw(atmo_engine_t* self)
 	vkk_renderer_end(rend);
 }
 
-int atmo_engine_event(atmo_engine_t* self,
-                      vkk_platformEvent_t* event)
+int atmo_renderer_event(atmo_renderer_t* self,
+                        vkk_platformEvent_t* event)
 {
 	ASSERT(self);
 	ASSERT(event);
