@@ -33,6 +33,8 @@ typedef struct atmo_engine_s
 
 	float ctrl_h;
 	float ctrl_phi;
+	float ctrl_delta;
+	float ctrl_omega;
 
 	uint32_t        sphere_ic;
 	vkk_indexType_e sphere_it;
@@ -43,6 +45,7 @@ typedef struct atmo_engine_s
 	vkk_uniformSetFactory_t* scene_usf0;
 	vkk_pipelineLayout_t*    scene_pl;
 	vkk_buffer_t*            scene_ub000_mvp;
+	vkk_buffer_t*            scene_ub001_L;
 	vkk_uniformSet_t*        scene_us0;
 
 	vkk_graphicsPipeline_t*  planet_gp;

@@ -229,9 +229,11 @@ atmo_engine_t* atmo_engine_new(vkk_engine_t* engine)
 		return NULL;
 	}
 
-	self->engine   = engine;
-	self->ctrl_h   = 0.1f;
-	self->ctrl_phi = 0.5f;
+	self->engine     = engine;
+	self->ctrl_h     = 0.1f;
+	self->ctrl_phi   = 0.5f;
+	self->ctrl_delta = 0.0f;
+	self->ctrl_omega = 0.0f;
 
 	if(atmo_engine_importSphere(self) == 0)
 	{
@@ -246,9 +248,15 @@ atmo_engine_t* atmo_engine_new(vkk_engine_t* engine)
 			.type    = VKK_UNIFORM_TYPE_BUFFER,
 			.stage   = VKK_STAGE_VS,
 		},
+		// ub001_L
+		{
+			.binding = 1,
+			.type    = VKK_UNIFORM_TYPE_BUFFER,
+			.stage   = VKK_STAGE_FS,
+		},
 	};
 
-	self->scene_usf0 = vkk_uniformSetFactory_new(engine, um, 1,
+	self->scene_usf0 = vkk_uniformSetFactory_new(engine, um, 2,
 	                                             scene_ub0_array);
 	if(self->scene_usf0 == NULL)
 	{
@@ -271,6 +279,15 @@ atmo_engine_t* atmo_engine_new(vkk_engine_t* engine)
 		goto failure;
 	}
 
+	self->scene_ub001_L = vkk_buffer_new(engine, um,
+	                                     VKK_BUFFER_USAGE_UNIFORM,
+	                                     sizeof(cc_vec4f_t),
+	                                     NULL);
+	if(self->scene_ub001_L == NULL)
+	{
+		goto failure;
+	}
+
 	vkk_uniformAttachment_t scene_ua0_array[] =
 	{
 		// ub000_mvp
@@ -279,8 +296,14 @@ atmo_engine_t* atmo_engine_new(vkk_engine_t* engine)
 			.type    = VKK_UNIFORM_TYPE_BUFFER,
 			.buffer  = self->scene_ub000_mvp,
 		},
+		// ub001_L
+		{
+			.binding = 1,
+			.type    = VKK_UNIFORM_TYPE_BUFFER,
+			.buffer  = self->scene_ub001_L,
+		},
 	};
-	self->scene_us0 = vkk_uniformSet_new(engine, 0, 1,
+	self->scene_us0 = vkk_uniformSet_new(engine, 0, 2,
 	                                     scene_ua0_array,
 	                                     self->scene_usf0);
 	if(self->scene_us0 == NULL)
@@ -376,6 +399,7 @@ void atmo_engine_delete(atmo_engine_t** _self)
 		vkk_graphicsPipeline_delete(&self->sky_gp);
 		vkk_graphicsPipeline_delete(&self->planet_gp);
 		vkk_uniformSet_delete(&self->scene_us0);
+		vkk_buffer_delete(&self->scene_ub001_L);
 		vkk_buffer_delete(&self->scene_ub000_mvp);
 		vkk_pipelineLayout_delete(&self->scene_pl);
 		vkk_uniformSetFactory_delete(&self->scene_usf0);
@@ -417,12 +441,16 @@ void atmo_engine_draw(atmo_engine_t* self)
 	}
 
 	// clamp h to avoid near clipping plane
-	float Rp  = 6371000.0f;
-	float Ra  = 6471000.0f;
-	float Ha  = Ra - Rp;
-	float h   = cc_clamp(self->ctrl_h*Ha, 3.0f, Ha - 10.0f);
-	float phi = cc_deg2rad(cc_clamp(180.0f*self->ctrl_phi,
-	                                0.0f, 180.0f));
+	float Rp    = 6371000.0f;
+	float Ra    = 6471000.0f;
+	float Ha    = Ra - Rp;
+	float h     = cc_clamp(self->ctrl_h*Ha, 3.0f, Ha - 10.0f);
+	float phi   = cc_deg2rad(cc_clamp(180.0f*self->ctrl_phi,
+	                                  0.0f, 180.0f));
+	float delta = cc_deg2rad(cc_clamp(180.0f*self->ctrl_delta,
+	                                  0.0f, 180.0f));
+	float omega = cc_deg2rad(cc_clamp(360.0f*self->ctrl_omega,
+	                                  0.0f, 360.0f));
 
 	cc_vec3f_t eye =
 	{
@@ -447,6 +475,13 @@ void atmo_engine_draw(atmo_engine_t* self)
 	cc_vec3f_muls(&at, 1000.0f);
 	cc_vec3f_addv(&at, &eye);
 
+	cc_vec4f_t L =
+	{
+		.x = -sin(delta)*cos(omega),
+		.y = -sin(delta)*sin(omega),
+		.z = -cos(delta),
+	};
+
 	cc_mat4f_t mvp;
 	cc_mat4f_perspective(&mvp, 1, fovy, aspect,
 	                     2.0f, 2.0f*Ra);
@@ -457,6 +492,9 @@ void atmo_engine_draw(atmo_engine_t* self)
 	vkk_renderer_updateBuffer(rend, self->scene_ub000_mvp,
 	                          sizeof(cc_mat4f_t),
 	                          (const void*) &mvp);
+	vkk_renderer_updateBuffer(rend, self->scene_ub001_L,
+	                          sizeof(cc_vec4f_t),
+	                          (const void*) &L);
 	vkk_renderer_bindGraphicsPipeline(rend, self->planet_gp);
 	vkk_renderer_bindUniformSets(rend, 1, &self->scene_us0);
 
@@ -487,35 +525,75 @@ int atmo_engine_event(atmo_engine_t* self,
 	ASSERT(event);
 
 	vkk_platformEventKey_t* e = &event->key;
-
-	if(e->keycode == VKK_PLATFORM_KEYCODE_ESCAPE)
+	if((event->type == VKK_PLATFORM_EVENTTYPE_KEY_UP) ||
+	   ((event->type == VKK_PLATFORM_EVENTTYPE_KEY_DOWN) &&
+	    (event->key.repeat)))
 	{
-		return 0;
-	}
-	else if(e->keycode == 'i')
-	{
-		self->ctrl_h = cc_clamp(self->ctrl_h - 0.05f,
-		                        0.0f, 1.0f);
-	}
-	else if(e->keycode == 'o')
-	{
-		self->ctrl_h = cc_clamp(self->ctrl_h + 0.05f,
-		                        0.0f, 1.0f);
-	}
-	else if(e->keycode == 'j')
-	{
-		self->ctrl_phi = cc_clamp(self->ctrl_phi + 0.05f,
-		                          0.0f, 1.0f);
-	}
-	else if(e->keycode == 'k')
-	{
-		self->ctrl_phi = cc_clamp(self->ctrl_phi - 0.05f,
-		                          0.0f, 1.0f);
-	}
-	else if(e->keycode == 'r')
-	{
-		self->ctrl_h   = 0.1f;
-		self->ctrl_phi = 0.5f;
+		if(e->keycode == VKK_PLATFORM_KEYCODE_ESCAPE)
+		{
+			return 0;
+		}
+		else if(e->keycode == 'i')
+		{
+			self->ctrl_h = cc_clamp(self->ctrl_h - 0.025f,
+			                        0.0f, 1.0f);
+		}
+		else if(e->keycode == 'o')
+		{
+			self->ctrl_h = cc_clamp(self->ctrl_h + 0.025f,
+			                        0.0f, 1.0f);
+		}
+		else if(e->keycode == 'j')
+		{
+			self->ctrl_phi = cc_clamp(self->ctrl_phi + 0.025f,
+			                          0.0f, 1.0f);
+		}
+		else if(e->keycode == 'k')
+		{
+			self->ctrl_phi = cc_clamp(self->ctrl_phi - 0.025f,
+			                          0.0f, 1.0f);
+		}
+		else if(e->keycode == 'w')
+		{
+			self->ctrl_delta = cc_clamp(self->ctrl_delta - 0.025f,
+			                            0.0f, 1.0f);
+		}
+		else if(e->keycode == 's')
+		{
+			self->ctrl_delta = cc_clamp(self->ctrl_delta + 0.025f,
+			                            0.0f, 1.0f);
+		}
+		else if(e->keycode == 'a')
+		{
+			self->ctrl_omega = self->ctrl_omega + 0.025f;
+			while(self->ctrl_omega < 0.0f)
+			{
+				self->ctrl_omega += 1.0f;
+			}
+			while(self->ctrl_omega > 1.0f)
+			{
+				self->ctrl_omega -= 1.0f;
+			}
+		}
+		else if(e->keycode == 'd')
+		{
+			self->ctrl_omega = self->ctrl_omega - 0.025f;
+			while(self->ctrl_omega < 0.0f)
+			{
+				self->ctrl_omega += 1.0f;
+			}
+			while(self->ctrl_omega > 1.0f)
+			{
+				self->ctrl_omega -= 1.0f;
+			}
+		}
+		else if(e->keycode == 'r')
+		{
+			self->ctrl_h     = 0.1f;
+			self->ctrl_phi   = 0.5f;
+			self->ctrl_delta = 0.0f;
+			self->ctrl_omega = 0.0f;
+		}
 	}
 
 	return 1;
