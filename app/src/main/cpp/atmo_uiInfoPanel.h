@@ -36,10 +36,12 @@ typedef struct atmo_uiInfoPanel_s
 	vkk_uiText_t*      text_ctrl_phi;
 	vkk_uiText_t*      text_ctrl_delta;
 	vkk_uiText_t*      text_ctrl_omega;
+	vkk_uiText_t*      text_ctrl_k;
 	float              last_ctrl_h;
 	float              last_ctrl_phi;
 	float              last_ctrl_delta;
 	float              last_ctrl_omega;
+	float              last_ctrl_k;
 } atmo_uiInfoPanel_t;
 
 atmo_uiInfoPanel_t* atmo_uiInfoPanel_new(atmo_uiScreen_t* screen);

@@ -29,11 +29,13 @@
 #define LOG_TAG "atmo"
 #include "libbfs/bfs_file.h"
 #include "libcc/math/cc_float.h"
+#include "libcc/math/cc_vec2f.h"
 #include "libcc/math/cc_vec3f.h"
 #include "libcc/cc_log.h"
 #include "libcc/cc_memory.h"
 #include "libgltf/gltf.h"
 #include "atmo_renderer.h"
+#include "atmo_solver.h"
 
 /***********************************************************
 * private                                                  *
@@ -47,6 +49,7 @@ static void atmo_renderer_resetCtrl(atmo_renderer_t* self)
 	self->ctrl_phi   = 0.5f;
 	self->ctrl_delta = 0.0f;
 	self->ctrl_omega = 0.0f;
+	self->ctrl_k     = 1;
 }
 
 static int
@@ -237,23 +240,83 @@ atmo_renderer_t* atmo_renderer_new(vkk_engine_t* engine)
 			.type    = VKK_UNIFORM_TYPE_BUFFER,
 			.stage   = VKK_STAGE_VS,
 		},
-		// ub001_L
+		// ub001_RaRp
 		{
 			.binding = 1,
+			.type    = VKK_UNIFORM_TYPE_BUFFER,
+			.stage   = VKK_STAGE_VSFS,
+		},
+		// ub002_L4
+		{
+			.binding = 2,
 			.type    = VKK_UNIFORM_TYPE_BUFFER,
 			.stage   = VKK_STAGE_FS,
 		},
 	};
 
-	self->scene_usf0 = vkk_uniformSetFactory_new(engine, um, 2,
+	self->scene_usf0 = vkk_uniformSetFactory_new(engine, um, 3,
 	                                             scene_ub0_array);
 	if(self->scene_usf0 == NULL)
 	{
 		goto failure;
 	}
 
-	self->scene_pl = vkk_pipelineLayout_new(engine, 1,
-	                                        &self->scene_usf0);
+	vkk_uniformBinding_t scene_ub1_array[] =
+	{
+		// ub100_P0H
+		{
+			.binding = 0,
+			.type    = VKK_UNIFORM_TYPE_BUFFER,
+			.stage   = VKK_STAGE_VSFS,
+		},
+		// ub101_Zenith4
+		{
+			.binding = 1,
+			.type    = VKK_UNIFORM_TYPE_BUFFER,
+			.stage   = VKK_STAGE_FS,
+		},
+		// ub102_II4
+		{
+			.binding = 2,
+			.type    = VKK_UNIFORM_TYPE_BUFFER,
+			.stage   = VKK_STAGE_FS,
+		},
+		// ub103_phase_g_mie
+		{
+			.binding = 3,
+			.type    = VKK_UNIFORM_TYPE_BUFFER,
+			.stage   = VKK_STAGE_FS,
+		},
+		// sampler104_fIS
+		{
+			.binding = 4,
+			.type    = VKK_UNIFORM_TYPE_IMAGE_REF,
+			.stage   = VKK_STAGE_FS,
+			.si      =
+			{
+				.min_filter     = VKK_SAMPLER_FILTER_LINEAR,
+				.mag_filter     = VKK_SAMPLER_FILTER_LINEAR,
+				.mipmap_mode    = VKK_SAMPLER_MIPMAP_MODE_LINEAR,
+				.anisotropy     = 0,
+				.max_anisotropy = 0.0f,
+			},
+		},
+	};
+
+	self->scene_usf1 = vkk_uniformSetFactory_new(engine, um, 5,
+	                                             scene_ub1_array);
+	if(self->scene_usf1 == NULL)
+	{
+		goto failure;
+	}
+
+	vkk_uniformSetFactory_t* usf_array[] =
+	{
+		self->scene_usf0,
+		self->scene_usf1,
+	};
+	self->scene_pl = vkk_pipelineLayout_new(engine, 2,
+	                                        usf_array);
 	if(self->scene_pl == NULL)
 	{
 		goto failure;
@@ -268,11 +331,56 @@ atmo_renderer_t* atmo_renderer_new(vkk_engine_t* engine)
 		goto failure;
 	}
 
-	self->scene_ub001_L = vkk_buffer_new(engine, um,
-	                                     VKK_BUFFER_USAGE_UNIFORM,
-	                                     sizeof(cc_vec4f_t),
-	                                     NULL);
-	if(self->scene_ub001_L == NULL)
+	self->scene_ub001_RaRp = vkk_buffer_new(engine, um,
+	                                        VKK_BUFFER_USAGE_UNIFORM,
+	                                        sizeof(cc_vec2f_t),
+	                                        NULL);
+	if(self->scene_ub001_RaRp == NULL)
+	{
+		goto failure;
+	}
+
+	self->scene_ub002_L4 = vkk_buffer_new(engine, um,
+	                                      VKK_BUFFER_USAGE_UNIFORM,
+	                                      sizeof(cc_vec4f_t),
+	                                      NULL);
+	if(self->scene_ub002_L4 == NULL)
+	{
+		goto failure;
+	}
+
+	self->scene_ub100_P0H = vkk_buffer_new(engine, um,
+	                                       VKK_BUFFER_USAGE_UNIFORM,
+	                                       sizeof(cc_vec4f_t),
+	                                       NULL);
+	if(self->scene_ub100_P0H == NULL)
+	{
+		goto failure;
+	}
+
+	self->scene_ub101_Zenith4 = vkk_buffer_new(engine, um,
+	                                           VKK_BUFFER_USAGE_UNIFORM,
+	                                           sizeof(cc_vec4f_t),
+	                                           NULL);
+	if(self->scene_ub101_Zenith4 == NULL)
+	{
+		goto failure;
+	}
+
+	self->scene_ub102_II4 = vkk_buffer_new(engine, um,
+	                                       VKK_BUFFER_USAGE_UNIFORM,
+	                                       sizeof(cc_vec4f_t),
+	                                       NULL);
+	if(self->scene_ub102_II4 == NULL)
+	{
+		goto failure;
+	}
+
+	self->scene_ub103_phase_g_mie = vkk_buffer_new(engine, um,
+	                                               VKK_BUFFER_USAGE_UNIFORM,
+	                                               sizeof(float),
+	                                               NULL);
+	if(self->scene_ub103_phase_g_mie == NULL)
 	{
 		goto failure;
 	}
@@ -285,17 +393,58 @@ atmo_renderer_t* atmo_renderer_new(vkk_engine_t* engine)
 			.type    = VKK_UNIFORM_TYPE_BUFFER,
 			.buffer  = self->scene_ub000_mvp,
 		},
-		// ub001_L
+		// ub001_RaRp
 		{
 			.binding = 1,
 			.type    = VKK_UNIFORM_TYPE_BUFFER,
-			.buffer  = self->scene_ub001_L,
+			.buffer  = self->scene_ub001_RaRp,
+		},
+		// ub002_L4
+		{
+			.binding = 2,
+			.type    = VKK_UNIFORM_TYPE_BUFFER,
+			.buffer  = self->scene_ub002_L4,
 		},
 	};
-	self->scene_us0 = vkk_uniformSet_new(engine, 0, 2,
+	self->scene_us0 = vkk_uniformSet_new(engine, 0, 3,
 	                                     scene_ua0_array,
 	                                     self->scene_usf0);
 	if(self->scene_us0 == NULL)
+	{
+		goto failure;
+	}
+
+	vkk_uniformAttachment_t scene_ua1_array[] =
+	{
+		// ub100_P0H
+		{
+			.binding = 0,
+			.type    = VKK_UNIFORM_TYPE_BUFFER,
+			.buffer  = self->scene_ub100_P0H,
+		},
+		// ub101_Zenith4
+		{
+			.binding = 1,
+			.type    = VKK_UNIFORM_TYPE_BUFFER,
+			.buffer  = self->scene_ub101_Zenith4,
+		},
+		// ub102_II4
+		{
+			.binding = 2,
+			.type    = VKK_UNIFORM_TYPE_BUFFER,
+			.buffer  = self->scene_ub102_II4,
+		},
+		// ub103_phase_g_mie
+		{
+			.binding = 3,
+			.type    = VKK_UNIFORM_TYPE_BUFFER,
+			.buffer  = self->scene_ub103_phase_g_mie,
+		},
+	};
+	self->scene_us1 = vkk_uniformSet_new(engine, 1, 4,
+	                                     scene_ua1_array,
+	                                     self->scene_usf1);
+	if(self->scene_us1 == NULL)
 	{
 		goto failure;
 	}
@@ -342,12 +491,12 @@ atmo_renderer_t* atmo_renderer_new(vkk_engine_t* engine)
 		},
 	};
 
-	vkk_graphicsPipelineInfo_t sky_gpi =
+	vkk_graphicsPipelineInfo_t sky_flat_gpi =
 	{
 		.renderer          = rend,
 		.pl                = self->scene_pl,
-		.vs                = "shaders/sky_vert.spv",
-		.fs                = "shaders/sky_frag.spv",
+		.vs                = "shaders/sky_flat_vert.spv",
+		.fs                = "shaders/sky_flat_frag.spv",
 		.vb_count          = 1,
 		.vbi               = sky_vbi_array,
 		.primitive         = VKK_PRIMITIVE_TRIANGLE_LIST,
@@ -357,8 +506,29 @@ atmo_renderer_t* atmo_renderer_new(vkk_engine_t* engine)
 		.depth_write       = 1,
 		.blend_mode        = VKK_BLEND_MODE_DISABLED,
 	};
-	self->sky_gp = vkk_graphicsPipeline_new(engine, &sky_gpi);
-	if(self->sky_gp == NULL)
+	self->sky_flat_gp = vkk_graphicsPipeline_new(engine, &sky_flat_gpi);
+	if(self->sky_flat_gp == NULL)
+	{
+		goto failure;
+	}
+
+	vkk_graphicsPipelineInfo_t sky_atmo_gpi =
+	{
+		.renderer          = rend,
+		.pl                = self->scene_pl,
+		.vs                = "shaders/sky_atmo_vert.spv",
+		.fs                = "shaders/sky_atmo_frag.spv",
+		.vb_count          = 1,
+		.vbi               = sky_vbi_array,
+		.primitive         = VKK_PRIMITIVE_TRIANGLE_LIST,
+		.primitive_restart = 0,
+		.cull_mode         = VKK_CULL_MODE_FRONT,
+		.depth_test        = 1,
+		.depth_write       = 1,
+		.blend_mode        = VKK_BLEND_MODE_DISABLED,
+	};
+	self->sky_atmo_gp = vkk_graphicsPipeline_new(engine, &sky_atmo_gpi);
+	if(self->sky_atmo_gp == NULL)
 	{
 		goto failure;
 	}
@@ -379,12 +549,20 @@ void atmo_renderer_delete(atmo_renderer_t** _self)
 	atmo_renderer_t* self = *_self;
 	if(self)
 	{
-		vkk_graphicsPipeline_delete(&self->sky_gp);
+		vkk_graphicsPipeline_delete(&self->sky_atmo_gp);
+		vkk_graphicsPipeline_delete(&self->sky_flat_gp);
 		vkk_graphicsPipeline_delete(&self->planet_gp);
+		vkk_uniformSet_delete(&self->scene_us1);
 		vkk_uniformSet_delete(&self->scene_us0);
-		vkk_buffer_delete(&self->scene_ub001_L);
+		vkk_buffer_delete(&self->scene_ub103_phase_g_mie);
+		vkk_buffer_delete(&self->scene_ub102_II4);
+		vkk_buffer_delete(&self->scene_ub101_Zenith4);
+		vkk_buffer_delete(&self->scene_ub100_P0H);
+		vkk_buffer_delete(&self->scene_ub002_L4);
+		vkk_buffer_delete(&self->scene_ub001_RaRp);
 		vkk_buffer_delete(&self->scene_ub000_mvp);
 		vkk_pipelineLayout_delete(&self->scene_pl);
+		vkk_uniformSetFactory_delete(&self->scene_usf1);
 		vkk_uniformSetFactory_delete(&self->scene_usf0);
 		vkk_buffer_delete(&self->sphere_vb);
 		vkk_buffer_delete(&self->sphere_ib);
@@ -394,12 +572,16 @@ void atmo_renderer_delete(atmo_renderer_t** _self)
 }
 
 void atmo_renderer_draw(atmo_renderer_t* self,
+                        atmo_solver_t* solver,
                         float width, float height)
 {
 	ASSERT(self);
+	ASSERT(solver);
 
 	vkk_renderer_t* rend;
 	rend = vkk_engine_defaultRenderer(self->engine);
+
+	atmo_solverParam_t* param = &solver->param;
 
 	float aspect = width/height;
 	float fovy   = 90.0f;
@@ -408,14 +590,28 @@ void atmo_renderer_draw(atmo_renderer_t* self,
 		fovy /= aspect;
 	}
 
-	float h     = atmo_renderer_getH(self);
-	float phi   = atmo_renderer_getPhi(self);
-	float delta = atmo_renderer_getDelta(self);
-	float omega = atmo_renderer_getOmega(self);
+	float    h     = atmo_renderer_getH(self);
+	float    phi   = atmo_renderer_getPhi(self);
+	float    delta = atmo_renderer_getDelta(self);
+	float    omega = atmo_renderer_getOmega(self);
+	uint32_t k     = atmo_renderer_getK(self);
 
 	cc_vec3f_t eye =
 	{
 		.z = h + self->Rp,
+	};
+
+	cc_vec4f_t P0h =
+	{
+		.x = eye.x,
+		.y = eye.y,
+		.z = eye.z,
+		.w = h,
+	};
+
+	cc_vec4f_t Zenith4 =
+	{
+		.z = 1.0f,
 	};
 
 	cc_vec3f_t at =
@@ -436,11 +632,24 @@ void atmo_renderer_draw(atmo_renderer_t* self,
 	cc_vec3f_muls(&at, 1000.0f);
 	cc_vec3f_addv(&at, &eye);
 
+	cc_vec2f_t RaRp = { .x = param->Ra, .y = param->Rp };
+
 	cc_vec4f_t L =
 	{
 		.x = -sin(delta)*cos(omega),
 		.y = -sin(delta)*sin(omega),
 		.z = -cos(delta),
+	};
+	cc_vec4f_normalize(&L);
+
+	cc_vec4f_t II4 =
+	{
+		.r = param->spectral_irradiance_r*
+		     param->exposure*param->spectral_to_rgb_r,
+		.g = param->spectral_irradiance_g*
+		     param->exposure*param->spectral_to_rgb_g,
+		.b = param->spectral_irradiance_b*
+		     param->exposure*param->spectral_to_rgb_b,
 	};
 
 	cc_mat4f_t mvp;
@@ -453,7 +662,10 @@ void atmo_renderer_draw(atmo_renderer_t* self,
 	vkk_renderer_updateBuffer(rend, self->scene_ub000_mvp,
 	                          sizeof(cc_mat4f_t),
 	                          (const void*) &mvp);
-	vkk_renderer_updateBuffer(rend, self->scene_ub001_L,
+	vkk_renderer_updateBuffer(rend, self->scene_ub001_RaRp,
+	                          sizeof(cc_vec2f_t),
+	                          (const void*) &RaRp);
+	vkk_renderer_updateBuffer(rend, self->scene_ub002_L4,
 	                          sizeof(cc_vec4f_t),
 	                          (const void*) &L);
 	vkk_renderer_bindGraphicsPipeline(rend, self->planet_gp);
@@ -468,7 +680,47 @@ void atmo_renderer_draw(atmo_renderer_t* self,
 	                         self->sphere_ib,
 	                         vertex_buffers);
 
-	vkk_renderer_bindGraphicsPipeline(rend, self->sky_gp);
+	vkk_image_t* image = atmo_solver_image(solver, k);
+	if(image)
+	{
+		vkk_renderer_updateBuffer(rend, self->scene_ub100_P0H,
+		                          sizeof(cc_vec4f_t),
+		                          (const void*) &P0h);
+		vkk_renderer_updateBuffer(rend, self->scene_ub101_Zenith4,
+		                          sizeof(cc_vec4f_t),
+		                          (const void*) &Zenith4);
+		vkk_renderer_updateBuffer(rend, self->scene_ub102_II4,
+		                          sizeof(cc_vec4f_t),
+		                          (const void*) &II4);
+		vkk_renderer_updateBuffer(rend, self->scene_ub103_phase_g_mie,
+		                          sizeof(float),
+		                          (const void*) &param->phase_g_mie);
+		vkk_uniformAttachment_t ua_array[] =
+		{
+			// sampler104_fIS
+			{
+				.binding = 4,
+				.type    = VKK_UNIFORM_TYPE_IMAGE_REF,
+				.image   = image,
+			},
+		};
+		vkk_renderer_updateUniformSetRefs(rend, self->scene_us1,
+		                                  1, ua_array);
+
+		vkk_uniformSet_t* us_array[] =
+		{
+			self->scene_us0,
+			self->scene_us1,
+		};
+		vkk_renderer_bindUniformSets(rend, 2, us_array);
+		vkk_renderer_bindGraphicsPipeline(rend,
+		                                  self->sky_atmo_gp);
+	}
+	else
+	{
+		vkk_renderer_bindGraphicsPipeline(rend,
+		                                  self->sky_flat_gp);
+	}
 
 	vkk_renderer_drawIndexed(rend, self->sphere_ic, 1,
 	                         self->sphere_it,
@@ -546,6 +798,11 @@ int atmo_renderer_event(atmo_renderer_t* self,
 			atmo_renderer_resetCtrl(self);
 			return 1;
 		}
+		else if((e->keycode >= '0') && (e->keycode <= '9'))
+		{
+			self->ctrl_k = e->keycode - '0';
+			return 1;
+		}
 	}
 
 	return 0;
@@ -579,4 +836,11 @@ float atmo_renderer_getOmega(atmo_renderer_t* self)
 	ASSERT(self);
 
 	return cc_deg2rad(360.0f*self->ctrl_omega);
+}
+
+uint32_t atmo_renderer_getK(atmo_renderer_t* self)
+{
+	ASSERT(self);
+
+	return (self->ctrl_k == 0) ? 10 : self->ctrl_k;
 }

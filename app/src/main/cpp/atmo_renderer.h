@@ -27,6 +27,8 @@
 #include "libvkk/vkk_platform.h"
 #include "libvkk/vkk.h"
 
+typedef struct atmo_solver_s atmo_solver_t;
+
 typedef struct atmo_renderer_s
 {
 	vkk_engine_t* engine;
@@ -34,10 +36,11 @@ typedef struct atmo_renderer_s
 	float Rp;
 	float Ra;
 
-	float ctrl_h;
-	float ctrl_phi;
-	float ctrl_delta;
-	float ctrl_omega;
+	float    ctrl_h;
+	float    ctrl_phi;
+	float    ctrl_delta;
+	float    ctrl_omega;
+	uint32_t ctrl_k;
 
 	uint32_t        sphere_ic;
 	vkk_indexType_e sphere_it;
@@ -45,18 +48,27 @@ typedef struct atmo_renderer_s
 	vkk_buffer_t*   sphere_vb;
 
 	vkk_uniformSetFactory_t* scene_usf0;
+	vkk_uniformSetFactory_t* scene_usf1;
 	vkk_pipelineLayout_t*    scene_pl;
 	vkk_buffer_t*            scene_ub000_mvp;
-	vkk_buffer_t*            scene_ub001_L;
+	vkk_buffer_t*            scene_ub001_RaRp; // Ra, Rp
+	vkk_buffer_t*            scene_ub002_L4;
+	vkk_buffer_t*            scene_ub100_P0H; // P0, H
+	vkk_buffer_t*            scene_ub101_Zenith4;
+	vkk_buffer_t*            scene_ub102_II4;
+	vkk_buffer_t*            scene_ub103_phase_g_mie;
 	vkk_uniformSet_t*        scene_us0;
+	vkk_uniformSet_t*        scene_us1;
 
 	vkk_graphicsPipeline_t*  planet_gp;
-	vkk_graphicsPipeline_t*  sky_gp;
+	vkk_graphicsPipeline_t*  sky_flat_gp;
+	vkk_graphicsPipeline_t*  sky_atmo_gp;
 } atmo_renderer_t;
 
 atmo_renderer_t* atmo_renderer_new(vkk_engine_t* engine);
 void             atmo_renderer_delete(atmo_renderer_t** _self);
 void             atmo_renderer_draw(atmo_renderer_t* self,
+                                    atmo_solver_t* solver,
                                     float width, float height);
 int              atmo_renderer_event(atmo_renderer_t* self,
                                      vkk_platformEvent_t* event);
@@ -64,5 +76,6 @@ float            atmo_renderer_getH(atmo_renderer_t* self);
 float            atmo_renderer_getPhi(atmo_renderer_t* self);
 float            atmo_renderer_getDelta(atmo_renderer_t* self);
 float            atmo_renderer_getOmega(atmo_renderer_t* self);
+uint32_t         atmo_renderer_getK(atmo_renderer_t* self);
 
 #endif

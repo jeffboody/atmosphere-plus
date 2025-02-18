@@ -27,6 +27,7 @@
 #include "libvkk/vkk_ui.h"
 
 typedef struct atmo_renderer_s    atmo_renderer_t;
+typedef struct atmo_solver_s      atmo_solver_t;
 typedef struct atmo_uiInfoPanel_s atmo_uiInfoPanel_t;
 typedef struct atmo_uiScreen_s    atmo_uiScreen_t;
 
@@ -36,6 +37,7 @@ typedef struct atmo_uiWindowHud_s
 	vkk_uiGraphicsBox_t* graphics_box;
 	atmo_uiInfoPanel_t*  info_panel;
 	atmo_renderer_t*     renderer;
+	atmo_solver_t*       solver;
 } atmo_uiWindowHud_t;
 
 atmo_uiWindowHud_t* atmo_uiWindowHud_new(atmo_uiScreen_t* screen);

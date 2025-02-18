@@ -26,6 +26,7 @@
 #define LOG_TAG "atmo"
 #include "libcc/cc_log.h"
 #include "atmo_renderer.h"
+#include "atmo_solver.h"
 #include "atmo_uiInfoPanel.h"
 #include "atmo_uiScreen.h"
 #include "atmo_uiWindowHud.h"
@@ -49,6 +50,7 @@ atmo_uiWindowHud_rendererDraw(vkk_uiWidget_t* widget)
 	cc_rect1f_t* rect_draw = vkk_uiWidget_rectDraw(widget);
 
 	atmo_renderer_draw(window_hud->renderer,
+	                   window_hud->solver,
 	                   (float) rect_draw->w,
 	                   (float) rect_draw->h);
 }
@@ -122,6 +124,12 @@ atmo_uiWindowHud_new(atmo_uiScreen_t* screen)
 		goto failure;
 	}
 
+	self->solver = atmo_solver_new(engine);
+	if(self->solver == NULL)
+	{
+		goto failure;
+	}
+
 	vkk_uiWindow_t* window = (vkk_uiWindow_t*) self;
 	vkk_uiLayer_t*  layer0 = vkk_uiWindow_layer0(window);
 	vkk_uiLayer_t*  layer1 = vkk_uiWindow_layer1(window);
@@ -149,6 +157,7 @@ void atmo_uiWindowHud_delete(atmo_uiWindowHud_t** _self)
 		vkk_uiLayer_t*  layer1 = vkk_uiWindow_layer1(window);
 		vkk_uiLayer_clear(layer0);
 		vkk_uiLayer_clear(layer1);
+		atmo_solver_delete(&self->solver);
 		atmo_renderer_delete(&self->renderer);
 		atmo_uiInfoPanel_delete(&self->info_panel);
 		vkk_uiGraphicsBox_delete(&self->graphics_box);
