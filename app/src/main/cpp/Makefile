@@ -3,7 +3,7 @@ export CC_USE_JSMN = 1
 export VKK_USE_UI  = 1
 
 TARGET   = atmosphere-elek
-CLASSES  = atmo_renderer
+CLASSES  = atmo_renderer atmo_uiScreen atmo_uiWindowHud atmo_uiInfoPanel
 SOURCE   = $(TARGET).c $(CLASSES:%=%.c)
 OBJECTS  = $(TARGET).o $(CLASSES:%=%.o)
 HFILES   = $(CLASSES:%=%.h)

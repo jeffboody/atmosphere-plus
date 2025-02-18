@@ -23,5 +23,10 @@ echo CLEANUP
 rm shaders/*.spv
 cd ..
 
+echo ADD-VKK
+cd app/src/main/cpp/libvkk/ui/resource
+./build-resource.sh $RESOURCE
+cd ../../../../../../..
+
 echo CONTENTS
 bfs $RESOURCE blobList

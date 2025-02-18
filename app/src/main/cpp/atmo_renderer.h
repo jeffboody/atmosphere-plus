@@ -31,6 +31,9 @@ typedef struct atmo_renderer_s
 {
 	vkk_engine_t* engine;
 
+	float Rp;
+	float Ra;
+
 	float ctrl_h;
 	float ctrl_phi;
 	float ctrl_delta;
@@ -53,8 +56,13 @@ typedef struct atmo_renderer_s
 
 atmo_renderer_t* atmo_renderer_new(vkk_engine_t* engine);
 void             atmo_renderer_delete(atmo_renderer_t** _self);
-void             atmo_renderer_draw(atmo_renderer_t* self);
+void             atmo_renderer_draw(atmo_renderer_t* self,
+                                    float width, float height);
 int              atmo_renderer_event(atmo_renderer_t* self,
                                      vkk_platformEvent_t* event);
+float            atmo_renderer_getH(atmo_renderer_t* self);
+float            atmo_renderer_getPhi(atmo_renderer_t* self);
+float            atmo_renderer_getDelta(atmo_renderer_t* self);
+float            atmo_renderer_getOmega(atmo_renderer_t* self);
 
 #endif

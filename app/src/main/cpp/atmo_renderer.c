@@ -39,9 +39,19 @@
 * private                                                  *
 ***********************************************************/
 
+static void atmo_renderer_resetCtrl(atmo_renderer_t* self)
+{
+	ASSERT(self);
+
+	self->ctrl_h     = 0.1f;
+	self->ctrl_phi   = 0.5f;
+	self->ctrl_delta = 0.0f;
+	self->ctrl_omega = 0.0f;
+}
+
 static int
-atmo_renderer_loadSphere(atmo_renderer_t* self,
-                         gltf_file_t* glb)
+atmo_renderer_newSphere(atmo_renderer_t* self,
+                        gltf_file_t* glb)
 {
 	ASSERT(self);
 	ASSERT(glb);
@@ -115,10 +125,16 @@ atmo_renderer_loadSphere(atmo_renderer_t* self,
 	                                 buf_vb);
 	if(self->sphere_vb == NULL)
 	{
-		return 0;
+		goto fail_sphere_vb;
 	}
 
+	// success
 	return 1;
+
+	// failure
+	fail_sphere_vb:
+		vkk_buffer_delete(&self->sphere_ib);
+	return 0;
 }
 
 static int atmo_renderer_importSphere(atmo_renderer_t* self)
@@ -158,7 +174,7 @@ static int atmo_renderer_importSphere(atmo_renderer_t* self)
 		goto fail_glb;
 	}
 
-	if(atmo_renderer_loadSphere(self, glb) == 0)
+	if(atmo_renderer_newSphere(self, glb) == 0)
 	{
 		goto fail_parse;
 	}
@@ -202,11 +218,11 @@ atmo_renderer_t* atmo_renderer_new(vkk_engine_t* engine)
 		return NULL;
 	}
 
-	self->engine     = engine;
-	self->ctrl_h     = 0.1f;
-	self->ctrl_phi   = 0.5f;
-	self->ctrl_delta = 0.0f;
-	self->ctrl_omega = 0.0f;
+	self->engine = engine;
+	self->Rp     = 6371000.0f;
+	self->Ra     = 6471000.0f;
+
+	atmo_renderer_resetCtrl(self);
 
 	if(atmo_renderer_importSphere(self) == 0)
 	{
@@ -377,50 +393,29 @@ void atmo_renderer_delete(atmo_renderer_t** _self)
 	}
 }
 
-void atmo_renderer_draw(atmo_renderer_t* self)
+void atmo_renderer_draw(atmo_renderer_t* self,
+                        float width, float height)
 {
 	ASSERT(self);
 
 	vkk_renderer_t* rend;
 	rend = vkk_engine_defaultRenderer(self->engine);
 
-	float clear_color[4] =
-	{
-		0.0f, 0.0f, 0.0f, 1.0f,
-	};
-
-	if(vkk_renderer_beginDefault(rend, VKK_RENDERER_MODE_DRAW,
-	                             clear_color) == 0)
-	{
-		return;
-	}
-
-	uint32_t width;
-	uint32_t height;
-	vkk_renderer_surfaceSize(rend, &width, &height);
-
-	float aspect = ((float) width)/((float) height);
+	float aspect = width/height;
 	float fovy   = 90.0f;
 	if(aspect < 1.0f)
 	{
 		fovy /= aspect;
 	}
 
-	// clamp h to avoid near clipping plane
-	float Rp    = 6371000.0f;
-	float Ra    = 6471000.0f;
-	float Ha    = Ra - Rp;
-	float h     = cc_clamp(self->ctrl_h*Ha, 3.0f, Ha - 10.0f);
-	float phi   = cc_deg2rad(cc_clamp(180.0f*self->ctrl_phi,
-	                                  0.0f, 180.0f));
-	float delta = cc_deg2rad(cc_clamp(180.0f*self->ctrl_delta,
-	                                  0.0f, 180.0f));
-	float omega = cc_deg2rad(cc_clamp(360.0f*self->ctrl_omega,
-	                                  0.0f, 360.0f));
+	float h     = atmo_renderer_getH(self);
+	float phi   = atmo_renderer_getPhi(self);
+	float delta = atmo_renderer_getDelta(self);
+	float omega = atmo_renderer_getOmega(self);
 
 	cc_vec3f_t eye =
 	{
-		.z = h + Rp,
+		.z = h + self->Rp,
 	};
 
 	cc_vec3f_t at =
@@ -450,7 +445,7 @@ void atmo_renderer_draw(atmo_renderer_t* self)
 
 	cc_mat4f_t mvp;
 	cc_mat4f_perspective(&mvp, 1, fovy, aspect,
-	                     1.0f, 2.0f*Ra);
+	                     1.0f, 2.0f*self->Ra);
 	cc_mat4f_lookat(&mvp, 0,
 	                eye.x, eye.y, eye.z,
 	                at.x,  at.y,  at.z,
@@ -479,8 +474,6 @@ void atmo_renderer_draw(atmo_renderer_t* self)
 	                         self->sphere_it,
 	                         self->sphere_ib,
 	                         vertex_buffers);
-
-	vkk_renderer_end(rend);
 }
 
 int atmo_renderer_event(atmo_renderer_t* self,
@@ -494,51 +487,50 @@ int atmo_renderer_event(atmo_renderer_t* self,
 	   ((event->type == VKK_PLATFORM_EVENTTYPE_KEY_DOWN) &&
 	    (event->key.repeat)))
 	{
-		if(e->keycode == VKK_PLATFORM_KEYCODE_ESCAPE)
-		{
-			return 0;
-		}
-		else if(e->keycode == 'i')
+		if(e->keycode == 'i')
 		{
 			self->ctrl_h = cc_clamp(self->ctrl_h - 0.025f,
 			                        0.0f, 1.0f);
+			return 1;
 		}
 		else if(e->keycode == 'o')
 		{
 			self->ctrl_h = cc_clamp(self->ctrl_h + 0.025f,
 			                        0.0f, 1.0f);
+			return 1;
 		}
 		else if(e->keycode == 'j')
 		{
 			self->ctrl_phi = cc_clamp(self->ctrl_phi + 0.025f,
 			                          0.0f, 1.0f);
+			return 1;
 		}
 		else if(e->keycode == 'k')
 		{
 			self->ctrl_phi = cc_clamp(self->ctrl_phi - 0.025f,
 			                          0.0f, 1.0f);
+			return 1;
 		}
 		else if(e->keycode == 'w')
 		{
 			self->ctrl_delta = cc_clamp(self->ctrl_delta - 0.025f,
 			                            0.0f, 1.0f);
+			return 1;
 		}
 		else if(e->keycode == 's')
 		{
 			self->ctrl_delta = cc_clamp(self->ctrl_delta + 0.025f,
 			                            0.0f, 1.0f);
+			return 1;
 		}
 		else if(e->keycode == 'a')
 		{
 			self->ctrl_omega = self->ctrl_omega + 0.025f;
-			while(self->ctrl_omega < 0.0f)
-			{
-				self->ctrl_omega += 1.0f;
-			}
-			while(self->ctrl_omega > 1.0f)
+			while(self->ctrl_omega >= 1.0f)
 			{
 				self->ctrl_omega -= 1.0f;
 			}
+			return 1;
 		}
 		else if(e->keycode == 'd')
 		{
@@ -547,19 +539,44 @@ int atmo_renderer_event(atmo_renderer_t* self,
 			{
 				self->ctrl_omega += 1.0f;
 			}
-			while(self->ctrl_omega > 1.0f)
-			{
-				self->ctrl_omega -= 1.0f;
-			}
+			return 1;
 		}
 		else if(e->keycode == 'r')
 		{
-			self->ctrl_h     = 0.1f;
-			self->ctrl_phi   = 0.5f;
-			self->ctrl_delta = 0.0f;
-			self->ctrl_omega = 0.0f;
+			atmo_renderer_resetCtrl(self);
+			return 1;
 		}
 	}
 
-	return 1;
+	return 0;
+}
+
+float atmo_renderer_getH(atmo_renderer_t* self)
+{
+	ASSERT(self);
+
+	// clamp h to avoid near clipping plane
+	float Ha = self->Ra - self->Rp;
+	return cc_clamp(self->ctrl_h*Ha, 3.0f, Ha - 10.0f);
+}
+
+float atmo_renderer_getPhi(atmo_renderer_t* self)
+{
+	ASSERT(self);
+
+	return cc_deg2rad(180.0f*self->ctrl_phi);
+}
+
+float atmo_renderer_getDelta(atmo_renderer_t* self)
+{
+	ASSERT(self);
+
+	return cc_deg2rad(180.0f*self->ctrl_delta);
+}
+
+float atmo_renderer_getOmega(atmo_renderer_t* self)
+{
+	ASSERT(self);
+
+	return cc_deg2rad(360.0f*self->ctrl_omega);
 }
