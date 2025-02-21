@@ -1,5 +1,12 @@
 #version 450
 
+// set defines to use non-linear parameterization
+// requires corresponding change in atmo_solver.c
+#define ATMO_PARAM_NONLINEAR_H
+// ATMO_PARAM_NONLINEAR_PHI seems buggy
+//#define ATMO_PARAM_NONLINEAR_PHI
+#define ATMO_PARAM_NONLINEAR_DELTA
+
 layout(location=0) in vec3 varying_V;
 
 layout(location=0) out vec4 fragColor;
@@ -57,21 +64,26 @@ float phaseM(float cos_theta)
 void main()
 {
 	vec3  V         = normalize(varying_V);
-	vec3  Sun       = -vec3(L4);
+	vec3  L         = vec3(L4);
 	vec3  Zenith    = vec3(Zenith4);
 	float cos_phi   = dot(V, Zenith);
-	float cos_delta = dot(Sun, Zenith);
-	float cos_theta = dot(Sun, V);
+	float cos_delta = dot(-L, Zenith);
+	float cos_theta = dot(L, -V);
 	float FR        = phaseR(cos_theta);
 	float FM        = phaseM(cos_theta);
 	float Ra        = RaRp[0];
 	float Rp        = RaRp[1];
-	float h         = Zenith4[3];
+	float h         = P0H[3];
 
-	// sample fIS texture
-	float ch = -sqrt(h*(2.0*Rp + h))/(Rp + h);
+	#ifdef ATMO_PARAM_NONLINEAR_H
 	float u  = sqrt(h/(Ra - Rp));
+	#else
+	float u  = h/(Ra - Rp);
+	#endif
+
 	float v;
+	#ifdef ATMO_PARAM_NONLINEAR_PHI
+	float ch = -sqrt(h*(2.0*Rp + h))/(Rp + h);
 	if(cos_phi > ch)
 	{
 		v = 0.5*pow((cos_phi - ch)/(1.0 - ch), 0.2) + 0.5;
@@ -80,8 +92,19 @@ void main()
 	{
 		v = 0.5*pow((ch - cos_phi)/(1.0 + ch), 0.2);
 	}
-	float w   = 0.5*(atan(max(cos_delta, -0.1975)*tan(1.26*1.1))/1.1 + (1.0 - 0.26));
-	vec4  fIS = texture(sampler104_fIS, vec3(u, v, w));
+	#else
+	v = (cos_phi + 1.0f)/2.0f;
+	#endif
+
+	float w;
+	#ifdef ATMO_PARAM_NONLINEAR_DELTA
+	w = 0.5*(atan(max(cos_delta, -0.1975)*tan(1.26*1.1))/1.1 + (1.0 - 0.26));
+	#else
+	w = (cos_delta + 1.0f)/2.0f;
+	#endif
+
+	// sample fIS texture
+	vec4 fIS = texture(sampler104_fIS, vec3(u, v, w));
 
 	// apply constant phase function and
 	// spectral intensity of incident light

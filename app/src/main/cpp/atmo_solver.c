@@ -28,6 +28,7 @@
 
 #define LOG_TAG "atmo"
 #include "libcc/jsmn/cc_jsmnStream.h"
+#include "libcc/math/cc_float.h"
 #include "libcc/math/cc_pow2n.h"
 #include "libcc/math/cc_ray3f.h"
 #include "libcc/math/cc_sphere.h"
@@ -36,6 +37,8 @@
 #include "libcc/math/cc_vec4f.h"
 #include "libcc/cc_log.h"
 #include "libcc/cc_memory.h"
+#include "texgz/texgz_tex.h"
+#include "texgz/texgz_png.h"
 #include "atmo_solver.h"
 
 // radius of the planet and atmospheric boundary
@@ -70,6 +73,13 @@
 #define ATMO_TEXTURE_WIDTH  32
 #define ATMO_TEXTURE_HEIGHT 256
 #define ATMO_TEXTURE_DEPTH  32
+
+// set defines to use non-linear parameterization
+// requires corresponding change in sky_atmo.frag
+#define ATMO_PARAM_NONLINEAR_H
+// ATMO_PARAM_NONLINEAR_PHI seems buggy
+//#define ATMO_PARAM_NONLINEAR_PHI
+#define ATMO_PARAM_NONLINEAR_DELTA
 
 /***********************************************************
 * private - compute                                        *
@@ -384,6 +394,29 @@ atmo_getDataK(atmo_solverParam_t* param,
 }
 
 static void
+atmo_getData(atmo_solverParam_t* param,
+             uint32_t k, uint32_t x,
+             uint32_t y, uint32_t z,
+             cc_vec4f_t* data, cc_vec4f_t* val)
+{
+	ASSERT(param);
+	ASSERT(data);
+	ASSERT(val);
+
+	// k is base-1
+	uint32_t i   = k - 1;
+	uint32_t w   = param->texture_width;
+	uint32_t h   = param->texture_height;
+	uint32_t d   = param->texture_depth;
+	uint32_t idx = x + y*w + z*w*h + i*w*h*d;
+
+	val->r = data[idx].r;
+	val->g = data[idx].g;
+	val->b = data[idx].b;
+	val->a = data[idx].a;
+}
+
+static void
 atmo_setData(atmo_solverParam_t* param,
              uint32_t k, uint32_t x,
              uint32_t y, uint32_t z,
@@ -446,6 +479,7 @@ atmo_solver_newImages(atmo_solver_t* self,
 	int i;
 	for(i = 0; i < param->k; ++i)
 	{
+		// k is base-1
 		datak = atmo_getDataK(&self->param, i + 1, data);
 
 		img = vkk_image_new(self->engine,
@@ -548,7 +582,7 @@ atmo_solver_exportData(atmo_solver_t* self,
 	              param->texture_height*param->texture_depth;
 	for(k = 1; k <= param->k; ++k)
 	{
-		snprintf(fname, 256, "atmo-data%i.dat", k);
+		snprintf(fname, 256, "atmo-data-k%u.dat", k);
 		datak = atmo_getDataK(param, k, data);
 		f = fopen(fname, "w");
 		if(f)
@@ -689,27 +723,41 @@ atmo_solver_step(atmo_solver_t* self, uint32_t k,
 	float w = ((float) z)/(depth - 1.0f);
 
 
-	float Rp = param->Rp;
 	float Ra = param->Ra;
-	float h  = u*u*(Ra - Rp);
+	float Rp = param->Rp;
+
+	float h;
+	#ifdef ATMO_PARAM_NONLINEAR_H
+	h = u*u*(Ra - Rp);
+	#else
+	h = u*(Ra - Rp);
+	#endif
 
 	float phi;
 	float cos_phi;
-	float ch = -sqrtf(h*(2.0f*Rp +h))/(Rp + h);
+	#ifdef ATMO_PARAM_NONLINEAR_PHI
+	float ch = -sqrtf(h*(2.0f*Rp + h))/(Rp + h);
 	if(v > 0.5f)
 	{
-		cos_phi = ch + sqrtf(v - 0.5f)*(1.0f - ch);
+		cos_phi = ch + powf(v - 0.5f, 5.0f)*(1.0f - ch);
 	}
 	else
 	{
 		cos_phi = ch - powf(v, 5.0f)*(1.0f + ch);
 	}
+	#else
+	cos_phi = 2.0f*v - 1.0f;
+	#endif
 	phi = acos(cos_phi);
 
 	float delta;
 	float cos_delta;
+	#ifdef ATMO_PARAM_NONLINEAR_DELTA
 	cos_delta = tan((2.0f*w - 1.0f + 0.26f)*0.75)/
 	            tan(1.26f*0.75f);
+	#else
+	cos_delta = 2.0f*w - 1.0f;
+	#endif
 	delta = acos(cos_delta);
 
 	cc_vec4f_t val;
