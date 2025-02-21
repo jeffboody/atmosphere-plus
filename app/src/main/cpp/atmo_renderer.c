@@ -741,43 +741,43 @@ int atmo_renderer_event(atmo_renderer_t* self,
 	{
 		if(e->keycode == 'i')
 		{
-			self->ctrl_h = cc_clamp(self->ctrl_h - 0.025f,
+			self->ctrl_h = cc_clamp(self->ctrl_h - 0.005f,
 			                        0.0f, 1.0f);
 			return 1;
 		}
 		else if(e->keycode == 'o')
 		{
-			self->ctrl_h = cc_clamp(self->ctrl_h + 0.025f,
+			self->ctrl_h = cc_clamp(self->ctrl_h + 0.005f,
 			                        0.0f, 1.0f);
 			return 1;
 		}
 		else if(e->keycode == 'j')
 		{
-			self->ctrl_phi = cc_clamp(self->ctrl_phi + 0.025f,
+			self->ctrl_phi = cc_clamp(self->ctrl_phi + 0.005f,
 			                          0.0f, 1.0f);
 			return 1;
 		}
 		else if(e->keycode == 'k')
 		{
-			self->ctrl_phi = cc_clamp(self->ctrl_phi - 0.025f,
+			self->ctrl_phi = cc_clamp(self->ctrl_phi - 0.005f,
 			                          0.0f, 1.0f);
 			return 1;
 		}
 		else if(e->keycode == 'w')
 		{
-			self->ctrl_delta = cc_clamp(self->ctrl_delta - 0.025f,
+			self->ctrl_delta = cc_clamp(self->ctrl_delta - 0.005f,
 			                            0.0f, 1.0f);
 			return 1;
 		}
 		else if(e->keycode == 's')
 		{
-			self->ctrl_delta = cc_clamp(self->ctrl_delta + 0.025f,
+			self->ctrl_delta = cc_clamp(self->ctrl_delta + 0.005f,
 			                            0.0f, 1.0f);
 			return 1;
 		}
 		else if(e->keycode == 'a')
 		{
-			self->ctrl_omega = self->ctrl_omega + 0.025f;
+			self->ctrl_omega = self->ctrl_omega + 0.005f;
 			while(self->ctrl_omega >= 1.0f)
 			{
 				self->ctrl_omega -= 1.0f;
@@ -786,7 +786,7 @@ int atmo_renderer_event(atmo_renderer_t* self,
 		}
 		else if(e->keycode == 'd')
 		{
-			self->ctrl_omega = self->ctrl_omega - 0.025f;
+			self->ctrl_omega = self->ctrl_omega - 0.005f;
 			while(self->ctrl_omega < 0.0f)
 			{
 				self->ctrl_omega += 1.0f;
