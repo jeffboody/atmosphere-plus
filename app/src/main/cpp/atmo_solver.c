@@ -262,7 +262,8 @@ computePc(atmo_solverParam_t* param, cc_vec3f_t* P,
 	cc_vec3f_t Pa;
 	cc_vec3f_t Sun;
 	cc_vec3f_muls_copy(L, -1.0f, &Sun);
-	return computePaPb(param, P, &Sun, 0.0, &Pa, Pc);
+	double Ro = 10.0;
+	return computePaPb(param, P, &Sun, Ro, &Pa, Pc);
 }
 
 // Rayleigh/Mie factored single-scattered intensity
