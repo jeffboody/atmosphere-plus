@@ -13,6 +13,6 @@ void main()
 {
 	vec3 normal = normalize(varying_vertex);
 	vec3 Sun    = -vec3(L4);
-	vec3 color  = vec3(0.11, 0.57, 1.0)*dot(normal, Sun);
+	vec3 color  = vec3(0.565, 0.502, 0.439)*dot(normal, Sun);
 	fragColor   = vec4(color, 1.0);
 }
