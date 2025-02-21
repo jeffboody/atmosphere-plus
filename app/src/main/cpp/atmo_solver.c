@@ -74,12 +74,36 @@
 #define ATMO_TEXTURE_HEIGHT 256
 #define ATMO_TEXTURE_DEPTH  32
 
-// set defines to use non-linear parameterization
+// height parameterization
+// LINEAR: u = h/Ha
+// NONLINEAR: u = sqrt(h/Ha)
+#define ATMO_PARAM_HEIGHT_LINEAR    0
+#define ATMO_PARAM_HEIGHT_NONLINEAR 1
+
+// view-azmuth angle parameterization
+// LINEAR: v = (cos(phi) + 1)/2
+// SHERVHEIM: v = 0.5*(1.0 + sign(cos_phi)*
+//                     pow(abs(cos_phi), 1.0/3.0))
+// BODARE: Efficient and Dynamic Atmospheric Scattering
+//         WARNING: ATMO_PARAM_PHI_BODARE is buggy
+#define ATMO_PARAM_PHI_LINEAR    0
+#define ATMO_PARAM_PHI_SHERVHEIM 1
+#define ATMO_PARAM_PHI_BODARE    2
+
+// sun-azmuth angle parameterization
+// linear:    w = (cos(delta) + 1)/2
+// SHERVHEIM: w = 0.5*(1.0 + sign(cos_delta)*
+//                     pow(abs(cos_delta), 1.0/3.0))
+// BODARE: Efficient and Dynamic Atmospheric Scattering
+#define ATMO_PARAM_DELTA_LINEAR    0
+#define ATMO_PARAM_DELTA_SHERVHEIM 1
+#define ATMO_PARAM_DELTA_BODARE    2
+
+// select parameterization
 // requires corresponding change in sky_atmo.frag
-#define ATMO_PARAM_NONLINEAR_H
-// ATMO_PARAM_NONLINEAR_PHI seems buggy
-//#define ATMO_PARAM_NONLINEAR_PHI
-#define ATMO_PARAM_NONLINEAR_DELTA
+#define ATMO_PARAM_HEIGHT ATMO_PARAM_HEIGHT_NONLINEAR
+#define ATMO_PARAM_PHI    ATMO_PARAM_PHI_SHERVHEIM
+#define ATMO_PARAM_DELTA  ATMO_PARAM_DELTA_SHERVHEIM
 
 /***********************************************************
 * private - compute                                        *
@@ -376,6 +400,53 @@ fIS1(atmo_solverParam_t* param, float h, float phi,
 /***********************************************************
 * private - utility                                        *
 ***********************************************************/
+
+static float
+atmo_getHeight(atmo_solverParam_t* param, float u)
+{
+	ASSERT(param);
+
+	#if ATMO_PARAM_HEIGHT == ATMO_PARAM_HEIGHT_NONLINEAR
+	return u*u*(param->Ra - param->Rp);
+	#else
+	return u*(param->Ra - param->Rp);
+	#endif
+}
+
+static float
+atmo_getCosPhi(atmo_solverParam_t* param, float h, float v)
+{
+	ASSERT(param);
+
+	#if ATMO_PARAM_PHI == ATMO_PARAM_PHI_SHERVHEIM
+	return powf((2.0f*v - 1.0f), 3.0f);
+	#elif ATMO_PARAM_PHI == ATMO_PARAM_PHI_BODARE
+	float ch = -sqrtf(h*(2.0f*param->Rp + h))/(param->Rp + h);
+	if(v > 0.5f)
+	{
+		return ch + powf(v - 0.5f, 5.0f)*(1.0f - ch);
+	}
+	else
+	{
+		return ch - powf(v, 5.0f)*(1.0f + ch);
+	}
+	#else
+	return 2.0f*v - 1.0f;
+	#endif
+}
+
+static float
+atmo_getCosDelta(float w)
+{
+	#if ATMO_PARAM_DELTA == ATMO_PARAM_DELTA_SHERVHEIM
+	return powf((2.0f*w - 1.0f), 3.0f);
+	#elif ATMO_PARAM_DELTA == ATMO_PARAM_DELTA_BODARE
+	return tanf((2.0f*w - 1.0f + 0.26f)*0.75f)/
+	       tanf(1.26f*0.75f);
+	#else
+	return 2.0f*w - 1.0f;
+	#endif
+}
 
 static cc_vec4f_t*
 atmo_getDataK(atmo_solverParam_t* param,
@@ -723,43 +794,11 @@ atmo_solver_step(atmo_solver_t* self, uint32_t k,
 	float v = ((float) y)/(height - 1.0f);
 	float w = ((float) z)/(depth - 1.0f);
 
-
-	float Ra = param->Ra;
-	float Rp = param->Rp;
-
-	float h;
-	#ifdef ATMO_PARAM_NONLINEAR_H
-	h = u*u*(Ra - Rp);
-	#else
-	h = u*(Ra - Rp);
-	#endif
-
-	float phi;
-	float cos_phi;
-	#ifdef ATMO_PARAM_NONLINEAR_PHI
-	float ch = -sqrtf(h*(2.0f*Rp + h))/(Rp + h);
-	if(v > 0.5f)
-	{
-		cos_phi = ch + powf(v - 0.5f, 5.0f)*(1.0f - ch);
-	}
-	else
-	{
-		cos_phi = ch - powf(v, 5.0f)*(1.0f + ch);
-	}
-	#else
-	cos_phi = 2.0f*v - 1.0f;
-	#endif
-	phi = acos(cos_phi);
-
-	float delta;
-	float cos_delta;
-	#ifdef ATMO_PARAM_NONLINEAR_DELTA
-	cos_delta = tan((2.0f*w - 1.0f + 0.26f)*0.75)/
-	            tan(1.26f*0.75f);
-	#else
-	cos_delta = 2.0f*w - 1.0f;
-	#endif
-	delta = acos(cos_delta);
+	float h         = atmo_getHeight(param, u);
+	float cos_phi   = atmo_getCosPhi(param, h, v);
+	float cos_delta = atmo_getCosDelta(w);
+	float phi       = acos(cos_phi);
+	float delta     = acos(cos_delta);
 
 	cc_vec4f_t val;
 	fIS1(param, h, phi, delta, &val);

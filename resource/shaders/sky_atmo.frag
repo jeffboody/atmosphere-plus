@@ -1,11 +1,35 @@
 #version 450
 
-// set defines to use non-linear parameterization
+// height parameterization
+// LINEAR: u = h/Ha
+// NONLINEAR: u = sqrt(h/Ha)
+#define ATMO_PARAM_HEIGHT_LINEAR    0
+#define ATMO_PARAM_HEIGHT_NONLINEAR 1
+
+// view-azmuth angle parameterization
+// LINEAR: v = (cos(phi) + 1)/2
+// SHERVHEIM: v = 0.5*(1.0 + sign(cos_phi)*
+//                     pow(abs(cos_phi), 1.0/3.0))
+// BODARE: Efficient and Dynamic Atmospheric Scattering
+//         WARNING: ATMO_PARAM_PHI_BODARE is buggy
+#define ATMO_PARAM_PHI_LINEAR    0
+#define ATMO_PARAM_PHI_SHERVHEIM 1
+#define ATMO_PARAM_PHI_BODARE    2
+
+// sun-azmuth angle parameterization
+// linear:    w = (cos(delta) + 1)/2
+// SHERVHEIM: w = 0.5*(1.0 + sign(cos_delta)*
+//                     pow(abs(cos_delta), 1.0/3.0))
+// BODARE: Efficient and Dynamic Atmospheric Scattering
+#define ATMO_PARAM_DELTA_LINEAR    0
+#define ATMO_PARAM_DELTA_SHERVHEIM 1
+#define ATMO_PARAM_DELTA_BODARE    2
+
+// select parameterization
 // requires corresponding change in atmo_solver.c
-#define ATMO_PARAM_NONLINEAR_H
-// ATMO_PARAM_NONLINEAR_PHI seems buggy
-//#define ATMO_PARAM_NONLINEAR_PHI
-#define ATMO_PARAM_NONLINEAR_DELTA
+#define ATMO_PARAM_HEIGHT ATMO_PARAM_HEIGHT_NONLINEAR
+#define ATMO_PARAM_PHI    ATMO_PARAM_PHI_SHERVHEIM
+#define ATMO_PARAM_DELTA  ATMO_PARAM_DELTA_SHERVHEIM
 
 layout(location=0) in vec3 varying_V;
 
@@ -75,14 +99,17 @@ void main()
 	float Rp        = RaRp[1];
 	float h         = P0H[3];
 
-	#ifdef ATMO_PARAM_NONLINEAR_H
-	float u  = sqrt(h/(Ra - Rp));
+	float u;
+	#if ATMO_PARAM_HEIGHT == ATMO_PARAM_HEIGHT_NONLINEAR
+	u  = sqrt(h/(Ra - Rp));
 	#else
-	float u  = h/(Ra - Rp);
+	u  = h/(Ra - Rp);
 	#endif
 
 	float v;
-	#ifdef ATMO_PARAM_NONLINEAR_PHI
+	#if ATMO_PARAM_PHI == ATMO_PARAM_PHI_SHERVHEIM
+	v = 0.5*(1.0 + sign(cos_phi)*pow(abs(cos_phi), 1.0/3.0));
+	#elif ATMO_PARAM_PHI == ATMO_PARAM_PHI_BODARE
 	float ch = -sqrt(h*(2.0*Rp + h))/(Rp + h);
 	if(cos_phi > ch)
 	{
@@ -97,8 +124,11 @@ void main()
 	#endif
 
 	float w;
-	#ifdef ATMO_PARAM_NONLINEAR_DELTA
-	w = 0.5*(atan(max(cos_delta, -0.1975)*tan(1.26*1.1))/1.1 + (1.0 - 0.26));
+	#if ATMO_PARAM_DELTA == ATMO_PARAM_DELTA_SHERVHEIM
+	w = 0.5*(1.0 + sign(cos_delta)*pow(abs(cos_delta), 1.0/3.0));
+	#elif ATMO_PARAM_DELTA == ATMO_PARAM_DELTA_BODARE
+	w = 0.5*(atan(max(cos_delta, -0.1975)*tan(1.26*1.1))/1.1 +
+	         (1.0 - 0.26));
 	#else
 	w = (cos_delta + 1.0f)/2.0f;
 	#endif
