@@ -488,7 +488,7 @@ atmo_solver_newImages(atmo_solver_t* self,
 		                    param->texture_height,
 		                    param->texture_depth,
 		                    VKK_IMAGE_FORMAT_RGBAF16,
-		                    1, VKK_STAGE_FS,
+		                    0, VKK_STAGE_FS,
 		                    (const void*) datak);
 		if(img == NULL)
 		{

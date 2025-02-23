@@ -296,7 +296,7 @@ atmo_renderer_t* atmo_renderer_new(vkk_engine_t* engine)
 			{
 				.min_filter     = VKK_SAMPLER_FILTER_LINEAR,
 				.mag_filter     = VKK_SAMPLER_FILTER_LINEAR,
-				.mipmap_mode    = VKK_SAMPLER_MIPMAP_MODE_LINEAR,
+				.mipmap_mode    = VKK_SAMPLER_MIPMAP_MODE_NEAREST,
 				.anisotropy     = 0,
 				.max_anisotropy = 0.0f,
 			},
