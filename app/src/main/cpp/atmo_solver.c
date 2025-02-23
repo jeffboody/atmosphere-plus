@@ -125,30 +125,6 @@ static float densityM(atmo_solverParam_t* param, float h)
 	return expf(-h/param->density_scale_height_mie);
 }
 
-// modified Rayleigh phase function
-static float
-phaseR(atmo_solverParam_t* param, float cos_theta)
-{
-	ASSERT(param);
-
-	return 0.8f*(1.4f + 0.5f*cos_theta*cos_theta);
-}
-
-// Mie phase function
-static float
-phaseM(atmo_solverParam_t* param, float cos_theta)
-{
-	ASSERT(param);
-
-	float g  = param->phase_g_mie;
-	float g2 = g*g;
-	float n1 = 3.0f*(1.0f - g2);
-	float n2 = 1.0f + cos_theta*cos_theta;
-	float d1 = 2.0f*(2.0f + g2);
-	float d2 = powf(1.0f + g2 + 2.0f*g*cos_theta, 1.5f);
-	return (n1/d1)*(n2/d2);
-}
-
 // compute height using double precision since the magnitude
 // of points in the atmosphere produces very large numbers
 static float
@@ -466,29 +442,6 @@ atmo_getDataK(atmo_solverParam_t* param,
 }
 
 static void
-atmo_getData(atmo_solverParam_t* param,
-             uint32_t k, uint32_t x,
-             uint32_t y, uint32_t z,
-             cc_vec4f_t* data, cc_vec4f_t* val)
-{
-	ASSERT(param);
-	ASSERT(data);
-	ASSERT(val);
-
-	// k is base-1
-	uint32_t i   = k - 1;
-	uint32_t w   = param->texture_width;
-	uint32_t h   = param->texture_height;
-	uint32_t d   = param->texture_depth;
-	uint32_t idx = x + y*w + z*w*h + i*w*h*d;
-
-	val->r = data[idx].r;
-	val->g = data[idx].g;
-	val->b = data[idx].b;
-	val->a = data[idx].a;
-}
-
-static void
 atmo_setData(atmo_solverParam_t* param,
              uint32_t k, uint32_t x,
              uint32_t y, uint32_t z,
@@ -671,6 +624,172 @@ atmo_solver_exportData(atmo_solver_t* self,
 
 	return 1;
 }
+
+#ifdef ATMO_SOLVER_DEBUG_DATA
+
+// modified Rayleigh phase function
+static float
+atmo_phaseR(atmo_solverParam_t* param, float cos_theta)
+{
+	ASSERT(param);
+
+	return 0.8f*(1.4f + 0.5f*cos_theta*cos_theta);
+}
+
+// Mie phase function
+static float
+atmo_phaseM(atmo_solverParam_t* param, float cos_theta)
+{
+	ASSERT(param);
+
+	float g  = param->phase_g_mie;
+	float g2 = g*g;
+	float n1 = 3.0f*(1.0f - g2);
+	float n2 = 1.0f + cos_theta*cos_theta;
+	float d1 = 2.0f*(2.0f + g2);
+	float d2 = powf(1.0f + g2 + 2.0f*g*cos_theta, 1.5f);
+	return (n1/d1)*(n2/d2);
+}
+
+static void
+atmo_getData(atmo_solverParam_t* param,
+             uint32_t k, uint32_t x,
+             uint32_t y, uint32_t z,
+             cc_vec4f_t* data, cc_vec4f_t* val)
+{
+	ASSERT(param);
+	ASSERT(data);
+	ASSERT(val);
+
+	// k is base-1
+	uint32_t i   = k - 1;
+	uint32_t w   = param->texture_width;
+	uint32_t h   = param->texture_height;
+	uint32_t d   = param->texture_depth;
+	uint32_t idx = x + y*w + z*w*h + i*w*h*d;
+
+	val->r = data[idx].r;
+	val->g = data[idx].g;
+	val->b = data[idx].b;
+	val->a = data[idx].a;
+}
+
+static int
+atmo_solver_debugData(atmo_solver_t* self, cc_vec4f_t* data)
+{
+	ASSERT(self);
+	ASSERT(data);
+
+	atmo_solverParam_t* param = &self->param;
+
+	// debug slices by height
+	int texw = param->texture_width*param->texture_depth;
+	int texh = 2*param->texture_height;
+
+	texgz_tex_t* tex;
+	tex = texgz_tex_new(texw, texh, texw, texh,
+	                    TEXGZ_UNSIGNED_BYTE, TEXGZ_RGB,
+	                    NULL);
+	if(tex == NULL)
+	{
+		return 0;
+	}
+
+	// spectral intensity of of incident light from the Sun
+	cc_vec4f_t II =
+	{
+		.r = param->spectral_irradiance_r*param->exposure*
+		     param->spectral_to_rgb_r,
+		.g = param->spectral_irradiance_g*param->exposure*
+		     param->spectral_to_rgb_g,
+		.b = param->spectral_irradiance_b*param->exposure*
+		     param->spectral_to_rgb_b,
+	};
+
+	float phi;
+	float delta;
+	float cos_phi;
+	float cos_delta;
+	float cos_theta;
+	float h;
+	float u;
+	float v;
+	float w;
+	float FR;
+	float FM;
+	uint32_t k;
+	uint32_t x;
+	uint32_t y;
+	uint32_t z;
+	char fname[256];
+	unsigned char pixel[4] = { 0, 0, 0, 255 };
+	cc_vec4f_t fIS;
+	cc_vec4f_t IS = { 0 };
+	for(k = 1; k <= param->k; ++k)
+	{
+		for(x = 0; x < param->texture_width; ++x)
+		{
+			u = ((float) x)/((float) (param->texture_width - 1));
+			h = atmo_getHeight(param, u);
+
+			for(z = 0; z < param->texture_depth; ++z)
+			{
+				w = ((float) z)/((float) (param->texture_depth - 1));
+				cos_delta = atmo_getCosDelta(w);
+				delta = acosf(cos_delta);
+
+				for(y = 0; y < param->texture_height; ++y)
+				{
+					v = ((float) y)/((float) (param->texture_height - 1));
+					cos_phi = atmo_getCosPhi(param, h, v);
+					phi = acosf(cos_phi);
+
+					atmo_getData(param, k, x, y, z, data, &fIS);
+
+					cos_theta = cos(delta - phi);
+					FR = atmo_phaseR(param, cos_theta);
+					FM = atmo_phaseM(param, cos_theta);
+
+					IS.r = II.r*(FR*fIS.r + FM*fIS.a);
+					IS.g = II.g*(FR*fIS.g + FM*fIS.a);
+					IS.b = II.b*(FR*fIS.b + FM*fIS.a);
+					IS.r = powf(1.0f - expf(-IS.r), 1.0f/2.2f);
+					IS.g = powf(1.0f - expf(-IS.g), 1.0f/2.2f);
+					IS.b = powf(1.0f - expf(-IS.b), 1.0f/2.2f);
+					IS.r = cc_clamp(IS.r, 0.0f, 1.0f);
+					IS.g = cc_clamp(IS.g, 0.0f, 1.0f);
+					IS.b = cc_clamp(IS.b, 0.0f, 1.0f);
+
+					// set IS
+					pixel[0] = (unsigned char) (255.0*IS.r);
+					pixel[1] = (unsigned char) (255.0*IS.g);
+					pixel[2] = (unsigned char) (255.0*IS.b);
+					texgz_tex_setPixel(tex, x*param->texture_depth + z,
+					                   y, pixel);
+
+					// set u,v,w
+					pixel[0] = (unsigned char) (255.0*u);
+					pixel[1] = (unsigned char) (255.0*v);
+					pixel[2] = (unsigned char) (255.0*w);
+					texgz_tex_setPixel(tex, x*param->texture_depth + z,
+					                   param->texture_height + y, pixel);
+				}
+			}
+		}
+		snprintf(fname, 256, "atmo-slice-k%u.png", k);
+		texgz_png_export(tex, fname);
+	}
+	texgz_tex_delete(&tex);
+
+	return 1;
+}
+#else
+static int
+atmo_solver_debugData(atmo_solver_t* self, cc_vec4f_t* data)
+{
+	return 1;
+}
+#endif
 
 static int
 atmo_solver_paramValidate(atmo_solverParam_t* param)
@@ -863,6 +982,7 @@ static void atmo_solver_run(int tid, void* owner, void* task)
 
 	atmo_solver_newImages(self, data);
 	atmo_solver_exportData(self, data);
+	atmo_solver_debugData(self, data);
 
 	FREE(data);
 }
