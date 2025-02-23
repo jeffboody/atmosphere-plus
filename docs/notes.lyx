@@ -78,7 +78,7 @@
 \begin_body
 
 \begin_layout Title
-Atmospheric Rendering Notes
+Atmosphere Plus
 \end_layout
 
 \begin_layout Author
@@ -90,13 +90,12 @@ About
 \end_layout
 
 \begin_layout Standard
-These notes are intended to augment the atmospheric rendering algorithms
- described by the Rendering Parametrizable Planetary Atmospheres with Multiple
- Scattering in Real-Time paper and the Atmospheric Rendering implementation.
+These notes describe the atmospheric rendering theory and implementation
+ for the Atmosphere Plus demo.
 \end_layout
 
 \begin_layout Section
-Mathematical Model
+Background
 \end_layout
 
 \begin_layout Subsection
@@ -543,6 +542,228 @@ Attenuation is a consequence of out-scattering in the scattering medium.
 \end_layout
 
 \begin_layout Subsection
+Numerical Integration
+\end_layout
+
+\begin_layout Standard
+The atmospheric integrals must be solved using numerical integration due
+ to complexity of the equations.
+\end_layout
+
+\begin_layout Standard
+The trapezoidal rule may be applied to approximate the area of the region
+ under the graph of the function 
+\begin_inset Formula $f\left(x\right)$
+\end_inset
+
+ as a trapezoid.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\int_{a}^{b}f\left(x\right)dx\thickapprox\left(b-a\right)\cdot\frac{1}{2}\left(f\left(a\right)+f\left(b\right)\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Where the accuracy of the solution may be improved by reducing the step
+ size 
+\begin_inset Formula $\nabla x_{k}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\int_{a}^{b}f\left(x\right)dx\thickapprox\sum_{k=1}^{N}\frac{f\left(x_{k-1}\right)+f\left(x_{k}\right)}{2}\nabla x_{k}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The Rendering Parametrizable Planetary Atmospheres with Multiple Scattering
+ in Real-Time paper uses 
+\begin_inset Formula $N=30$
+\end_inset
+
+ steps for each integration with a variable step size 
+\begin_inset Formula $\nabla x_{k}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Spectral Intensity of Incident Light
+\end_layout
+
+\begin_layout Standard
+The Atmospheric Rendering implementation defines the spectral intensity
+ of incident light 
+\begin_inset Formula $I_{I}\left(\lambda\right)$
+\end_inset
+
+ from the Sun.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+I_{I}\left(\lambda\right)=SpectralIrridence\left(\lambda\right)\cdot Exposure\cdot SpectralToRGB\left(\lambda\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The spectral irradiance measures the power density of solar radiation at
+ specific wavelengths (from measured values found in tables).
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+SpectralIrridence\left(r,g,b\right)=\left(0.1526,0.191,0.208\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The exposure represents the amount of light exposure which scales the overall
+ intensity.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+Exposure=1.0
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The spectral to RGB constants are used to convert specific wavelengths into
+ high dynamic range RGB values.
+ These constants were calculated by converting wavelengths into CIE XYZ
+ color space, then converting XYZ to RGB, followed by normalization and
+ scaling.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+SpectralToRGB\left(r,g,b\right)=\left(133.3209,88.51855,112.7552\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The spectral intensity of incident light 
+\begin_inset Formula $I_{I}\left(r,g,b\right)$
+\end_inset
+
+:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+I_{I}\left(r,g,b\right)=\left(20.344770,16.907042,23.453083\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Tone Mapping and Gamma Correction
+\end_layout
+
+\begin_layout Standard
+The scattering intensity equations inherently output high dynamic range
+ (HDR) intensities and must be transformed for display on standard devices.
+\end_layout
+
+\begin_layout Standard
+Tone mapping transforms the high dynamic range (HDR) intensities such that
+ the colors are mapped to a displayable range while preserving contrast
+ in low-intensity areas and compressing high-intensity values.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+ToneMapping\left(r,g,b\right)=1.0-\exp\left(-\left(r,g,b\right)\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Gamma correction helps to distribute the compressed values more evenly across
+ the perceptual range of human vision.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+GammaCorrection(r,g,b)=\left(r,g,b\right)^{1.0/2.2}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The combined tone mapping and gamma correction transformation of the scattering
+ intensity 
+\begin_inset Formula $I_{S}\left(r,g,b\right)$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+I_{S}\left(r,g,b\right)=\left(1.0-\exp\left(-I_{S}\left(r,g,b\right)\right)\right)^{1.0/2.2}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Sky Rendering
+\end_layout
+
+\begin_layout Subsection
 Single-scattering
 \end_layout
 
@@ -903,10 +1124,6 @@ I_{S}=\sum_{k=1}^{K}I_{S_{R}}^{\left(k\right)}+I_{S_{M}}^{\left(k\right)}=I_{S_{
 
 \end_layout
 
-\begin_layout Section
-Implementation
-\end_layout
-
 \begin_layout Subsection
 Scattering Equation Factorization
 \end_layout
@@ -1244,7 +1461,7 @@ ization.
 \begin_inset Graphics
 	filename canonical-form.png
 	lyxscale 15
-	scale 10
+	width 50page%
 
 \end_inset
 
@@ -1397,11 +1614,52 @@ The parameters
 \begin_inset Formula $\left(u,v,w\right)$
 \end_inset
 
- for array lookups as described by the Efficient and Dynamic Atmospheric
- Scattering paper.
- These ad-hoc non-linear equations are designed to reduce the texture parameteri
-zation space by eliminating unused values and improving precision for critical
- values.
+ for array lookups.
+ There are many different possible choices for the mapping from parameter
+ to texture coordinate.
+ The most straightforward mapping described by the Efficient and Dynamic
+ Atmospheric Scattering paper is a linear mapping.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+u=\frac{h}{R_{a}-R_{p}}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+v=\frac{\cos\left(\phi\right)+1}{2}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+w=\frac{\cos\left(\delta\right)+1}{2}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+However, the mappings are typically replaced with ad-hoc non-linear mappings
+ to optimize the parameterization space by eliminating unused values and
+ improving precision for critical values.
+ The Atmospheric Rendering implementation uses the following non-linear
+ mappings from parameters to 3D texture coordinates.
 \end_layout
 
 \begin_layout Standard
@@ -1418,10 +1676,7 @@ u=\sqrt{\frac{h}{R_{a}-R_{p}}}
 \begin_layout Standard
 \begin_inset Formula 
 \[
-v=\left\{ \begin{array}{c}
-0.5\left(\frac{\cos\left(\phi\right)-c_{h}}{1-c_{h}}\right)^{0.2}+0.5,\cos\left(\phi\right)>c_{h}\\
-0.5\left(\frac{c_{h}-\cos\left(\phi\right)}{1+c_{h}}\right)^{0.2},\cos\left(\phi\right)\leq c_{h}
-\end{array}\right.
+v=0.5\cdot\left(1+sign\left(\cos\left(\phi\right)\right)\cdot\left(\left|\cos\left(\phi\right)\right|\right)^{\frac{1}{3}}\right)
 \]
 
 \end_inset
@@ -1432,7 +1687,7 @@ v=\left\{ \begin{array}{c}
 \begin_layout Standard
 \begin_inset Formula 
 \[
-c_{h}=-\frac{\sqrt{h\cdot\left(2R_{p}+h\right)}}{R_{p}+h}
+w=0.5\cdot\left(1+sign\left(\cos\left(\delta\right)\right)\cdot\left(\left|\cos\left(\delta\right)\right|\right)^{\frac{1}{3}}\right)
 \]
 
 \end_inset
@@ -1441,18 +1696,8 @@ c_{h}=-\frac{\sqrt{h\cdot\left(2R_{p}+h\right)}}{R_{p}+h}
 \end_layout
 
 \begin_layout Standard
-\begin_inset Formula 
-\[
-w=0.5\left(\frac{\tan^{-1}\left(\max\left(\cos\left(\delta\right),-0.1975\right)\cdot\tan\left(1.26\cdot1.1\right)\right)}{1.1}+\left(1-0.26\right)\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The 3D texture coordinates may be converted back to parameters as follows.
+These ad-hock non-linear mappings may be converted back from 3D texture
+ coordinates to parameters as follows.
 \end_layout
 
 \begin_layout Standard
@@ -1469,10 +1714,7 @@ h=u^{2}\left(R_{a}-R_{p}\right)
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\cos\left(\phi\right)=\left\{ \begin{array}{c}
-c_{h}+\left(v-0.5\right)^{5}\cdot\left(1-c_{h}\right),v>0.5\\
-c_{h}-v^{5}\cdot\left(1+c_{h}\right),v\leq0.5
-\end{array}\right.
+\cos\left(\phi\right)=\left(2v-1\right)^{3}
 \]
 
 \end_inset
@@ -1483,8 +1725,29 @@ c_{h}-v^{5}\cdot\left(1+c_{h}\right),v\leq0.5
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\cos\left(\delta\right)=\frac{\tan\left(\left(2w-1+0.26\right)\cdot0.75\right)}{\tan\left(1.26\cdot0.75\right)}
+\cos\left(\delta\right)=\left(2w-1\right)^{3}
 \]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The following diagram shows the linear mapping, non-linear mapping and 3D
+ texture coordinates of the scattering intensity 
+\begin_inset Formula $I_{S}$
+\end_inset
+
+.
+ The 3D texture has been flattened in order to represent as an image.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Graphics
+	filename param-linear-nonlinear-uvw.png
+	lyxscale 50
+	width 50page%
 
 \end_inset
 
@@ -1623,224 +1886,6 @@ The the Sun-View Azimuth
  described in other sections.
 \end_layout
 
-\begin_layout Subsection
-Spectral Intensity of Incident Light
-\end_layout
-
-\begin_layout Standard
-The Atmospheric Rendering implementation defines the spectral intensity
- of incident light 
-\begin_inset Formula $I_{I}\left(\lambda\right)$
-\end_inset
-
- from the Sun.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-I_{I}\left(\lambda\right)=SpectralIrridence\left(\lambda\right)\cdot Exposure\cdot SpectralToRGB\left(\lambda\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The spectral irradiance measures the power density of solar radiation at
- specific wavelengths (from measured values found in tables).
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-SpectralIrridence\left(r,g,b\right)=\left(0.1526,0.191,0.208\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The exposure represents the amount of light exposure which scales the overall
- intensity.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-Exposure=1.0
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The spectral to RGB constants are used to convert specific wavelengths into
- high dynamic range RGB values.
- These constants were calculated by converting wavelengths into CIE XYZ
- color space, then converting XYZ to RGB, followed by normalization and
- scaling.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-SpectralToRGB\left(r,g,b\right)=\left(133.3209,88.51855,112.7552\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The spectral intensity of incident light 
-\begin_inset Formula $I_{I}\left(r,g,b\right)$
-\end_inset
-
-:
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-I_{I}\left(r,g,b\right)=\left(20.344770,16.907042,23.453083\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Subsection
-Tone Mapping and Gamma Correction
-\end_layout
-
-\begin_layout Standard
-The scattering intensity equations inherently output high dynamic range
- (HDR) intensities and must be transformed for display on standard devices.
-\end_layout
-
-\begin_layout Standard
-Tone mapping transforms the high dynamic range (HDR) intensities such that
- the colors are mapped to a displayable range while preserving contrast
- in low-intensity areas and compressing high-intensity values.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-ToneMapping\left(r,g,b\right)=1.0-\exp\left(-\left(r,g,b\right)\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Gamma correction helps to distribute the compressed values more evenly across
- the perceptual range of human vision.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-GammaCorrection(r,g,b)=\left(r,g,b\right)^{1.0/2.2}
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The combined tone mapping and gamma correction transformation of the scattering
- intensity 
-\begin_inset Formula $I_{S}\left(r,g,b\right)$
-\end_inset
-
-.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-I_{S}\left(r,g,b\right)=\left(1.0-\exp\left(-I_{S}\left(r,g,b\right)\right)\right)^{1.0/2.2}
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Subsection
-Numerical Integration
-\end_layout
-
-\begin_layout Standard
-The atmospheric integrals must be solved using numerical integration due
- to complexity of the equations.
-\end_layout
-
-\begin_layout Standard
-The trapezoidal rule may be applied to approximate the area of the region
- under the graph of the function 
-\begin_inset Formula $f\left(x\right)$
-\end_inset
-
- as a trapezoid.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\int_{a}^{b}f\left(x\right)dx\thickapprox\left(b-a\right)\cdot\frac{1}{2}\left(f\left(a\right)+f\left(b\right)\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Where the accuracy of the solution may be improved by reducing the step
- size 
-\begin_inset Formula $\nabla x_{k}$
-\end_inset
-
-.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\int_{a}^{b}f\left(x\right)dx\thickapprox\sum_{k=1}^{N}\frac{f\left(x_{k-1}\right)+f\left(x_{k}\right)}{2}\nabla x_{k}
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The Rendering Parametrizable Planetary Atmospheres with Multiple Scattering
- in Real-Time paper uses 
-\begin_inset Formula $N=30$
-\end_inset
-
- steps for each integration with a variable step size 
-\begin_inset Formula $\nabla x_{k}$
-\end_inset
-
-.
-\end_layout
-
 \begin_layout Section*
 References
 \end_layout
@@ -1936,6 +1981,16 @@ Deferred Rendering of Planetary Terrains with Accurate Atmospheres
 \begin_layout Itemize
 https://www.gamedevs.org/uploads/deferred-rendering-of-planetary-terrains-with-acc
 urate-atmospheres.pdf
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+A Scalable and Production Ready Sky and Atmosphere Rendering Technique
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+https://sebh.github.io/publications/egsr2020.pdf
 \end_layout
 
 \end_deeper

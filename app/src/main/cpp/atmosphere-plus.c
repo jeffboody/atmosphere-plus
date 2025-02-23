@@ -69,14 +69,14 @@ int atmo_onEvent(void* priv, vkk_platformEvent_t* event)
 
 vkk_platformInfo_t VKK_PLATFORM_INFO =
 {
-	.app_name    = "atmosphere-elek",
+	.app_name    = "atmosphere-plus",
 	.app_version =
 	{
 		.major = 1,
 		.minor = 0,
 		.patch = 0,
 	},
-	.app_dir     = "atmosphere-elek",
+	.app_dir     = "atmosphere-plus",
 	.onCreate    = atmo_onCreate,
 	.onDestroy   = atmo_onDestroy,
 	.onPause     = atmo_onPause,
