@@ -185,11 +185,14 @@ transmittance(atmo_solverParam_t* param, cc_vec3f_t* P1,
 		pM0 = pM1;
 	}
 
+	// approximation of the Mie extinction coefficient
+	float beta_e_mie = param->beta_mie/0.9f;
+
 	// apply Rayleigh/Mie scattering coefficient
 	out->r = param->beta_r_rayleigh*tR;
 	out->g = param->beta_g_rayleigh*tR;
 	out->b = param->beta_b_rayleigh*tR;
-	out->a = param->beta_mie*tM;
+	out->a = beta_e_mie*tM;
 }
 
 // compute the points Pa and Pb on the viewing vector

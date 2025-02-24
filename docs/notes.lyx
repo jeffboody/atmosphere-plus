@@ -379,7 +379,7 @@ The scattering coefficients
 \end_inset
 
  represent the probability of light being scattered as it travels through
- the scattering medium.
+ a medium.
 \end_layout
 
 \begin_layout Standard
@@ -514,22 +514,23 @@ ic Scattering paper use the following equations to compute the scattering
 \end_layout
 
 \begin_layout Subsection
-Transmittance
+Extinction Coefficient
 \end_layout
 
 \begin_layout Standard
-The transmittance, or optical length, 
-\begin_inset Formula $t_{R,M}\left(P_{1}P_{2},\lambda\right)$
-\end_inset
+The extinction coefficient represents the probability of light being scattered
+ or absorbed as it passes through a medium.
+\end_layout
 
- expresses the amount of attenuated light after it passes between two points
- through the scattering medium.
+\begin_layout Standard
+The Efficient and Dynamic Atmospheric Scattering paper approximates the
+ extinction coefficients.
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-t_{R,M}\left(P_{1}P_{2},\lambda\right)=\beta_{R,M}\left(\lambda\right)\int_{P_{1}}^{P_{2}}p_{R,M}\left(s\right)ds
+\beta_{R}^{e}=\beta_{R}
 \]
 
 \end_inset
@@ -538,7 +539,144 @@ t_{R,M}\left(P_{1}P_{2},\lambda\right)=\beta_{R,M}\left(\lambda\right)\int_{P_{1
 \end_layout
 
 \begin_layout Standard
-Attenuation is a consequence of out-scattering in the scattering medium.
+\begin_inset Formula 
+\[
+\beta_{M}^{e}=\frac{\beta_{M}}{0.9}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Transmittance
+\end_layout
+
+\begin_layout Standard
+The transmittance function 
+\begin_inset Formula $T\left(P_{1},P_{2},\lambda\right)$
+\end_inset
+
+ expresses the amount of attenuated light after it passes between two points
+ through a medium.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+T\left(P_{1},P_{2},\lambda\right)=\exp\left(-t\left(P_{1},P_{2},\lambda\right)\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+t\left(P_{1},P_{2},\lambda\right)=\sum_{i\in R,M}\beta_{i}^{e}\left(\lambda\right)\int_{P_{1}}^{P_{2}}p_{i}\left(h\left(P\right)\right)ds
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Where the parameters are defined:
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $P$
+\end_inset
+
+: Sample point parameterized by 
+\begin_inset Formula $s$
+\end_inset
+
+, 
+\begin_inset Formula $P=P_{1}+s\left(P_{2}-P_{1}\right)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $h$
+\end_inset
+
+: Height is parameterized by P, 
+\begin_inset Formula $h\left(P\right)=\left|P\right|-R_{p}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The light ray may change direction as it interacts with particles while
+ passing through a medium.
+ Consider a light ray which passes between the points 
+\begin_inset Formula $P_{1},P_{2},P_{3}$
+\end_inset
+
+ where the point 
+\begin_inset Formula $P_{2}$
+\end_inset
+
+ represents an interaction which changes the direction of the light ray.
+ The transmittance between the points 
+\begin_inset Formula $P_{1},P_{2},P_{3}$
+\end_inset
+
+ may be computed as the product of the transmittance between each segment.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+T\left(P_{1},P_{2},\lambda\right)\cdot T\left(P_{2},P_{3},\lambda\right)=\exp\left(-t\left(P_{1},P_{2},\lambda\right)\right)\cdot\exp\left(-t\left(P_{2},P_{3},\lambda\right)\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The implementation may utilize the laws of exponents rule for product of
+ powers to optimize the computation.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+a^{m}\cdot a^{n}=a^{m+n}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Where the functions 
+\begin_inset Formula $t\left(\right)$
+\end_inset
+
+ may be rearranged in order to group similar terms.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+T\left(P_{1},P_{2},\lambda\right)\cdot T\left(P_{2},P_{3},\lambda\right)=\exp\left(-t\left(P_{1},P_{2},\lambda\right)-t\left(P_{2},P_{3},\lambda\right)\right)
+\]
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Subsection
@@ -786,7 +924,7 @@ The single-scattering equation
 \begin_layout Standard
 \begin_inset Formula 
 \[
-I_{S_{R,M}}^{\left(1\right)}\left(P_{0},V,L,\lambda\right)=I_{I}\left(\lambda\right)\cdot F_{R,M}\left(\cos\left(\theta\right)\right)\cdot\frac{\beta_{R,M}\left(\lambda\right)}{4\pi}\cdot
+I_{S_{R,M}}^{\left(1\right)}\left(P_{0},V,L,\lambda\right)=I_{I}\left(\lambda\right)\cdot F_{R,M}\left(dot\left(L,-V\right)\right)\cdot\frac{\beta_{R,M}\left(\lambda\right)}{4\pi}\cdot
 \]
 
 \end_inset
@@ -797,7 +935,7 @@ I_{S_{R,M}}^{\left(1\right)}\left(P_{0},V,L,\lambda\right)=I_{I}\left(\lambda\ri
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\cdot\int_{P_{a}}^{P_{b}}p_{R,M}\left(h\right)\cdot\exp\left(-t_{R,M}\left(PP_{c},\lambda\right)-t_{R,M}\left(P_{a}P,\lambda\right)\right)ds
+\cdot\int_{P_{a}}^{P_{b}}p_{R,M}\left(h\left(P\right)\right)\cdot T\left(P_{c},P,\lambda\right)\cdot T\left(P,P_{a},\lambda\right)ds
 \]
 
 \end_inset
@@ -810,13 +948,6 @@ Where the following parameters are defined:
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $I_{I}\left(\lambda\right)$
-\end_inset
-
-: The spectral intensity of incident light from the Sun.
-\end_layout
-
-\begin_layout Itemize
 \begin_inset Formula $P$
 \end_inset
 
@@ -826,6 +957,17 @@ Where the following parameters are defined:
 
 , 
 \begin_inset Formula $P=P_{a}+s\left(P_{b}-P_{a}\right)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $h$
+\end_inset
+
+: Height is parameterized by P, 
+\begin_inset Formula $h\left(P\right)=\left|P\right|-R_{p}$
 \end_inset
 
 
@@ -846,7 +988,7 @@ Where the following parameters are defined:
 \begin_inset Formula $L$
 \end_inset
 
-: Direction from the Sun
+: Direction of light from the Sun
 \end_layout
 
 \begin_layout Itemize
@@ -855,21 +997,6 @@ Where the following parameters are defined:
 
 : Scattering angle, 
 \begin_inset Formula $\cos\left(\theta\right)=dot\left(L,-V\right)$
-\end_inset
-
-
-\end_layout
-
-\begin_layout Itemize
-\begin_inset Formula $h$
-\end_inset
-
-: Altitude of the point 
-\begin_inset Formula $P$
-\end_inset
-
-, 
-\begin_inset Formula $h=\left|P\right|-R_{p}$
 \end_inset
 
 
@@ -911,11 +1038,7 @@ Where the following parameters are defined:
 \begin_inset Formula $P$
 \end_inset
 
- in the direction 
-\begin_inset Formula $-L$
-\end_inset
-
- to the Sun (e.g.
+ in the direction of the Sun (e.g.
  the atmosphere boundary or the Earth's surface).
  If the ray intersects the Earth then the point 
 \begin_inset Formula $P$
@@ -989,7 +1112,7 @@ I_{S_{R,M}}^{\left(k\right)}\left(P_{0},V,L,\lambda\right)=\frac{\beta_{R,M}\lef
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\cdot\int_{P_{a}}^{P_{b}}G_{R,M}^{\left(k-1\right)}\left(P,V,L,\lambda\right)\cdot p_{R,M}\left(h\right)\cdot\exp\left(-t_{R,M}\left(P_{a}P,\lambda\right)\right)ds
+\cdot\int_{P_{a}}^{P_{b}}G_{R,M}^{\left(k-1\right)}\left(P,V,L,\lambda\right)\cdot p_{R,M}\left(h\left(P\right)\right)\cdot T\left(P,P_{a},\lambda\right)ds
 \]
 
 \end_inset
@@ -1016,7 +1139,7 @@ Where the gather-scattering equation
 \begin_layout Standard
 \begin_inset Formula 
 \[
-G_{R,M}^{\left(k\right)}\left(P,V,L,\lambda\right)=\int_{4\pi}F_{R,M}\left(\cos\left(\theta\right)\right)\cdot I_{S_{R,M}}^{\left(k\right)}\left(P,\omega,L,\lambda\right)d\omega
+G_{R,M}^{\left(k\right)}\left(P,V,L,\lambda\right)=\int_{4\pi}F_{R,M}\left(dot\left(-\omega,-V\right)\right)\cdot I_{S_{R,M}}^{\left(k\right)}\left(P,\omega,L,\lambda\right)d\omega
 \]
 
 \end_inset
@@ -1129,25 +1252,15 @@ Scattering Equation Factorization
 \end_layout
 
 \begin_layout Standard
-The following derivation factors the constant phase function and the spectral
- intensity of incident light from the scattering equations.
-\end_layout
-
-\begin_layout Standard
-The phase function parameter 
-\begin_inset Formula $cos\left(\theta\right)$
-\end_inset
-
- has been replaced with the dot product equivalent to distinguish between
- constant phase function 
+The following derivation factors the constant phase function 
 \begin_inset Formula $F_{R,M}\left(dot\left(L,-V\right)\right)$
 \end_inset
 
- and integration dependent phase function 
-\begin_inset Formula $F_{R,M}\left(dot\left(-\omega,-V\right)\right)$
+ and the spectral intensity of incident light 
+\begin_inset Formula $I_{I}\left(\lambda\right)$
 \end_inset
 
-.
+ from the scattering equations.
 \end_layout
 
 \begin_layout Standard
@@ -1172,7 +1285,7 @@ The factored single-scattering equation
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\cdot\int_{P_{a}}^{P_{b}}p_{R,M}\left(h\right)\cdot\exp\left(-t_{R,M}\left(PP_{c},\lambda\right)-t_{R,M}\left(P_{a}P,\lambda\right)\right)ds
+\cdot\int_{P_{a}}^{P_{b}}p_{R,M}\left(h\left(P\right)\right)\cdot T\left(P_{c},P,\lambda\right)\cdot T\left(P,P_{a},\lambda\right)ds
 \]
 
 \end_inset
@@ -1221,7 +1334,7 @@ The factored multiple-scattering equation
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\cdot\int_{P_{a}}^{P_{b}}\bar{G}_{R,M}^{\left(k-1\right)}\left(P,V,L,\lambda\right)\cdot p_{R,M}\left(h\right)\cdot\exp\left(-t_{R,M}\left(P_{a}P,\lambda\right)\right)ds
+\cdot\int_{P_{a}}^{P_{b}}\bar{G}_{R,M}^{\left(k-1\right)}\left(P,V,L,\lambda\right)\cdot p_{R,M}\left(h\left(P\right)\right)\cdot T\left(P,P_{a},\lambda\right)ds
 \]
 
 \end_inset
@@ -1740,7 +1853,6 @@ The following diagram shows the linear mapping, non-linear mapping and 3D
 \end_inset
 
 .
- The 3D texture has been flattened in order to represent as an image.
 \end_layout
 
 \begin_layout Standard
