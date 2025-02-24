@@ -269,19 +269,19 @@ computePc(atmo_solverParam_t* param, cc_vec3f_t* P,
 	return computePaPb(param, P, &Sun, Ro, &Pa, Pc);
 }
 
-// Rayleigh/Mie factored single-scattered intensity
+// factored single-scattered intensity
 static void
 fIS1(atmo_solverParam_t* param, float h, float phi,
-     float delta, cc_vec4f_t* out)
+     float delta, cc_vec4f_t* fis1)
 {
 	ASSERT(param);
-	ASSERT(out);
+	ASSERT(fis1);
 
-	// initialize out
-	out->r = 0.0f;
-	out->g = 0.0f;
-	out->b = 0.0f;
-	out->a = 0.0f;
+	// initialize fis1
+	fis1->r = 0.0f;
+	fis1->g = 0.0f;
+	fis1->b = 0.0f;
+	fis1->a = 0.0f;
 
 	// canonical form of the scattering intensity
 	// parameterization for P0, V and L
@@ -361,19 +361,134 @@ fIS1(atmo_solverParam_t* param, float h, float phi,
 		fx1.a = pM*exp(-tPPc.a -tPaP.a);
 
 		// apply trapesoidal rule
-		out->r += 0.5f*(fx1.r + fx0.r)*ds;
-		out->g += 0.5f*(fx1.g + fx0.g)*ds;
-		out->b += 0.5f*(fx1.b + fx0.b)*ds;
-		out->a += 0.5f*(fx1.a + fx0.a)*ds;
+		fis1->r += 0.5f*(fx1.r + fx0.r)*ds;
+		fis1->g += 0.5f*(fx1.g + fx0.g)*ds;
+		fis1->b += 0.5f*(fx1.b + fx0.b)*ds;
+		fis1->a += 0.5f*(fx1.a + fx0.a)*ds;
 
 		cc_vec4f_copy(&fx1, &fx0);
 	}
 
 	// apply Rayleigh/Mie scattering coefficient
-	out->r *= param->beta_r_rayleigh/(4.0*M_PI);
-	out->g *= param->beta_g_rayleigh/(4.0*M_PI);
-	out->b *= param->beta_b_rayleigh/(4.0*M_PI);
-	out->a *= param->beta_mie/(4.0*M_PI);
+	fis1->r *= param->beta_r_rayleigh/(4.0*M_PI);
+	fis1->g *= param->beta_g_rayleigh/(4.0*M_PI);
+	fis1->b *= param->beta_b_rayleigh/(4.0*M_PI);
+	fis1->a *= param->beta_mie/(4.0*M_PI);
+}
+
+// factored multiple-scattered gathered intensity
+static void
+fGk(atmo_solverParam_t* param, uint32_t k, cc_vec3f_t* P,
+    cc_vec3f_t* V, cc_vec3f_t* L, cc_vec4f_t* data,
+    cc_vec4f_t* fgk)
+{
+	ASSERT(param);
+	ASSERT(P);
+	ASSERT(V);
+	ASSERT(L);
+	ASSERT(data);
+	ASSERT(fgk);
+
+	// initialize fgk
+	fgk->r = 0.0f;
+	fgk->g = 0.0f;
+	fgk->b = 0.0f;
+	fgk->a = 0.0f;
+
+	// TODO - fGk
+}
+
+// factored multiple-scattered intensity
+static void
+fISk(atmo_solverParam_t* param, uint32_t k,
+     float h, float phi, float delta, cc_vec4f_t* data,
+     cc_vec4f_t* fisk)
+{
+	ASSERT(param);
+	ASSERT(data);
+	ASSERT(fisk);
+
+	// initialize fisk
+	fisk->r = 0.0f;
+	fisk->g = 0.0f;
+	fisk->b = 0.0f;
+	fisk->a = 0.0f;
+
+	// canonical form of the scattering intensity
+	// parameterization for P0, V and L
+	cc_vec3f_t P0 =
+	{
+		.z = h + param->Rp,
+	};
+	cc_vec3f_t V =
+	{
+		.x = sin(phi),
+		.z = cos(phi),
+	};
+	cc_vec3f_t L =
+	{
+		.x = -sin(delta),
+		.z = -cos(delta),
+	};
+
+	// compute ray-sphere intersection
+	// include a ray offset for the viewing vector
+	// to ensure that the ray does not intersect at P0
+	double Ro = 10.0;
+	cc_vec3f_t Pa;
+	cc_vec3f_t Pb;
+	computePaPb(param, &P0, &V, Ro, &Pa, &Pb);
+
+	// initialize integration
+	cc_vec3f_t P;
+	cc_vec3f_t step;
+	cc_vec4f_t fx0;
+	cc_vec4f_t fx1;
+	cc_vec4f_t tPaP;
+	cc_vec4f_t fgk;
+	cc_vec3f_copy(&Pa, &P);
+	cc_vec3f_subv_copy(&Pb, &Pa, &step);
+	cc_vec3f_muls(&step, 1.0f/param->integration_steps);
+	float ds = cc_vec3f_mag(&step);
+	float pR = densityR(param, h);
+	float pM = densityM(param, h);
+	fGk(param, k, &P0, &V, &L, data, &fgk);
+	transmittance(param, &Pa, &P, &tPaP);
+	fx0.r = fgk.r*pR*exp(-tPaP.r);
+	fx0.g = fgk.g*pR*exp(-tPaP.g);
+	fx0.b = fgk.b*pR*exp(-tPaP.b);
+	fx0.a = fgk.a*pM*exp(-tPaP.a);
+
+	// integrate factored multiple-scattered intensity
+	int i;
+	for(i = 0; i < param->integration_steps; ++i)
+	{
+		cc_vec3f_addv(&P, &step);
+
+		h  = height(param, &P);
+		pR = densityR(param, h);
+		pM = densityM(param, h);
+		fGk(param, k, &P, &V, &L, data, &fgk);
+		transmittance(param, &Pa, &P, &tPaP);
+		fx1.r = fgk.r*pR*exp(-tPaP.r);
+		fx1.g = fgk.g*pR*exp(-tPaP.g);
+		fx1.b = fgk.b*pR*exp(-tPaP.b);
+		fx1.a = fgk.a*pM*exp(-tPaP.a);
+
+		// apply trapesoidal rule
+		fisk->r += 0.5f*(fx1.r + fx0.r)*ds;
+		fisk->g += 0.5f*(fx1.g + fx0.g)*ds;
+		fisk->b += 0.5f*(fx1.b + fx0.b)*ds;
+		fisk->a += 0.5f*(fx1.a + fx0.a)*ds;
+
+		cc_vec4f_copy(&fx1, &fx0);
+	}
+
+	// apply Rayleigh/Mie scattering coefficient
+	fisk->r *= param->beta_r_rayleigh/(4.0*M_PI);
+	fisk->g *= param->beta_g_rayleigh/(4.0*M_PI);
+	fisk->b *= param->beta_b_rayleigh/(4.0*M_PI);
+	fisk->a *= param->beta_mie/(4.0*M_PI);
 }
 
 /***********************************************************
@@ -442,6 +557,29 @@ atmo_getDataK(atmo_solverParam_t* param,
 	uint32_t idx = i*w*h*d;
 
 	return &data[idx];
+}
+
+static void
+atmo_getData(atmo_solverParam_t* param,
+             uint32_t k, uint32_t x,
+             uint32_t y, uint32_t z,
+             cc_vec4f_t* data, cc_vec4f_t* val)
+{
+	ASSERT(param);
+	ASSERT(data);
+	ASSERT(val);
+
+	// k is base-1
+	uint32_t i   = k - 1;
+	uint32_t w   = param->texture_width;
+	uint32_t h   = param->texture_height;
+	uint32_t d   = param->texture_depth;
+	uint32_t idx = x + y*w + z*w*h + i*w*h*d;
+
+	val->r = data[idx].r;
+	val->g = data[idx].g;
+	val->b = data[idx].b;
+	val->a = data[idx].a;
 }
 
 static void
@@ -654,29 +792,6 @@ atmo_phaseM(atmo_solverParam_t* param, float cos_theta)
 	return (n1/d1)*(n2/d2);
 }
 
-static void
-atmo_getData(atmo_solverParam_t* param,
-             uint32_t k, uint32_t x,
-             uint32_t y, uint32_t z,
-             cc_vec4f_t* data, cc_vec4f_t* val)
-{
-	ASSERT(param);
-	ASSERT(data);
-	ASSERT(val);
-
-	// k is base-1
-	uint32_t i   = k - 1;
-	uint32_t w   = param->texture_width;
-	uint32_t h   = param->texture_height;
-	uint32_t d   = param->texture_depth;
-	uint32_t idx = x + y*w + z*w*h + i*w*h*d;
-
-	val->r = data[idx].r;
-	val->g = data[idx].g;
-	val->b = data[idx].b;
-	val->a = data[idx].a;
-}
-
 static int
 atmo_solver_debugData(atmo_solver_t* self, cc_vec4f_t* data)
 {
@@ -726,8 +841,8 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4f_t* data)
 	uint32_t z;
 	char fname[256];
 	unsigned char pixel[4] = { 0, 0, 0, 255 };
-	cc_vec4f_t fIS;
-	cc_vec4f_t IS = { 0 };
+	cc_vec4f_t fis;
+	cc_vec4f_t is;
 	for(k = 1; k <= param->k; ++k)
 	{
 		for(x = 0; x < param->texture_width; ++x)
@@ -747,26 +862,26 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4f_t* data)
 					cos_phi = atmo_getCosPhi(param, h, v);
 					phi = acosf(cos_phi);
 
-					atmo_getData(param, k, x, y, z, data, &fIS);
+					atmo_getData(param, k, x, y, z, data, &fis);
 
 					cos_theta = cos(delta - phi);
 					FR = atmo_phaseR(param, cos_theta);
 					FM = atmo_phaseM(param, cos_theta);
 
-					IS.r = II.r*(FR*fIS.r + FM*fIS.a);
-					IS.g = II.g*(FR*fIS.g + FM*fIS.a);
-					IS.b = II.b*(FR*fIS.b + FM*fIS.a);
-					IS.r = powf(1.0f - expf(-IS.r), 1.0f/2.2f);
-					IS.g = powf(1.0f - expf(-IS.g), 1.0f/2.2f);
-					IS.b = powf(1.0f - expf(-IS.b), 1.0f/2.2f);
-					IS.r = cc_clamp(IS.r, 0.0f, 1.0f);
-					IS.g = cc_clamp(IS.g, 0.0f, 1.0f);
-					IS.b = cc_clamp(IS.b, 0.0f, 1.0f);
+					is.r = II.r*(FR*fis.r + FM*fis.a);
+					is.g = II.g*(FR*fis.g + FM*fis.a);
+					is.b = II.b*(FR*fis.b + FM*fis.a);
+					is.r = powf(1.0f - expf(-is.r), 1.0f/2.2f);
+					is.g = powf(1.0f - expf(-is.g), 1.0f/2.2f);
+					is.b = powf(1.0f - expf(-is.b), 1.0f/2.2f);
+					is.r = cc_clamp(is.r, 0.0f, 1.0f);
+					is.g = cc_clamp(is.g, 0.0f, 1.0f);
+					is.b = cc_clamp(is.b, 0.0f, 1.0f);
 
-					// set IS
-					pixel[0] = (unsigned char) (255.0*IS.r);
-					pixel[1] = (unsigned char) (255.0*IS.g);
-					pixel[2] = (unsigned char) (255.0*IS.b);
+					// set is
+					pixel[0] = (unsigned char) (255.0*is.r);
+					pixel[1] = (unsigned char) (255.0*is.g);
+					pixel[2] = (unsigned char) (255.0*is.b);
 					texgz_tex_setPixel(tex, x*param->texture_depth + z,
 					                   y, pixel);
 
@@ -922,10 +1037,51 @@ atmo_solver_step(atmo_solver_t* self, uint32_t k,
 	float phi       = acos(cos_phi);
 	float delta     = acos(cos_delta);
 
-	cc_vec4f_t val;
-	fIS1(param, h, phi, delta, &val);
+	cc_vec4f_t fis;
+	if(k == 1)
+	{
+		fIS1(param, h, phi, delta, &fis);
+	}
+	else
+	{
+		fISk(param, k, h, phi, delta, data, &fis);
+	}
 
-	atmo_setData(param, k, x, y, z, data, &val);
+	atmo_setData(param, k, x, y, z, data, &fis);
+}
+
+static void
+atmo_solver_finish(atmo_solver_t* self, cc_vec4f_t* data)
+{
+	ASSERT(self);
+	ASSERT(data);
+
+	atmo_solverParam_t* param = &self->param;
+
+	// compute total intensity for each k
+	uint32_t k;
+	uint32_t x;
+	uint32_t y;
+	uint32_t z;
+	cc_vec4f_t fis0;
+	cc_vec4f_t fis1;
+	cc_vec4f_t fis;
+	for(k = 2; k <= param->k; ++k)
+	{
+		for(z = 0; z < param->texture_depth; ++z)
+		{
+			for(y = 0; y < param->texture_height; ++y)
+			{
+				for(x = 0; x < param->texture_width; ++x)
+				{
+					atmo_getData(param, k - 1, x, y, z, data, &fis0);
+					atmo_getData(param, k,     x, y, z, data, &fis1);
+					cc_vec4f_addv_copy(&fis0, &fis1, &fis);
+					atmo_setData(param, k, x, y, z, data, &fis);
+				}
+			}
+		}
+	}
 }
 
 static void atmo_solver_run(int tid, void* owner, void* task)
@@ -983,6 +1139,7 @@ static void atmo_solver_run(int tid, void* owner, void* task)
 		}
 	}
 
+	atmo_solver_finish(self, data);
 	atmo_solver_newImages(self, data);
 	atmo_solver_exportData(self, data);
 	atmo_solver_debugData(self, data);
