@@ -158,13 +158,169 @@ The Atmospheric Rendering implementation selected the wavelengths:
 \end_layout
 
 \begin_layout Subsection
+Spectral Intensity of Incident Light
+\end_layout
+
+\begin_layout Standard
+The Atmospheric Rendering implementation defines the spectral intensity
+ of incident light 
+\begin_inset Formula $I_{I}\left(\lambda\right)$
+\end_inset
+
+ from the Sun.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+I_{I}\left(\lambda\right)=SpectralIrridence\left(\lambda\right)\cdot Exposure\cdot SpectralToRGB\left(\lambda\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The spectral irradiance measures the power density of solar radiation at
+ specific wavelengths (from measured values found in tables).
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+SpectralIrridence\left(r,g,b\right)=\left(0.1526,0.191,0.208\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The exposure represents the amount of light exposure which scales the overall
+ intensity.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+Exposure=1.0
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The spectral to RGB constants are used to convert specific wavelengths into
+ high dynamic range RGB values.
+ These constants were calculated by converting wavelengths into CIE XYZ
+ color space, then converting XYZ to RGB, followed by normalization and
+ scaling.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+SpectralToRGB\left(r,g,b\right)=\left(133.3209,88.51855,112.7552\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The spectral intensity of incident light 
+\begin_inset Formula $I_{I}\left(r,g,b\right)$
+\end_inset
+
+:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+I_{I}\left(r,g,b\right)=\left(20.344770,16.907042,23.453083\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Tone Mapping and Gamma Correction
+\end_layout
+
+\begin_layout Standard
+The atmospheric simulation inherently outputs high dynamic range (HDR) intensiti
+es that must be transformed for display on standard devices as the final
+ step.
+\end_layout
+
+\begin_layout Standard
+Tone mapping transforms the high dynamic range (HDR) intensities such that
+ the colors are mapped to the displayable range 
+\begin_inset Formula $\left(0.0,1.0\right)$
+\end_inset
+
+ while preserving contrast in low-intensity areas and compressing high-intensity
+ values.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+ToneMapping\left(\left(r,g,b\right)_{HDR}\right)=1.0-\exp\left(-\left(r,g,b\right)_{HDR}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Gamma correction helps to distribute the compressed values more evenly across
+ the perceptual range of human vision.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+GammaCorrection(r,g,b)=\left(r,g,b\right)^{1.0/2.2}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The combined tone mapping and gamma correction transformation.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\left(r,g,b\right)=\left(1.0-\exp\left(-\left(r,g,b\right)_{HDR}\right)\right)^{1.0/2.2}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
 Atmospheric Boundary
 \end_layout
 
 \begin_layout Standard
-The atmospheric rendering algorithm models the atmosphere as the region
- where the effects of the atmosphere are non-negligible, extending from
- the Earth's surface to an atmospheric boundary.
+The atmospheric simulation models the atmosphere as the region where the
+ effects of the atmosphere are non-negligible, extending from the Earth's
+ surface to an atmospheric boundary.
 \end_layout
 
 \begin_layout Standard
@@ -188,12 +344,30 @@ Radius of the atmospheric boundary:
  m
 \end_layout
 
+\begin_layout Standard
+
+\series bold
+Note: 
+\series default
+Special care may be required to perform some mathematical operations on
+ floating point values of these magnitudes.
+ To preserve numerical precision, convert single precision floats to double
+ precision floats prior to performing dangerous mathematical operations.
+ Once complete, the result may be converted back to single precision floats.
+ For example, the 
+\begin_inset Formula $normalize\left(P\right)$
+\end_inset
+
+ function requires computing the square root of the sum of squares of floating
+ point values of these magnitudes.
+\end_layout
+
 \begin_layout Subsection
 Atmospheric Particles
 \end_layout
 
 \begin_layout Standard
-The atmospheric rendering algorithm models two types of particles.
+The atmospheric simulation models two types of particles.
 \end_layout
 
 \begin_layout Itemize
@@ -555,32 +729,16 @@ Numerical Integration
 
 \begin_layout Standard
 The atmospheric simulation requires the computation of integrals that must
- be solved using numerical integration due to complexity of the equations.
+ be approximated using numerical integration due to complexity of the equations.
 \end_layout
 
 \begin_layout Standard
-The trapezoidal rule may be applied to approximate the area of the region
- under the graph of the function 
+The trapezoidal rule may be used to approximate 1D integrals of the function
+ 
 \begin_inset Formula $f\left(x\right)$
 \end_inset
 
- as a trapezoid.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\int_{a}^{b}f\left(x\right)dx\thickapprox\left(b-a\right)\cdot\frac{1}{2}\left(f\left(a\right)+f\left(b\right)\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Where the accuracy of the solution may be improved by reducing the step
- size.
+.
 \end_layout
 
 \begin_layout Standard
@@ -592,6 +750,10 @@ Where the accuracy of the solution may be improved by reducing the step
 \end_inset
 
 
+\end_layout
+
+\begin_layout Standard
+Where the parameters are defined:
 \end_layout
 
 \begin_layout Standard
@@ -617,8 +779,20 @@ x_{i}=a+i\cdot dx
 \end_layout
 
 \begin_layout Standard
-The trapezoidal rule may also be extended to solve 2D integrals of the function
- 
+The endpoints of the 1D integral are defined as 
+\begin_inset Formula $x_{0}=a$
+\end_inset
+
+ and 
+\begin_inset Formula $x_{n}=b$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+The trapezoidal rule may be extended to approximate 2D integrals of the
+ function 
 \begin_inset Formula $f\left(x,y\right)$
 \end_inset
 
@@ -639,7 +813,7 @@ The trapezoidal rule may also be extended to solve 2D integrals of the function
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\frac{1}{4}dx\cdot dy\cdot\left(f\left(a,c\right)+f\left(b,c\right)+f\left(a,d\right)+f\left(b,d\right)+\right.
+\frac{1}{4}dx\cdot dy\cdot\left(f\left(x_{0},y_{0}\right)+f\left(x_{n},y_{0}\right)+f\left(x_{0},y_{m}\right)+f\left(x_{n},y_{m}\right)+\right.
 \]
 
 \end_inset
@@ -650,7 +824,7 @@ The trapezoidal rule may also be extended to solve 2D integrals of the function
 \begin_layout Standard
 \begin_inset Formula 
 \[
-2\sum_{j=1}^{n-1}f\left(x_{j},c\right)+2\sum_{j=1}^{n-1}f\left(x_{j},d\right)+2\sum_{i=1}^{m-1}f\left(a,y_{i}\right)+2\sum_{i=1}^{m-1}f\left(b,y_{i}\right)+
+2\sum_{j=1}^{n-1}f\left(x_{j},y_{0}\right)+2\sum_{j=1}^{n-1}f\left(x_{j},y_{m}\right)+2\sum_{i=1}^{m-1}f\left(x_{0},y_{i}\right)+2\sum_{i=1}^{m-1}f\left(x_{n},y_{i}\right)+
 \]
 
 \end_inset
@@ -718,7 +892,7 @@ y_{i}=c+i\cdot dy
 \end_layout
 
 \begin_layout Standard
-The edges of the 2D integral are naturally defined as 
+The edges of the 2D integral are defined as 
 \begin_inset Formula $x_{0}=a$
 \end_inset
 
@@ -754,12 +928,8 @@ Note:
 \end_inset
 
  variables.
- As a result, the integration is generally performed in a single pass since
- the function 
-\begin_inset Formula $f\left(x,y\right)$
-\end_inset
-
- is likely not separable or may have unknown separability.
+ As a result, the 2D approach is generally preferred for its robustness
+ unless the function is well-understood and separability is confirmed.
 \end_layout
 
 \begin_layout Subsection
@@ -828,7 +998,7 @@ Where the parameters are defined:
 \end_layout
 
 \begin_layout Standard
-And the outputs are a 4-component vectors 
+The outputs are a 4-component vectors 
 \begin_inset Formula $\left(T_{R_{r}},T_{R_{g}},T_{R_{b}},T_{M}\right)$
 \end_inset
 
@@ -906,157 +1076,6 @@ Where the functions
 \begin_inset Formula 
 \[
 T\left(P_{1},P_{2},\lambda\right)\cdot T\left(P_{2},P_{3},\lambda\right)=\exp\left(-t\left(P_{1},P_{2},\lambda\right)-t\left(P_{2},P_{3},\lambda\right)\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Subsection
-Spectral Intensity of Incident Light
-\end_layout
-
-\begin_layout Standard
-The Atmospheric Rendering implementation defines the spectral intensity
- of incident light 
-\begin_inset Formula $I_{I}\left(\lambda\right)$
-\end_inset
-
- from the Sun.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-I_{I}\left(\lambda\right)=SpectralIrridence\left(\lambda\right)\cdot Exposure\cdot SpectralToRGB\left(\lambda\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The spectral irradiance measures the power density of solar radiation at
- specific wavelengths (from measured values found in tables).
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-SpectralIrridence\left(r,g,b\right)=\left(0.1526,0.191,0.208\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The exposure represents the amount of light exposure which scales the overall
- intensity.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-Exposure=1.0
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The spectral to RGB constants are used to convert specific wavelengths into
- high dynamic range RGB values.
- These constants were calculated by converting wavelengths into CIE XYZ
- color space, then converting XYZ to RGB, followed by normalization and
- scaling.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-SpectralToRGB\left(r,g,b\right)=\left(133.3209,88.51855,112.7552\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The spectral intensity of incident light 
-\begin_inset Formula $I_{I}\left(r,g,b\right)$
-\end_inset
-
-:
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-I_{I}\left(r,g,b\right)=\left(20.344770,16.907042,23.453083\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Subsection
-Tone Mapping and Gamma Correction
-\end_layout
-
-\begin_layout Standard
-The atmospheric simulation inherently outputs high dynamic range (HDR) intensiti
-es that must be transformed for display on standard devices.
-\end_layout
-
-\begin_layout Standard
-Tone mapping transforms the high dynamic range (HDR) intensities such that
- the colors are mapped to a displayable range while preserving contrast
- in low-intensity areas and compressing high-intensity values.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-ToneMapping\left(\left(r,g,b\right)_{HDR}\right)=1.0-\exp\left(-\left(r,g,b\right)_{HDR}\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Gamma correction helps to distribute the compressed values more evenly across
- the perceptual range of human vision.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-GammaCorrection(r,g,b)=\left(r,g,b\right)^{1.0/2.2}
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The combined tone mapping and gamma correction transformation.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\left(r,g,b\right)=\left(1.0-\exp\left(-\left(r,g,b\right)_{HDR}\right)\right)^{1.0/2.2}
 \]
 
 \end_inset
@@ -1413,7 +1432,7 @@ The first order of
 \begin_inset Formula $I_{S_{R,M}}^{\left(k\right)}$
 \end_inset
 
- are computed iteratively using the previous output 
+ are computed iteratively by sampling the previous output 
 \begin_inset Formula $I_{S_{R,M}}^{\left(k-1\right)}$
 \end_inset
 
