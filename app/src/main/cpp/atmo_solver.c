@@ -66,7 +66,10 @@
 #define ATMO_SPECTRAL_TO_RGB_G 88.51855f
 #define ATMO_SPECTRAL_TO_RGB_B 112.7552f
 
-#define ATMO_INTEGRATION_STEPS 30
+#define ATMO_TRANSMITTANCE_STEPS 30
+
+#define ATMO_GATHER_M_STEPS (180/5)
+#define ATMO_GATHER_N_STEPS (360/5)
 
 #define ATMO_K 1
 
@@ -109,6 +112,200 @@
 * private - compute                                        *
 ***********************************************************/
 
+static float getUHeight(atmo_solverParam_t* param, float h)
+{
+	ASSERT(param);
+
+	#if ATMO_PARAM_HEIGHT == ATMO_PARAM_HEIGHT_NONLINEAR
+	return sqrtf(h/(param->Ra - param->Rp));
+	#else
+	return h/(param->Ra - param->Rp);
+	#endif
+}
+
+static float getHeightU(atmo_solverParam_t* param, float u)
+{
+	ASSERT(param);
+
+	#if ATMO_PARAM_HEIGHT == ATMO_PARAM_HEIGHT_NONLINEAR
+	return u*u*(param->Ra - param->Rp);
+	#else
+	return u*(param->Ra - param->Rp);
+	#endif
+}
+
+// compute height using double precision since the magnitude
+// of points in the atmosphere produces very large numbers
+static float
+getHeightP(atmo_solverParam_t* param, cc_vec3f_t* P)
+{
+	ASSERT(P);
+
+	cc_vec3d_t d =
+	{
+		.x = P->x,
+		.y = P->y,
+		.z = P->z,
+	};
+
+	return (float) (cc_vec3d_mag(&d) - param->Rp);
+}
+
+// compute Zenith using double precision since the magnitude
+// of points in the atmosphere produces very large numbers
+static void
+getZenithP(const cc_vec3f_t* P, cc_vec3f_t* Zenith)
+{
+	ASSERT(P);
+
+	cc_vec3d_t up =
+	{
+		.x = P->x,
+		.y = P->y,
+		.z = P->z,
+	};
+	cc_vec3d_normalize(&up);
+
+	Zenith->x = (float) up.x;
+	Zenith->y = (float) up.y;
+	Zenith->z = (float) up.z;
+}
+
+static float
+getCosPhiV(atmo_solverParam_t* param, float h, float v)
+{
+	ASSERT(param);
+
+	#if ATMO_PARAM_PHI == ATMO_PARAM_PHI_SHERVHEIM
+	return powf((2.0f*v - 1.0f), 3.0f);
+	#elif ATMO_PARAM_PHI == ATMO_PARAM_PHI_BODARE
+	float ch = -sqrtf(h*(2.0f*param->Rp + h))/(param->Rp + h);
+	if(v > 0.5f)
+	{
+		return ch + powf(v - 0.5f, 5.0f)*(1.0f - ch);
+	}
+	else
+	{
+		return ch - powf(v, 5.0f)*(1.0f + ch);
+	}
+	#else
+	return 2.0f*v - 1.0f;
+	#endif
+}
+
+static float
+getVCosPhi(atmo_solverParam_t* param, float h,
+           float cos_phi)
+{
+	ASSERT(param);
+
+	#if ATMO_PARAM_PHI == ATMO_PARAM_PHI_SHERVHEIM
+	return 0.5f*(1.0f + cc_sign(cos_phi)*
+	                    powf(fabsf(cos_phi), 1.0f/3.0f));
+	#elif ATMO_PARAM_PHI == ATMO_PARAM_PHI_BODARE
+	float ch = -sqrtf(h*(2.0f*param->Rp + h))/(param->Rp + h);
+	if(cos_phi > ch)
+	{
+		return 0.5f*powf((cos_phi - ch)/(1.0f - ch), 0.2f) + 0.5f;
+	}
+	else
+	{
+		return 0.5f*powf((ch - cos_phi)/(1.0f + ch), 0.2f);
+	}
+	#else
+	return (cos_phi + 1.0f)/2.0f;
+	#endif
+}
+
+static float getCosDeltaW(float w)
+{
+	#if ATMO_PARAM_DELTA == ATMO_PARAM_DELTA_SHERVHEIM
+	return powf((2.0f*w - 1.0f), 3.0f);
+	#elif ATMO_PARAM_DELTA == ATMO_PARAM_DELTA_BODARE
+	return tanf((2.0f*w - 1.0f + 0.26f)*0.75f)/
+	       tanf(1.26f*0.75f);
+	#else
+	return 2.0f*w - 1.0f;
+	#endif
+}
+
+static float getWCosDelta(float cos_delta)
+{
+	#if ATMO_PARAM_DELTA == ATMO_PARAM_DELTA_SHERVHEIM
+	return 0.5f*(1.0f + cc_sign(cos_delta)*
+	                    powf(fabsf(cos_delta), 1.0f/3.0f));
+	#elif ATMO_PARAM_DELTA == ATMO_PARAM_DELTA_BODARE
+	return 0.5f*(atanf(cc_max(cos_delta, -0.1975f)*
+	                   tanf(1.26f*1.1f))/1.1f +
+	             (1.0f - 0.26f));
+	#else
+	return (cos_delta + 1.0f)/2.0f;
+	#endif
+}
+
+static cc_vec4f_t*
+getDataK(atmo_solverParam_t* param,
+         uint32_t k, cc_vec4f_t* data)
+{
+	ASSERT(param);
+	ASSERT(data);
+
+	// k is base-1
+	uint32_t i   = k - 1;
+	uint32_t w   = param->texture_width;
+	uint32_t h   = param->texture_height;
+	uint32_t d   = param->texture_depth;
+	uint32_t idx = i*w*h*d;
+
+	return &data[idx];
+}
+
+static void
+getData(atmo_solverParam_t* param,
+        uint32_t k, uint32_t x,
+        uint32_t y, uint32_t z,
+        cc_vec4f_t* data, cc_vec4f_t* val)
+{
+	ASSERT(param);
+	ASSERT(data);
+	ASSERT(val);
+
+	// k is base-1
+	uint32_t i   = k - 1;
+	uint32_t w   = param->texture_width;
+	uint32_t h   = param->texture_height;
+	uint32_t d   = param->texture_depth;
+	uint32_t idx = x + y*w + z*w*h + i*w*h*d;
+
+	val->r = data[idx].r;
+	val->g = data[idx].g;
+	val->b = data[idx].b;
+	val->a = data[idx].a;
+}
+
+static void
+setData(atmo_solverParam_t* param,
+        uint32_t k, uint32_t x,
+        uint32_t y, uint32_t z,
+        cc_vec4f_t* data, cc_vec4f_t* val)
+{
+	ASSERT(param);
+	ASSERT(data);
+	ASSERT(val);
+
+	// k is base-1
+	uint32_t i   = k - 1;
+	uint32_t w   = param->texture_width;
+	uint32_t h   = param->texture_height;
+	uint32_t d   = param->texture_depth;
+	uint32_t idx = x + y*w + z*w*h + i*w*h*d;
+
+	data[idx].r = val->r;
+	data[idx].g = val->g;
+	data[idx].b = val->b;
+	data[idx].a = val->a;
+}
+
 // Rayleigh density function
 static float densityR(atmo_solverParam_t* param, float h)
 {
@@ -123,23 +320,6 @@ static float densityM(atmo_solverParam_t* param, float h)
 	ASSERT(param);
 
 	return expf(-h/param->density_scale_height_mie);
-}
-
-// compute height using double precision since the magnitude
-// of points in the atmosphere produces very large numbers
-static float
-height(atmo_solverParam_t* param, cc_vec3f_t* P)
-{
-	ASSERT(P);
-
-	cc_vec3d_t d =
-	{
-		.x = P->x,
-		.y = P->y,
-		.z = P->z,
-	};
-
-	return (float) (cc_vec3d_mag(&d) - param->Rp);
 }
 
 // Rayleigh/Mie transmittance
@@ -157,9 +337,9 @@ transmittance(atmo_solverParam_t* param, cc_vec3f_t* P1,
 	cc_vec3f_t step;
 	cc_vec3f_copy(P1, &P);
 	cc_vec3f_subv_copy(P2, P1, &step);
-	cc_vec3f_muls(&step, 1.0f/param->integration_steps);
+	cc_vec3f_muls(&step, 1.0f/param->transmittance_steps);
 	float ds  = cc_vec3f_mag(&step);
-	float h   = height(param, &P);
+	float h   = getHeightP(param, &P);
 	float pR0 = densityR(param, h);
 	float pM0 = densityM(param, h);
 
@@ -169,11 +349,11 @@ transmittance(atmo_solverParam_t* param, cc_vec3f_t* P1,
 	float pM1;
 	float tR = 0.0f;
 	float tM = 0.0f;
-	for(i = 0; i < param->integration_steps; ++i)
+	for(i = 0; i < param->transmittance_steps; ++i)
 	{
 		cc_vec3f_addv(&P, &step);
 
-		h   = height(param, &P);
+		h   = getHeightP(param, &P);
 		pR1 = densityR(param, h);
 		pM1 = densityM(param, h);
 
@@ -269,6 +449,30 @@ computePc(atmo_solverParam_t* param, cc_vec3f_t* P,
 	return computePaPb(param, P, &Sun, Ro, &Pa, Pc);
 }
 
+// modified Rayleigh phase function
+static float
+atmo_phaseR(atmo_solverParam_t* param, float cos_theta)
+{
+	ASSERT(param);
+
+	return 0.8f*(1.4f + 0.5f*cos_theta*cos_theta);
+}
+
+// Mie phase function
+static float
+atmo_phaseM(atmo_solverParam_t* param, float cos_theta)
+{
+	ASSERT(param);
+
+	float g  = param->phase_g_mie;
+	float g2 = g*g;
+	float n1 = 3.0f*(1.0f - g2);
+	float n2 = 1.0f + cos_theta*cos_theta;
+	float d1 = 2.0f*(2.0f + g2);
+	float d2 = powf(1.0f + g2 + 2.0f*g*cos_theta, 1.5f);
+	return (n1/d1)*(n2/d2);
+}
+
 // factored single-scattered intensity
 static void
 fIS1(atmo_solverParam_t* param, float h, float phi,
@@ -299,6 +503,8 @@ fIS1(atmo_solverParam_t* param, float h, float phi,
 		.x = -sin(delta),
 		.z = -cos(delta),
 	};
+	cc_vec3f_normalize(&V);
+	cc_vec3f_normalize(&L);
 
 	// compute ray-sphere intersection
 	// include a ray offset for the viewing vector
@@ -323,7 +529,7 @@ fIS1(atmo_solverParam_t* param, float h, float phi,
 	cc_vec4f_t tPaP;
 	cc_vec3f_copy(&Pa, &P);
 	cc_vec3f_subv_copy(&Pb, &Pa, &step);
-	cc_vec3f_muls(&step, 1.0f/param->integration_steps);
+	cc_vec3f_muls(&step, 1.0f/param->transmittance_steps);
 	float ds = cc_vec3f_mag(&step);
 	float pR = densityR(param, h);
 	float pM = densityM(param, h);
@@ -336,7 +542,7 @@ fIS1(atmo_solverParam_t* param, float h, float phi,
 
 	// integrate factored single-scattered intensity
 	int i;
-	for(i = 0; i < param->integration_steps; ++i)
+	for(i = 0; i < param->transmittance_steps; ++i)
 	{
 		cc_vec3f_addv(&P, &step);
 
@@ -350,7 +556,7 @@ fIS1(atmo_solverParam_t* param, float h, float phi,
 			continue;
 		}
 
-		h  = height(param, &P);
+		h  = getHeightP(param, &P);
 		pR = densityR(param, h);
 		pM = densityM(param, h);
 		transmittance(param, &P, &Pc, &tPPc);
@@ -376,6 +582,93 @@ fIS1(atmo_solverParam_t* param, float h, float phi,
 	fis1->a *= param->beta_mie/(4.0*M_PI);
 }
 
+static void
+fISk_sample(atmo_solverParam_t* param, uint32_t k,
+            cc_vec3f_t* P, cc_vec3f_t* V, cc_vec3f_t* L,
+            cc_vec4f_t* data, cc_vec4f_t* fisk)
+{
+	ASSERT(param);
+	ASSERT(P);
+	ASSERT(V);
+	ASSERT(L);
+	ASSERT(data);
+	ASSERT(fisk);
+
+	// initialize fisk
+	fisk->r = 0.0f;
+	fisk->g = 0.0f;
+	fisk->b = 0.0f;
+	fisk->a = 0.0f;
+
+	cc_vec3f_t Zenith;
+	getZenithP(P, &Zenith);
+
+	cc_vec3f_t Sun;
+	cc_vec3f_muls_copy(L, -1.0f, &Sun);
+
+	// compute u,v,w
+	float h         = getHeightP(param, P);
+	float cos_phi   = cc_vec3f_dot(&Zenith, V);
+	float cos_delta = cc_vec3f_dot(&Zenith, &Sun);
+	float u         = getUHeight(param, h);
+	float v         = getVCosPhi(param, h, cos_phi);
+	float w         = getWCosDelta(cos_delta);
+
+	// TODO - fISk_sample
+}
+
+// factored multiple-scattered gathered intensity step
+static void
+fGk_step(atmo_solverParam_t* param, uint32_t k,
+         cc_vec3f_t* P, cc_vec3f_t* V, cc_vec3f_t* L,
+         cc_vec4f_t* data, float s, float xj, float yi,
+         cc_vec4f_t* fgk)
+{
+	ASSERT(param);
+	ASSERT(P);
+	ASSERT(V);
+	ASSERT(L);
+	ASSERT(data);
+	ASSERT(fgk);
+
+	// compute omega
+	// xj => omega spherical angle theta in (0, pi)
+	// yi => omega spherical angle phi   in (0, 2*pi)
+	cc_vec3f_t omega =
+	{
+		.x = sin(xj)*cos(yi),
+		.y = sin(xj)*sin(yi),
+		.z = cos(xj),
+	};
+	cc_vec3f_normalize(&omega);
+
+	// compute phase
+	float cos_theta;
+	float FR;
+	float FM;
+	cc_vec3f_t minus_omega;
+	cc_vec3f_t minus_V;
+	cc_vec3f_muls_copy(&omega, -1.0f, &minus_omega);
+	cc_vec3f_muls_copy(V,      -1.0f, &minus_V);
+	cos_theta = cc_vec3f_dot(&minus_omega, &minus_V);
+	FR = atmo_phaseR(param, cos_theta);
+	FM = atmo_phaseM(param, cos_theta);
+
+	// sample fisk
+	cc_vec4f_t fisk;
+	fISk_sample(param, k, P, &omega, L, data, &fisk);
+
+	// compute sin_theta for domega
+	// xj => omega spherical angle theta in (0, pi)
+	float domega_sin_xj = sin(xj);
+
+	// add factored multiple-scattered gathered intensity
+	fgk->r += FR*fisk.r*domega_sin_xj;
+	fgk->g += FR*fisk.g*domega_sin_xj;
+	fgk->b += FR*fisk.b*domega_sin_xj;
+	fgk->a += FM*fisk.a*domega_sin_xj;
+}
+
 // factored multiple-scattered gathered intensity
 static void
 fGk(atmo_solverParam_t* param, uint32_t k, cc_vec3f_t* P,
@@ -389,13 +682,63 @@ fGk(atmo_solverParam_t* param, uint32_t k, cc_vec3f_t* P,
 	ASSERT(data);
 	ASSERT(fgk);
 
+	// initalize 2D trapezoidal rule edges
+	// x => omega spherical angle theta in (0, pi)
+	// y => omega spherical angle phi   in (0, 2*pi)
+	float x0 = 0.0f;
+	float xn = (float) M_PI;
+	float y0 = 0.0f;
+	float ym = (float) (2.0*M_PI);
+
+	// compute 2D trapezoidal rule step size
+	int   m  = param->gather_m_steps;
+	int   n  = param->gather_n_steps;
+	float dx = (xn - x0)/((float) n);
+	float dy = (ym - y0)/((float) m);
+
 	// initialize fgk
 	fgk->r = 0.0f;
 	fgk->g = 0.0f;
 	fgk->b = 0.0f;
 	fgk->a = 0.0f;
 
-	// TODO - fGk
+	// apply 2D trapezoidal rule for corners
+	fGk_step(param, k, P, V, L, data, 1.0f, x0, y0, fgk);
+	fGk_step(param, k, P, V, L, data, 1.0f, xn, y0, fgk);
+	fGk_step(param, k, P, V, L, data, 1.0f, x0, ym, fgk);
+	fGk_step(param, k, P, V, L, data, 1.0f, xn, ym, fgk);
+
+	// apply 2D trapezoidal rule for edges
+	int   i;
+	int   j;
+	float yi;
+	float xj;
+	for(j = 1; j < n; ++j)
+	{
+		xj = ((float) j)*dx;
+		fGk_step(param, k, P, V, L, data, 2.0f, xj, y0, fgk);
+		fGk_step(param, k, P, V, L, data, 2.0f, xj, ym, fgk);
+	}
+	for(i = 1; i < m; ++i)
+	{
+		yi = ((float) i)*dy;
+		fGk_step(param, k, P, V, L, data, 2.0f, x0, yi, fgk);
+		fGk_step(param, k, P, V, L, data, 2.0f, xn, yi, fgk);
+	}
+
+	// apply 2D trapezoidal rule for center
+	for(i = 1; i < m; ++i)
+	{
+		yi = ((float) i)*dy;
+		for(j = 1; j < n; ++j)
+		{
+			xj = ((float) j)*dx;
+			fGk_step(param, k, P, V, L, data, 4.0f, xj, yi, fgk);
+		}
+	}
+
+	// apply 2D trapezoidal rule scale
+	cc_vec4f_muls(fgk, 4.0f*dx*dy);
 }
 
 // factored multiple-scattered intensity
@@ -430,6 +773,8 @@ fISk(atmo_solverParam_t* param, uint32_t k,
 		.x = -sin(delta),
 		.z = -cos(delta),
 	};
+	cc_vec3f_normalize(&V);
+	cc_vec3f_normalize(&L);
 
 	// compute ray-sphere intersection
 	// include a ray offset for the viewing vector
@@ -448,11 +793,11 @@ fISk(atmo_solverParam_t* param, uint32_t k,
 	cc_vec4f_t fgk;
 	cc_vec3f_copy(&Pa, &P);
 	cc_vec3f_subv_copy(&Pb, &Pa, &step);
-	cc_vec3f_muls(&step, 1.0f/param->integration_steps);
+	cc_vec3f_muls(&step, 1.0f/param->transmittance_steps);
 	float ds = cc_vec3f_mag(&step);
 	float pR = densityR(param, h);
 	float pM = densityM(param, h);
-	fGk(param, k, &P0, &V, &L, data, &fgk);
+	fGk(param, k - 1, &P0, &V, &L, data, &fgk);
 	transmittance(param, &Pa, &P, &tPaP);
 	fx0.r = fgk.r*pR*exp(-tPaP.r);
 	fx0.g = fgk.g*pR*exp(-tPaP.g);
@@ -461,14 +806,14 @@ fISk(atmo_solverParam_t* param, uint32_t k,
 
 	// integrate factored multiple-scattered intensity
 	int i;
-	for(i = 0; i < param->integration_steps; ++i)
+	for(i = 0; i < param->transmittance_steps; ++i)
 	{
 		cc_vec3f_addv(&P, &step);
 
-		h  = height(param, &P);
+		h  = getHeightP(param, &P);
 		pR = densityR(param, h);
 		pM = densityM(param, h);
-		fGk(param, k, &P, &V, &L, data, &fgk);
+		fGk(param, k - 1, &P, &V, &L, data, &fgk);
 		transmittance(param, &Pa, &P, &tPaP);
 		fx1.r = fgk.r*pR*exp(-tPaP.r);
 		fx1.g = fgk.g*pR*exp(-tPaP.g);
@@ -494,116 +839,6 @@ fISk(atmo_solverParam_t* param, uint32_t k,
 /***********************************************************
 * private - utility                                        *
 ***********************************************************/
-
-static float
-atmo_getHeight(atmo_solverParam_t* param, float u)
-{
-	ASSERT(param);
-
-	#if ATMO_PARAM_HEIGHT == ATMO_PARAM_HEIGHT_NONLINEAR
-	return u*u*(param->Ra - param->Rp);
-	#else
-	return u*(param->Ra - param->Rp);
-	#endif
-}
-
-static float
-atmo_getCosPhi(atmo_solverParam_t* param, float h, float v)
-{
-	ASSERT(param);
-
-	#if ATMO_PARAM_PHI == ATMO_PARAM_PHI_SHERVHEIM
-	return powf((2.0f*v - 1.0f), 3.0f);
-	#elif ATMO_PARAM_PHI == ATMO_PARAM_PHI_BODARE
-	float ch = -sqrtf(h*(2.0f*param->Rp + h))/(param->Rp + h);
-	if(v > 0.5f)
-	{
-		return ch + powf(v - 0.5f, 5.0f)*(1.0f - ch);
-	}
-	else
-	{
-		return ch - powf(v, 5.0f)*(1.0f + ch);
-	}
-	#else
-	return 2.0f*v - 1.0f;
-	#endif
-}
-
-static float
-atmo_getCosDelta(float w)
-{
-	#if ATMO_PARAM_DELTA == ATMO_PARAM_DELTA_SHERVHEIM
-	return powf((2.0f*w - 1.0f), 3.0f);
-	#elif ATMO_PARAM_DELTA == ATMO_PARAM_DELTA_BODARE
-	return tanf((2.0f*w - 1.0f + 0.26f)*0.75f)/
-	       tanf(1.26f*0.75f);
-	#else
-	return 2.0f*w - 1.0f;
-	#endif
-}
-
-static cc_vec4f_t*
-atmo_getDataK(atmo_solverParam_t* param,
-              uint32_t k, cc_vec4f_t* data)
-{
-	ASSERT(param);
-	ASSERT(data);
-
-	// k is base-1
-	uint32_t i   = k - 1;
-	uint32_t w   = param->texture_width;
-	uint32_t h   = param->texture_height;
-	uint32_t d   = param->texture_depth;
-	uint32_t idx = i*w*h*d;
-
-	return &data[idx];
-}
-
-static void
-atmo_getData(atmo_solverParam_t* param,
-             uint32_t k, uint32_t x,
-             uint32_t y, uint32_t z,
-             cc_vec4f_t* data, cc_vec4f_t* val)
-{
-	ASSERT(param);
-	ASSERT(data);
-	ASSERT(val);
-
-	// k is base-1
-	uint32_t i   = k - 1;
-	uint32_t w   = param->texture_width;
-	uint32_t h   = param->texture_height;
-	uint32_t d   = param->texture_depth;
-	uint32_t idx = x + y*w + z*w*h + i*w*h*d;
-
-	val->r = data[idx].r;
-	val->g = data[idx].g;
-	val->b = data[idx].b;
-	val->a = data[idx].a;
-}
-
-static void
-atmo_setData(atmo_solverParam_t* param,
-             uint32_t k, uint32_t x,
-             uint32_t y, uint32_t z,
-             cc_vec4f_t* data, cc_vec4f_t* val)
-{
-	ASSERT(param);
-	ASSERT(data);
-	ASSERT(val);
-
-	// k is base-1
-	uint32_t i   = k - 1;
-	uint32_t w   = param->texture_width;
-	uint32_t h   = param->texture_height;
-	uint32_t d   = param->texture_depth;
-	uint32_t idx = x + y*w + z*w*h + i*w*h*d;
-
-	data[idx].r = val->r;
-	data[idx].g = val->g;
-	data[idx].b = val->b;
-	data[idx].a = val->a;
-}
 
 static void atmo_solver_deleteImages(atmo_solver_t* self)
 {
@@ -646,7 +881,7 @@ atmo_solver_newImages(atmo_solver_t* self,
 	for(i = 0; i < param->k; ++i)
 	{
 		// k is base-1
-		datak = atmo_getDataK(&self->param, i + 1, data);
+		datak = getDataK(&self->param, i + 1, data);
 
 		img = vkk_image_new(self->engine,
 		                    param->texture_width,
@@ -726,8 +961,12 @@ atmo_solver_exportData(atmo_solver_t* self,
 	cc_jsmnStream_float(jsmn, param->spectral_to_rgb_g);
 	cc_jsmnStream_key(jsmn, "%s", "spectral_to_rgb_b");
 	cc_jsmnStream_float(jsmn, param->spectral_to_rgb_b);
-	cc_jsmnStream_key(jsmn, "%s", "integration_steps");
-	cc_jsmnStream_int(jsmn, param->integration_steps);
+	cc_jsmnStream_key(jsmn, "%s", "transmittance_steps");
+	cc_jsmnStream_int(jsmn, param->transmittance_steps);
+	cc_jsmnStream_key(jsmn, "%s", "gather_m_steps");
+	cc_jsmnStream_int(jsmn, param->gather_m_steps);
+	cc_jsmnStream_key(jsmn, "%s", "gather_n_steps");
+	cc_jsmnStream_int(jsmn, param->gather_n_steps);
 	cc_jsmnStream_key(jsmn, "%s", "k");
 	cc_jsmnStream_int(jsmn, param->k);
 	cc_jsmnStream_key(jsmn, "%s", "texture_width");
@@ -749,7 +988,7 @@ atmo_solver_exportData(atmo_solver_t* self,
 	for(k = 1; k <= param->k; ++k)
 	{
 		snprintf(fname, 256, "atmo-data-k%u.dat", k);
-		datak = atmo_getDataK(param, k, data);
+		datak = getDataK(param, k, data);
 		f = fopen(fname, "w");
 		if(f)
 		{
@@ -767,30 +1006,6 @@ atmo_solver_exportData(atmo_solver_t* self,
 }
 
 #ifdef ATMO_SOLVER_DEBUG_DATA
-
-// modified Rayleigh phase function
-static float
-atmo_phaseR(atmo_solverParam_t* param, float cos_theta)
-{
-	ASSERT(param);
-
-	return 0.8f*(1.4f + 0.5f*cos_theta*cos_theta);
-}
-
-// Mie phase function
-static float
-atmo_phaseM(atmo_solverParam_t* param, float cos_theta)
-{
-	ASSERT(param);
-
-	float g  = param->phase_g_mie;
-	float g2 = g*g;
-	float n1 = 3.0f*(1.0f - g2);
-	float n2 = 1.0f + cos_theta*cos_theta;
-	float d1 = 2.0f*(2.0f + g2);
-	float d2 = powf(1.0f + g2 + 2.0f*g*cos_theta, 1.5f);
-	return (n1/d1)*(n2/d2);
-}
 
 static int
 atmo_solver_debugData(atmo_solver_t* self, cc_vec4f_t* data)
@@ -848,21 +1063,21 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4f_t* data)
 		for(x = 0; x < param->texture_width; ++x)
 		{
 			u = ((float) x)/((float) (param->texture_width - 1));
-			h = atmo_getHeight(param, u);
+			h = getHeightU(param, u);
 
 			for(z = 0; z < param->texture_depth; ++z)
 			{
 				w = ((float) z)/((float) (param->texture_depth - 1));
-				cos_delta = atmo_getCosDelta(w);
+				cos_delta = getCosDeltaW(w);
 				delta = acosf(cos_delta);
 
 				for(y = 0; y < param->texture_height; ++y)
 				{
 					v = ((float) y)/((float) (param->texture_height - 1));
-					cos_phi = atmo_getCosPhi(param, h, v);
+					cos_phi = getCosPhiV(param, h, v);
 					phi = acosf(cos_phi);
 
-					atmo_getData(param, k, x, y, z, data, &fis);
+					getData(param, k, x, y, z, data, &fis);
 
 					cos_theta = cos(delta - phi);
 					FR = atmo_phaseR(param, cos_theta);
@@ -982,11 +1197,27 @@ atmo_solver_paramValidate(atmo_solverParam_t* param)
 		return 0;
 	}
 
-	if((param->integration_steps < 1) ||
-	   (param->integration_steps > 100))
+	if((param->transmittance_steps < 1) ||
+	   (param->transmittance_steps > 100))
 	{
-		LOGE("invalid integration_steps=%u",
-		     param->integration_steps);
+		LOGE("invalid transmittance_steps=%u",
+		     param->transmittance_steps);
+		return 0;
+	}
+
+	if((param->gather_m_steps < 1) ||
+	   (param->gather_m_steps > 180))
+	{
+		LOGE("invalid gather_m_steps=%u",
+		     param->gather_m_steps);
+		return 0;
+	}
+
+	if((param->gather_n_steps < 1) ||
+	   (param->gather_n_steps > 360))
+	{
+		LOGE("invalid gather_n_steps=%u",
+		     param->gather_n_steps);
 		return 0;
 	}
 
@@ -1031,9 +1262,9 @@ atmo_solver_step(atmo_solver_t* self, uint32_t k,
 	float v = ((float) y)/(height - 1.0f);
 	float w = ((float) z)/(depth - 1.0f);
 
-	float h         = atmo_getHeight(param, u);
-	float cos_phi   = atmo_getCosPhi(param, h, v);
-	float cos_delta = atmo_getCosDelta(w);
+	float h         = getHeightU(param, u);
+	float cos_phi   = getCosPhiV(param, h, v);
+	float cos_delta = getCosDeltaW(w);
 	float phi       = acos(cos_phi);
 	float delta     = acos(cos_delta);
 
@@ -1047,7 +1278,7 @@ atmo_solver_step(atmo_solver_t* self, uint32_t k,
 		fISk(param, k, h, phi, delta, data, &fis);
 	}
 
-	atmo_setData(param, k, x, y, z, data, &fis);
+	setData(param, k, x, y, z, data, &fis);
 }
 
 static void
@@ -1074,10 +1305,10 @@ atmo_solver_finish(atmo_solver_t* self, cc_vec4f_t* data)
 			{
 				for(x = 0; x < param->texture_width; ++x)
 				{
-					atmo_getData(param, k - 1, x, y, z, data, &fis0);
-					atmo_getData(param, k,     x, y, z, data, &fis1);
+					getData(param, k - 1, x, y, z, data, &fis0);
+					getData(param, k,     x, y, z, data, &fis1);
 					cc_vec4f_addv_copy(&fis0, &fis1, &fis);
-					atmo_setData(param, k, x, y, z, data, &fis);
+					setData(param, k, x, y, z, data, &fis);
 				}
 			}
 		}
@@ -1244,7 +1475,10 @@ void atmo_solver_defaultParam(atmo_solver_t* self,
 		.spectral_to_rgb_g = ATMO_SPECTRAL_TO_RGB_G,
 		.spectral_to_rgb_b = ATMO_SPECTRAL_TO_RGB_B,
 
-		.integration_steps = ATMO_INTEGRATION_STEPS,
+		.transmittance_steps = ATMO_TRANSMITTANCE_STEPS,
+
+		.gather_m_steps = ATMO_GATHER_M_STEPS,
+		.gather_n_steps = ATMO_GATHER_N_STEPS,
 
 		.k = ATMO_K,
 

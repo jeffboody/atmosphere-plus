@@ -759,7 +759,7 @@ Where the parameters are defined:
 \begin_layout Standard
 \begin_inset Formula 
 \[
-dx=\frac{b-a}{n}
+dx=\frac{x_{n}-x_{0}}{n}
 \]
 
 \end_inset
@@ -770,7 +770,7 @@ dx=\frac{b-a}{n}
 \begin_layout Standard
 \begin_inset Formula 
 \[
-x_{i}=a+i\cdot dx
+x_{i}=x_{0}+i\cdot dx
 \]
 
 \end_inset
@@ -850,7 +850,7 @@ Where the parameters are defined:
 \begin_layout Standard
 \begin_inset Formula 
 \[
-dx=\frac{b-a}{n}
+dx=\frac{x_{n}-x_{0}}{n}
 \]
 
 \end_inset
@@ -861,7 +861,7 @@ dx=\frac{b-a}{n}
 \begin_layout Standard
 \begin_inset Formula 
 \[
-dy=\frac{d-c}{m}
+dy=\frac{y_{m}-y_{0}}{m}
 \]
 
 \end_inset
@@ -872,7 +872,7 @@ dy=\frac{d-c}{m}
 \begin_layout Standard
 \begin_inset Formula 
 \[
-x_{j}=a+j\cdot dx
+x_{j}=x_{0}+j\cdot dx
 \]
 
 \end_inset
@@ -883,7 +883,7 @@ x_{j}=a+j\cdot dx
 \begin_layout Standard
 \begin_inset Formula 
 \[
-y_{i}=c+i\cdot dy
+y_{i}=y_{0}+i\cdot dy
 \]
 
 \end_inset

@@ -61,7 +61,9 @@ typedef struct atmo_solverParam_s
 	float spectral_to_rgb_g;
 	float spectral_to_rgb_b;
 
-	uint32_t integration_steps;
+	uint32_t transmittance_steps;
+	uint32_t gather_m_steps;
+	uint32_t gather_n_steps;
 
 	uint32_t k; // base-1
 

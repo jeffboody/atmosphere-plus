@@ -120,7 +120,7 @@ void main()
 		v = 0.5*pow((ch - cos_phi)/(1.0 + ch), 0.2);
 	}
 	#else
-	v = (cos_phi + 1.0f)/2.0f;
+	v = (cos_phi + 1.0)/2.0;
 	#endif
 
 	float w;
@@ -130,7 +130,7 @@ void main()
 	w = 0.5*(atan(max(cos_delta, -0.1975)*tan(1.26*1.1))/1.1 +
 	         (1.0 - 0.26));
 	#else
-	w = (cos_delta + 1.0f)/2.0f;
+	w = (cos_delta + 1.0)/2.0;
 	#endif
 
 	// sample fIS texture
