@@ -68,10 +68,10 @@
 
 #define ATMO_TRANSMITTANCE_STEPS 30
 
-#define ATMO_GATHER_M_STEPS (180/5)
-#define ATMO_GATHER_N_STEPS (360/5)
+#define ATMO_GATHER_M_STEPS (180/30)
+#define ATMO_GATHER_N_STEPS (360/30)
 
-#define ATMO_K 1
+#define ATMO_K 5
 
 #define ATMO_TEXTURE_WIDTH  32
 #define ATMO_TEXTURE_HEIGHT 256
@@ -613,8 +613,29 @@ fISk_sample(atmo_solverParam_t* param, uint32_t k,
 	float u         = getUHeight(param, h);
 	float v         = getVCosPhi(param, h, cos_phi);
 	float w         = getWCosDelta(cos_delta);
+	float width1    = (float) (param->texture_width  - 1);
+	float height1   = (float) (param->texture_height - 1);
+	float depth1    = (float) (param->texture_depth  - 1);
 
-	// TODO - fISk_sample
+	// compute x,y,z
+	uint32_t x = (uint32_t) (u*width1);
+	uint32_t y = (uint32_t) (v*height1);
+	uint32_t z = (uint32_t) (w*depth1);
+	if(x >= param->texture_width)
+	{
+		x = param->texture_width - 1;
+	}
+	if(y >= param->texture_height)
+	{
+		y = param->texture_height - 1;
+	}
+	if(z >= param->texture_depth)
+	{
+		z = param->texture_depth - 1;
+	}
+
+	// sample nearest
+	getData(param, k, x, y, z, data, fisk);
 }
 
 // factored multiple-scattered gathered intensity step
