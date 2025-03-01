@@ -108,30 +108,61 @@
 #define ATMO_PARAM_PHI    ATMO_PARAM_PHI_SHERVHEIM
 #define ATMO_PARAM_DELTA  ATMO_PARAM_DELTA_SHERVHEIM
 
+// sampling modes
+#define ATMO_SAMPLE_MODE_NEAREST 0
+#define ATMO_SAMPLE_MODE_LINEAR  1
+
+// select sampling mode
+#define ATMO_SAMPLE_MODE ATMO_SAMPLE_MODE_LINEAR
+
 /***********************************************************
 * private - compute                                        *
 ***********************************************************/
+
+static uint32_t
+atmo_clamp(uint32_t v, uint32_t min, uint32_t max)
+{
+	ASSERT(min < max);
+
+	if(v < min)
+	{
+		v = min;
+	}
+	else if(v > max)
+	{
+		v = max;
+	}
+	return v;
+}
 
 static float getUHeight(atmo_solverParam_t* param, float h)
 {
 	ASSERT(param);
 
+	float u;
 	#if ATMO_PARAM_HEIGHT == ATMO_PARAM_HEIGHT_NONLINEAR
-	return sqrtf(h/(param->Ra - param->Rp));
+	u = sqrtf(h/(param->Ra - param->Rp));
 	#else
-	return h/(param->Ra - param->Rp);
+	u = return h/(param->Ra - param->Rp);
 	#endif
+
+	return cc_clamp(u, 0.0f, 1.0f);
 }
 
 static float getHeightU(atmo_solverParam_t* param, float u)
 {
 	ASSERT(param);
 
+	float h;
 	#if ATMO_PARAM_HEIGHT == ATMO_PARAM_HEIGHT_NONLINEAR
-	return u*u*(param->Ra - param->Rp);
+	h = u*u*(param->Ra - param->Rp);
 	#else
-	return u*(param->Ra - param->Rp);
+	h = u*(param->Ra - param->Rp);
 	#endif
+
+	float Ha = param->Ra - param->Rp;
+
+	return cc_clamp(h, 0.0f, Ha);
 }
 
 // compute height using double precision since the magnitude
@@ -148,7 +179,10 @@ getHeightP(atmo_solverParam_t* param, cc_vec3f_t* P)
 		.z = P->z,
 	};
 
-	return (float) (cc_vec3d_mag(&d) - param->Rp);
+	float h  = (float) (cc_vec3d_mag(&d) - param->Rp);
+	float Ha = param->Ra - param->Rp;
+
+	return cc_clamp(h, 0.0f, Ha);
 }
 
 // compute Zenith using double precision since the magnitude
@@ -176,21 +210,24 @@ getCosPhiV(atmo_solverParam_t* param, float h, float v)
 {
 	ASSERT(param);
 
+	float cos_phi;
 	#if ATMO_PARAM_PHI == ATMO_PARAM_PHI_SHERVHEIM
-	return powf((2.0f*v - 1.0f), 3.0f);
+	cos_phi = powf((2.0f*v - 1.0f), 3.0f);
 	#elif ATMO_PARAM_PHI == ATMO_PARAM_PHI_BODARE
 	float ch = -sqrtf(h*(2.0f*param->Rp + h))/(param->Rp + h);
 	if(v > 0.5f)
 	{
-		return ch + powf(v - 0.5f, 5.0f)*(1.0f - ch);
+		cos_phi = ch + powf(v - 0.5f, 5.0f)*(1.0f - ch);
 	}
 	else
 	{
-		return ch - powf(v, 5.0f)*(1.0f + ch);
+		cos_phi = ch - powf(v, 5.0f)*(1.0f + ch);
 	}
 	#else
-	return 2.0f*v - 1.0f;
+	cos_phi = 2.0f*v - 1.0f;
 	#endif
+
+	return cc_clamp(cos_phi, -1.0f, 1.0f);
 }
 
 static float
@@ -199,48 +236,57 @@ getVCosPhi(atmo_solverParam_t* param, float h,
 {
 	ASSERT(param);
 
+	float v;
 	#if ATMO_PARAM_PHI == ATMO_PARAM_PHI_SHERVHEIM
-	return 0.5f*(1.0f + cc_sign(cos_phi)*
-	                    powf(fabsf(cos_phi), 1.0f/3.0f));
+	v = 0.5f*(1.0f + cc_sign(cos_phi)*
+	                 powf(fabsf(cos_phi), 1.0f/3.0f));
 	#elif ATMO_PARAM_PHI == ATMO_PARAM_PHI_BODARE
 	float ch = -sqrtf(h*(2.0f*param->Rp + h))/(param->Rp + h);
 	if(cos_phi > ch)
 	{
-		return 0.5f*powf((cos_phi - ch)/(1.0f - ch), 0.2f) + 0.5f;
+		v = 0.5f*powf((cos_phi - ch)/(1.0f - ch), 0.2f) + 0.5f;
 	}
 	else
 	{
-		return 0.5f*powf((ch - cos_phi)/(1.0f + ch), 0.2f);
+		v = 0.5f*powf((ch - cos_phi)/(1.0f + ch), 0.2f);
 	}
 	#else
-	return (cos_phi + 1.0f)/2.0f;
+	v = (cos_phi + 1.0f)/2.0f;
 	#endif
+
+	return cc_clamp(v, 0.0f, 1.0f);
 }
 
 static float getCosDeltaW(float w)
 {
+	float cos_delta;
 	#if ATMO_PARAM_DELTA == ATMO_PARAM_DELTA_SHERVHEIM
-	return powf((2.0f*w - 1.0f), 3.0f);
+	cos_delta = powf((2.0f*w - 1.0f), 3.0f);
 	#elif ATMO_PARAM_DELTA == ATMO_PARAM_DELTA_BODARE
-	return tanf((2.0f*w - 1.0f + 0.26f)*0.75f)/
-	       tanf(1.26f*0.75f);
+	cos_delta = tanf((2.0f*w - 1.0f + 0.26f)*0.75f)/
+	            tanf(1.26f*0.75f);
 	#else
-	return 2.0f*w - 1.0f;
+	cos_delta = 2.0f*w - 1.0f;
 	#endif
+
+	return cc_clamp(cos_delta, -1.0f, 1.0f);
 }
 
 static float getWCosDelta(float cos_delta)
 {
+	float w;
 	#if ATMO_PARAM_DELTA == ATMO_PARAM_DELTA_SHERVHEIM
-	return 0.5f*(1.0f + cc_sign(cos_delta)*
-	                    powf(fabsf(cos_delta), 1.0f/3.0f));
+	w = 0.5f*(1.0f + cc_sign(cos_delta)*
+	                 powf(fabsf(cos_delta), 1.0f/3.0f));
 	#elif ATMO_PARAM_DELTA == ATMO_PARAM_DELTA_BODARE
-	return 0.5f*(atanf(cc_max(cos_delta, -0.1975f)*
-	                   tanf(1.26f*1.1f))/1.1f +
-	             (1.0f - 0.26f));
+	w =  0.5f*(atanf(cc_max(cos_delta, -0.1975f)*
+	                 tanf(1.26f*1.1f))/1.1f +
+	           (1.0f - 0.26f));
 	#else
-	return (cos_delta + 1.0f)/2.0f;
+	w = (cos_delta + 1.0f)/2.0f;
 	#endif
+
+	return cc_clamp(w, 0.0f, 1.0f);
 }
 
 static cc_vec4f_t*
@@ -617,25 +663,71 @@ fISk_sample(atmo_solverParam_t* param, uint32_t k,
 	float height1   = (float) (param->texture_height - 1);
 	float depth1    = (float) (param->texture_depth  - 1);
 
-	// compute x,y,z
-	uint32_t x = (uint32_t) (u*width1);
-	uint32_t y = (uint32_t) (v*height1);
-	uint32_t z = (uint32_t) (w*depth1);
-	if(x >= param->texture_width)
-	{
-		x = param->texture_width - 1;
-	}
-	if(y >= param->texture_height)
-	{
-		y = param->texture_height - 1;
-	}
-	if(z >= param->texture_depth)
-	{
-		z = param->texture_depth - 1;
-	}
+	// compute x0,y0,z0
+	uint32_t x0;
+	uint32_t y0;
+	uint32_t z0;
+	x0 = atmo_clamp((uint32_t) (u*width1),
+	                0, param->texture_width  - 1);
+	y0 = atmo_clamp((uint32_t) (v*height1),
+	                0, param->texture_height - 1);
+	z0 = atmo_clamp((uint32_t) (w*depth1),
+	                0, param->texture_depth  - 1);
 
-	// sample nearest
-	getData(param, k, x, y, z, data, fisk);
+	#if ATMO_SAMPLE_MODE == ATMO_SAMPLE_MODE_LINEAR
+	// compute x1,y1,z1
+	uint32_t x1;
+	uint32_t y1;
+	uint32_t z1;
+	x1 = atmo_clamp(x0 + 1, 0, param->texture_width  - 1);
+	y1 = atmo_clamp(y0 + 1, 0, param->texture_height - 1);
+	z1 = atmo_clamp(z0 + 1, 0, param->texture_depth  - 1);
+
+	// sampling coordinates
+	float uu = u*width1  - ((float) x0);
+	float vv = v*height1 - ((float) y0);
+	float ww = w*depth1  - ((float) z0);
+
+	// sample corners
+	cc_vec4f_t fisk000;
+	cc_vec4f_t fisk001;
+	cc_vec4f_t fisk010;
+	cc_vec4f_t fisk011;
+	cc_vec4f_t fisk100;
+	cc_vec4f_t fisk101;
+	cc_vec4f_t fisk110;
+	cc_vec4f_t fisk111;
+	getData(param, k, x0, y0, z0, data, &fisk000);
+	getData(param, k, x0, y0, z1, data, &fisk001);
+	getData(param, k, x0, y1, z0, data, &fisk010);
+	getData(param, k, x0, y1, z1, data, &fisk011);
+	getData(param, k, x1, y0, z0, data, &fisk100);
+	getData(param, k, x1, y0, z1, data, &fisk101);
+	getData(param, k, x1, y1, z0, data, &fisk110);
+	getData(param, k, x1, y1, z1, data, &fisk111);
+
+	// interpolate x
+	cc_vec4f_t fiskx00;
+	cc_vec4f_t fiskx01;
+	cc_vec4f_t fiskx10;
+	cc_vec4f_t fiskx11;
+	cc_vec4f_lerp(&fisk000, &fisk100, uu, &fiskx00);
+	cc_vec4f_lerp(&fisk001, &fisk101, uu, &fiskx01);
+	cc_vec4f_lerp(&fisk010, &fisk110, uu, &fiskx10);
+	cc_vec4f_lerp(&fisk011, &fisk111, uu, &fiskx11);
+
+	// interpolate y
+	cc_vec4f_t fiskxy0;
+	cc_vec4f_t fiskxy1;
+	cc_vec4f_lerp(&fiskx00, &fiskx10, vv, &fiskxy0);
+	cc_vec4f_lerp(&fiskx01, &fiskx11, vv, &fiskxy1);
+
+	// interpolate z
+	cc_vec4f_lerp(&fiskxy0, &fiskxy1, ww, fisk);
+
+	#else
+	getData(param, k, x0, y0, z0, data, fisk);
+	#endif
 }
 
 // factored multiple-scattered gathered intensity step
