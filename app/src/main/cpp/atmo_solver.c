@@ -565,7 +565,7 @@ atmo_phaseM(atmo_solverParam_t* param, float cos_theta)
 	float n1 = 3.0f*(1.0f - g2);
 	float n2 = 1.0f + cos_theta*cos_theta;
 	float d1 = 2.0f*(2.0f + g2);
-	float d2 = powf(1.0f + g2 + 2.0f*g*cos_theta, 1.5f);
+	float d2 = powf(1.0f + g2 - 2.0f*g*cos_theta, 1.5f);
 	return (n1/d1)*(n2/d2);
 }
 

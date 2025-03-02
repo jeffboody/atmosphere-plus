@@ -514,7 +514,7 @@ Mie scattering phase function,
 \begin_layout Standard
 \begin_inset Formula 
 \[
-F_{M}\left(\cos\left(\theta\right)\right)=\frac{3\left(1-g^{2}\right)}{2\left(2+g^{2}\right)}\frac{\left(1+\cos^{2}\left(\theta\right)\right)}{\left(1+g^{2}+2g\cos\left(\theta\right)\right)^{\frac{3}{2}}}
+F_{M}\left(\cos\left(\theta\right)\right)=\frac{3\left(1-g^{2}\right)}{2\left(2+g^{2}\right)}\frac{\left(1+\cos^{2}\left(\theta\right)\right)}{\left(1+g^{2}-2g\cos\left(\theta\right)\right)^{\frac{3}{2}}}
 \]
 
 \end_inset

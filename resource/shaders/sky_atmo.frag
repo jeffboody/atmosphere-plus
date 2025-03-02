@@ -81,7 +81,7 @@ float phaseM(float cos_theta)
 	float n1 = 3.0*(1.0 - g2);
 	float n2 = 1.0 + cos_theta*cos_theta;
 	float d1 = 2.0*(2.0 + g2);
-	float d2 = pow(1.0 + g2 + 2.0*g*cos_theta, 1.5);
+	float d2 = pow(1.0 + g2 - 2.0*g*cos_theta, 1.5);
 	return (n1/d1)*(n2/d2);
 }
 
