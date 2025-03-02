@@ -46,33 +46,83 @@
 #define ATMO_RP 6371000.0
 #define ATMO_RA 6471000.0
 
+// Rayleigh and Mie scale heights
+//
+// Clear day: Mie scale height: 1200 m
+//            For clear days, we use the standard values.
+// Hazy day: Mie scale height: 1500 m to 2000 m
+//           For hazy days, we increase the Mie scale height
+//           to account for a greater distribution of
+//           aerosols in the atmosphere.
+// Foggy day: Mie scale height: 500 m to 800 m
+//            For foggy days, we decrease the Mie scale
+//            height because fog particles are concentrated
+//            closer to the ground.
 #define ATMO_DENSITY_SCALE_HEIGHT_RAYLEIGH 8000.0f
 #define ATMO_DENSITY_SCALE_HEIGHT_MIE      1200.0f
 
-#define ATMO_PHASE_G_MIE -0.85f
+// Mie asymmetry factor
+//
+// Clear day: 0.7 to 0.8
+//            Clear conditions have less scattering, so a
+//            higher positive value indicates more forward
+//            scattering.
+// Hazy day: 0.3 to 0.5
+//           Haze involves smaller particles, leading to
+//           more isotropic scattering.
+// Foggy day: -0.1 to 0.1
+//            Fog consists of larger water droplets,
+//            resulting in more uniform scattering in all
+//            directions.
+#define ATMO_PHASE_G_MIE 0.75f
 
-#define ATMO_BETA_R_RAYLEIGH 6.55e-6f
-#define ATMO_BETA_G_RAYLEIGH 1.73e-5f
-#define ATMO_BETA_B_RAYLEIGH 2.30e-5f
-#define ATMO_BETA_MIE        2e-6f
+// Rayleigh and Mie scattering coefficients represent the
+// probability of light being scattered as it travels
+// through a medium.
+//
+// Clear day: Mie scattering coefficient: 2e-6
+//            For clear days, we use the standard values.
+// Hazy day:  Mie scattering coefficient: 4e-6 to 8e-6
+//            For hazy days, we increase the Mie scattering
+//            coefficient to account for a greater
+//            concentration of aerosols in the atmosphere.
+// Foggy day: Mie scattering coefficient: 2e-5 to 5e-5
+//            For foggy days, we significantly increase the
+//            Mie scattering coefficient because fog
+//            consists of larger water droplets that scatter
+//            light more strongly.
+#define ATMO_BETA_R_RAYLEIGH (1.0f*6.55e-6f)
+#define ATMO_BETA_G_RAYLEIGH (1.0f*1.73e-5f)
+#define ATMO_BETA_B_RAYLEIGH (1.0f*2.30e-5f)
+#define ATMO_BETA_MIE        (1.0f*2e-6f)
 
-#define ATMO_SPECTRAL_IRRADIANCE_R 0.1526f
-#define ATMO_SPECTRAL_IRRADIANCE_G 0.191f
-#define ATMO_SPECTRAL_IRRADIANCE_B 0.208f
+// spectral irradiance measures the power density of solar
+// radiation at specific wavelengths
+#define ATMO_SPECTRAL_IRRADIANCE_R (1.0f*0.1526f)
+#define ATMO_SPECTRAL_IRRADIANCE_G (1.0f*0.191f)
+#define ATMO_SPECTRAL_IRRADIANCE_B (1.0f*0.208f)
 
+// overall intensity of the incident light from the Sun
 #define ATMO_EXPOSURE 1.0f
 
-#define ATMO_SPECTRAL_TO_RGB_R 133.3209f
-#define ATMO_SPECTRAL_TO_RGB_G 88.51855f
-#define ATMO_SPECTRAL_TO_RGB_B 112.7552f
+// spectral to RGB constants are used to convert specific
+// wavelengths to HDR RGB values
+#define ATMO_SPECTRAL_TO_RGB_R (1.0f*133.3209f)
+#define ATMO_SPECTRAL_TO_RGB_G (1.0f*88.51855f)
+#define ATMO_SPECTRAL_TO_RGB_B (1.0f*112.7552f)
 
+// transmittance numerical integration steps
 #define ATMO_TRANSMITTANCE_STEPS 30
 
+// gathering direction numerical integration steps of the
+// spherical coordinate system for M (theta) and N (phi)
 #define ATMO_GATHER_M_STEPS (180/30)
 #define ATMO_GATHER_N_STEPS (360/30)
 
+// multiple scattering events
 #define ATMO_K 5
 
+// scattering texture size
 #define ATMO_TEXTURE_WIDTH  32
 #define ATMO_TEXTURE_HEIGHT 256
 #define ATMO_TEXTURE_DEPTH  32
