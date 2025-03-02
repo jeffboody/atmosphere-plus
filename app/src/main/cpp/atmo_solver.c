@@ -591,13 +591,13 @@ fIS1(atmo_solverParam_t* param, float h, float phi,
 	};
 	cc_vec3f_t V =
 	{
-		.x = sin(phi),
-		.z = cos(phi),
+		.x = sinf(phi),
+		.z = cosf(phi),
 	};
 	cc_vec3f_t L =
 	{
-		.x = -sin(delta),
-		.z = -cos(delta),
+		.x = -sinf(delta),
+		.z = -cosf(delta),
 	};
 	cc_vec3f_normalize(&V);
 	cc_vec3f_normalize(&L);
@@ -631,10 +631,10 @@ fIS1(atmo_solverParam_t* param, float h, float phi,
 	float pM = densityM(param, h);
 	transmittance(param, &P, &Pc, &tPPc);
 	transmittance(param, &Pa, &P, &tPaP);
-	fx0.r = pR*exp(-tPPc.r -tPaP.r);
-	fx0.g = pR*exp(-tPPc.g -tPaP.g);
-	fx0.b = pR*exp(-tPPc.b -tPaP.b);
-	fx0.a = pM*exp(-tPPc.a -tPaP.a);
+	fx0.r = pR*expf(-tPPc.r -tPaP.r);
+	fx0.g = pR*expf(-tPPc.g -tPaP.g);
+	fx0.b = pR*expf(-tPPc.b -tPaP.b);
+	fx0.a = pM*expf(-tPPc.a -tPaP.a);
 
 	// integrate factored single-scattered intensity
 	int i;
@@ -657,10 +657,10 @@ fIS1(atmo_solverParam_t* param, float h, float phi,
 		pM = densityM(param, h);
 		transmittance(param, &P, &Pc, &tPPc);
 		transmittance(param, &Pa, &P, &tPaP);
-		fx1.r = pR*exp(-tPPc.r -tPaP.r);
-		fx1.g = pR*exp(-tPPc.g -tPaP.g);
-		fx1.b = pR*exp(-tPPc.b -tPaP.b);
-		fx1.a = pM*exp(-tPPc.a -tPaP.a);
+		fx1.r = pR*expf(-tPPc.r -tPaP.r);
+		fx1.g = pR*expf(-tPPc.g -tPaP.g);
+		fx1.b = pR*expf(-tPPc.b -tPaP.b);
+		fx1.a = pM*expf(-tPPc.a -tPaP.a);
 
 		// apply trapesoidal rule
 		fis1->r += 0.5f*(fx1.r + fx0.r)*ds;
@@ -799,9 +799,9 @@ fGk_step(atmo_solverParam_t* param, uint32_t k,
 	// yi => omega spherical angle phi   in (0, 2*pi)
 	cc_vec3f_t omega =
 	{
-		.x = sin(xj)*cos(yi),
-		.y = sin(xj)*sin(yi),
-		.z = cos(xj),
+		.x = sinf(xj)*cosf(yi),
+		.y = sinf(xj)*sinf(yi),
+		.z = cosf(xj),
 	};
 	cc_vec3f_normalize(&omega);
 
@@ -823,7 +823,7 @@ fGk_step(atmo_solverParam_t* param, uint32_t k,
 
 	// compute sin_theta for domega
 	// xj => omega spherical angle theta in (0, pi)
-	float domega_sin_xj = sin(xj);
+	float domega_sin_xj = sinf(xj);
 
 	// add factored multiple-scattered gathered intensity
 	fgk->r += FR*fisk.r*domega_sin_xj;
@@ -928,13 +928,13 @@ fISk(atmo_solverParam_t* param, uint32_t k,
 	};
 	cc_vec3f_t V =
 	{
-		.x = sin(phi),
-		.z = cos(phi),
+		.x = sinf(phi),
+		.z = cosf(phi),
 	};
 	cc_vec3f_t L =
 	{
-		.x = -sin(delta),
-		.z = -cos(delta),
+		.x = -sinf(delta),
+		.z = -cosf(delta),
 	};
 	cc_vec3f_normalize(&V);
 	cc_vec3f_normalize(&L);
@@ -962,10 +962,10 @@ fISk(atmo_solverParam_t* param, uint32_t k,
 	float pM = densityM(param, h);
 	fGk(param, k - 1, &P0, &V, &L, data, &fgk);
 	transmittance(param, &Pa, &P, &tPaP);
-	fx0.r = fgk.r*pR*exp(-tPaP.r);
-	fx0.g = fgk.g*pR*exp(-tPaP.g);
-	fx0.b = fgk.b*pR*exp(-tPaP.b);
-	fx0.a = fgk.a*pM*exp(-tPaP.a);
+	fx0.r = fgk.r*pR*expf(-tPaP.r);
+	fx0.g = fgk.g*pR*expf(-tPaP.g);
+	fx0.b = fgk.b*pR*expf(-tPaP.b);
+	fx0.a = fgk.a*pM*expf(-tPaP.a);
 
 	// integrate factored multiple-scattered intensity
 	int i;
@@ -978,10 +978,10 @@ fISk(atmo_solverParam_t* param, uint32_t k,
 		pM = densityM(param, h);
 		fGk(param, k - 1, &P, &V, &L, data, &fgk);
 		transmittance(param, &Pa, &P, &tPaP);
-		fx1.r = fgk.r*pR*exp(-tPaP.r);
-		fx1.g = fgk.g*pR*exp(-tPaP.g);
-		fx1.b = fgk.b*pR*exp(-tPaP.b);
-		fx1.a = fgk.a*pM*exp(-tPaP.a);
+		fx1.r = fgk.r*pR*expf(-tPaP.r);
+		fx1.g = fgk.g*pR*expf(-tPaP.g);
+		fx1.b = fgk.b*pR*expf(-tPaP.b);
+		fx1.a = fgk.a*pM*expf(-tPaP.a);
 
 		// apply trapesoidal rule
 		fisk->r += 0.5f*(fx1.r + fx0.r)*ds;
@@ -1242,7 +1242,7 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4f_t* data)
 
 					getData(param, k, x, y, z, data, &fis);
 
-					cos_theta = cos(delta - phi);
+					cos_theta = cosf(delta - phi);
 					FR = atmo_phaseR(param, cos_theta);
 					FM = atmo_phaseM(param, cos_theta);
 
