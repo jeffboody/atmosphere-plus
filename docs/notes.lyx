@@ -324,13 +324,13 @@ The atmospheric simulation models the atmosphere as the region where the
 \end_layout
 
 \begin_layout Standard
-The Atmospheric Rendering implementation uses the following constants for
- these radii.
+The Scalable and Production Ready Sky and Atmosphere Rendering Technique
+ paper uses the following constants for these radii.
 \end_layout
 
 \begin_layout Itemize
 Radius of the planet: 
-\begin_inset Formula $R_{p}=6371000$
+\begin_inset Formula $R_{p}=6360000$
 \end_inset
 
  m
@@ -338,7 +338,7 @@ Radius of the planet:
 
 \begin_layout Itemize
 Radius of the atmospheric boundary: 
-\begin_inset Formula $R_{a}=6471000$
+\begin_inset Formula $R_{a}=6460000$
 \end_inset
 
  m
@@ -527,52 +527,42 @@ The parameter
 \begin_inset Formula $g$
 \end_inset
 
- is an asymmetry factor denoting the width of the forward lobe.
- Typical values of 
-\begin_inset Formula $g$
+ is an asymmetry factor denoting the width of the forward lobe and is in
+ the range 
+\begin_inset Formula $\left(-1,1\right)$
 \end_inset
 
- are in the range 
-\begin_inset Formula $\left[-0.75,-0.999\right]$
-\end_inset
+.
+\end_layout
 
- and the Atmospheric Rendering implementation uses a default value of 
-\begin_inset Formula $g=-0.85$
+\begin_layout Standard
+The Scalable and Production Ready Sky and Atmosphere Rendering Technique
+ paper uses 
+\begin_inset Formula $g=0.8$
 \end_inset
 
 .
 \end_layout
 
 \begin_layout Subsection
-Scattering Coefficient
+Scattering, Absorption and Extinction Coefficients
 \end_layout
 
 \begin_layout Standard
-The scattering coefficients 
-\begin_inset Formula $\beta_{R,M}$
-\end_inset
-
- represent the probability of light being scattered as it travels through
+The scattering/absorption/extinction coefficients represents the probability
+ of light being scattered/absorbed/scattered+absorbed as it travels through
  a medium.
 \end_layout
 
 \begin_layout Standard
-The scattering coefficients 
-\begin_inset Formula $\beta_{R,M}$
-\end_inset
-
- are defined in terms of a Rayleigh/Mie particle polarizability constants
- 
-\begin_inset Formula $\alpha_{R,M}$
-\end_inset
-
-.
+The Scalable and Production Ready Sky and Atmosphere Rendering Technique
+ paper uses the following coefficients.
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\alpha_{R,M}=\frac{2\pi^{2}\left(n_{e}^{2}-1\right)^{2}}{3N_{R,M}^{2}}
+β_{R}^{s}\left(r,g,b\right)=(5.802e-6,13.558e-6,33.1e-6)
 \]
 
 \end_inset
@@ -583,7 +573,7 @@ The scattering coefficients
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\beta_{R}\left(\lambda\right)=4\pi\frac{N_{R}}{\lambda^{4}}\alpha_{R}
+β_{R}^{a}\left(r,g,b\right)=(0,0,0)
 \]
 
 \end_inset
@@ -594,70 +584,7 @@ The scattering coefficients
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\beta_{M}=4\pi N_{M}\alpha_{M}
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The following constants are used to compute the scattering coefficients:
-\end_layout
-
-\begin_layout Itemize
-Index of refraction of the Earth's atmosphere at sea level: 
-\begin_inset Formula $n_{e}=1.0003$
-\end_inset
-
-
-\end_layout
-
-\begin_layout Itemize
-Rayleigh particles molecular number density of the Earth's atmosphere at
- sea level: 
-\begin_inset Formula $N_{R}=2.454e25$
-\end_inset
-
-
-\end_layout
-
-\begin_layout Itemize
-Mie particles molecular number density of the Earth's atmosphere at sea
- level: 
-\begin_inset Formula $N_{M}=UNDEFINED$
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The Atmospheric Rendering implementation and the Efficient and Dynamic Atmospher
-ic Scattering paper use the following equations to compute the scattering
- coefficients.
- The equation for 
-\begin_inset Formula $\beta_{R}\left(\lambda\right)$
-\end_inset
-
- matches the previous definition after expanding 
-\begin_inset Formula $\alpha_{R}$
-\end_inset
-
-.
- See the Efficient and Dynamic Atmospheric Scattering paper for an explanation
- of 
-\begin_inset Formula $\beta_{M}$
-\end_inset
-
-.
- 
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\beta_{R}\left(\lambda\right)=\frac{8\pi^{3}\left(n_{e}^{2}-1\right)^{2}}{3N_{R}\lambda^{4}}
+\beta_{M}^{s}=3.996e-6
 \]
 
 \end_inset
@@ -668,7 +595,7 @@ ic Scattering paper use the following equations to compute the scattering
 \begin_layout Standard
 \begin_inset Formula 
 \[
-β_{R}\left(r,g,b\right)=(6.55e−6,1.73e−5,2.30e−5)
+\beta_{M}^{a}=4.40e-6
 \]
 
 \end_inset
@@ -679,43 +606,7 @@ ic Scattering paper use the following equations to compute the scattering
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\beta_{M}=2e-6
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Subsection
-Extinction Coefficient
-\end_layout
-
-\begin_layout Standard
-The extinction coefficient represents the probability of light being scattered
- or absorbed as it passes through a medium.
-\end_layout
-
-\begin_layout Standard
-The Efficient and Dynamic Atmospheric Scattering paper approximates the
- extinction coefficients.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\beta_{R}^{e}=\beta_{R}
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\beta_{M}^{e}=\frac{\beta_{M}}{0.9}
+\beta_{R,M}^{e}=\beta_{R,M}^{s}+\beta_{R,M}^{a}
 \]
 
 \end_inset

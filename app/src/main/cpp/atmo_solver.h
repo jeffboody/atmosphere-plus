@@ -45,11 +45,12 @@ typedef struct atmo_solverParam_s
 
 	float phase_g_mie;
 
-	float beta_r_rayleigh;
-	float beta_g_rayleigh;
-	float beta_b_rayleigh;
+	float beta_s_r_rayleigh;
+	float beta_s_g_rayleigh;
+	float beta_s_b_rayleigh;
 
-	float beta_mie;
+	float beta_s_mie;
+	float beta_a_mie;
 
 	float spectral_irradiance_r;
 	float spectral_irradiance_g;

@@ -27,6 +27,7 @@
 #include "libcc/math/cc_float.h"
 #include "libcc/cc_log.h"
 #include "atmo_renderer.h"
+#include "atmo_solver.h"
 #include "atmo_uiInfoPanel.h"
 #include "atmo_uiScreen.h"
 #include "atmo_uiWindowHud.h"
@@ -47,13 +48,14 @@ atmo_uiInfoPanel_refresh(vkk_uiWidget_t* widget)
 	screen = (atmo_uiScreen_t*) widget->screen;
 
 	atmo_uiWindowHud_t* window_hud = screen->window_hud;
-
-	atmo_renderer_t* renderer = window_hud->renderer;
+	atmo_renderer_t*    renderer   = window_hud->renderer;
+	atmo_solver_t*      solver     = window_hud->solver;
+	atmo_solverParam_t* param      = &solver->param;
 
 	if(self->last_ctrl_h != renderer->ctrl_h)
 	{
 		vkk_uiText_label(self->text_ctrl_h, "i/o: h=%0.1f",
-		                 atmo_renderer_getH(renderer));
+		                 atmo_renderer_getH(renderer, param));
 		self->last_ctrl_h = renderer->ctrl_h;
 	}
 

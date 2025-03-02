@@ -27,14 +27,12 @@
 #include "libvkk/vkk_platform.h"
 #include "libvkk/vkk.h"
 
-typedef struct atmo_solver_s atmo_solver_t;
+typedef struct atmo_solver_s      atmo_solver_t;
+typedef struct atmo_solverParam_s atmo_solverParam_t;
 
 typedef struct atmo_renderer_s
 {
 	vkk_engine_t* engine;
-
-	float Rp;
-	float Ra;
 
 	float    ctrl_h;
 	float    ctrl_phi;
@@ -72,7 +70,8 @@ void             atmo_renderer_draw(atmo_renderer_t* self,
                                     float width, float height);
 int              atmo_renderer_event(atmo_renderer_t* self,
                                      vkk_platformEvent_t* event);
-float            atmo_renderer_getH(atmo_renderer_t* self);
+float            atmo_renderer_getH(atmo_renderer_t* self,
+                                    atmo_solverParam_t* param);
 float            atmo_renderer_getPhi(atmo_renderer_t* self);
 float            atmo_renderer_getDelta(atmo_renderer_t* self);
 float            atmo_renderer_getOmega(atmo_renderer_t* self);

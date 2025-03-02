@@ -43,8 +43,8 @@
 
 // radius of the planet and atmospheric boundary
 // use doubles for radius for numerical stability
-#define ATMO_RP 6371000.0
-#define ATMO_RA 6471000.0
+#define ATMO_RP 6360000.0
+#define ATMO_RA 6460000.0
 
 // Rayleigh and Mie scale heights
 //
@@ -74,7 +74,7 @@
 //            Fog consists of larger water droplets,
 //            resulting in more uniform scattering in all
 //            directions.
-#define ATMO_PHASE_G_MIE 0.75f
+#define ATMO_PHASE_G_MIE 0.8f
 
 // Rayleigh and Mie scattering coefficients represent the
 // probability of light being scattered as it travels
@@ -91,10 +91,11 @@
 //            Mie scattering coefficient because fog
 //            consists of larger water droplets that scatter
 //            light more strongly.
-#define ATMO_BETA_R_RAYLEIGH (1.0f*6.55e-6f)
-#define ATMO_BETA_G_RAYLEIGH (1.0f*1.73e-5f)
-#define ATMO_BETA_B_RAYLEIGH (1.0f*2.30e-5f)
-#define ATMO_BETA_MIE        (1.0f*2e-6f)
+#define ATMO_BETA_S_R_RAYLEIGH (1.0f*5.802e-6f)
+#define ATMO_BETA_S_G_RAYLEIGH (1.0f*13.558e-6f)
+#define ATMO_BETA_S_B_RAYLEIGH (1.0f*33.1e-6f)
+#define ATMO_BETA_S_MIE      (1.0f*3.996e-6f)
+#define ATMO_BETA_A_MIE      (1.0f*4.40e-6f)
 
 // spectral irradiance measures the power density of solar
 // radiation at specific wavelengths
@@ -461,14 +462,11 @@ transmittance(atmo_solverParam_t* param, cc_vec3f_t* P1,
 		pM0 = pM1;
 	}
 
-	// approximation of the Mie extinction coefficient
-	float beta_e_mie = param->beta_mie/0.9f;
-
 	// apply Rayleigh/Mie scattering coefficient
-	out->r = param->beta_r_rayleigh*tR;
-	out->g = param->beta_g_rayleigh*tR;
-	out->b = param->beta_b_rayleigh*tR;
-	out->a = beta_e_mie*tM;
+	out->r = param->beta_s_r_rayleigh*tR;
+	out->g = param->beta_s_g_rayleigh*tR;
+	out->b = param->beta_s_b_rayleigh*tR;
+	out->a = (param->beta_s_mie + param->beta_a_mie)*tM;
 }
 
 // compute the points Pa and Pb on the viewing vector
@@ -672,10 +670,10 @@ fIS1(atmo_solverParam_t* param, float h, float phi,
 	}
 
 	// apply Rayleigh/Mie scattering coefficient
-	fis1->r *= param->beta_r_rayleigh/(4.0*M_PI);
-	fis1->g *= param->beta_g_rayleigh/(4.0*M_PI);
-	fis1->b *= param->beta_b_rayleigh/(4.0*M_PI);
-	fis1->a *= param->beta_mie/(4.0*M_PI);
+	fis1->r *= param->beta_s_r_rayleigh/(4.0*M_PI);
+	fis1->g *= param->beta_s_g_rayleigh/(4.0*M_PI);
+	fis1->b *= param->beta_s_b_rayleigh/(4.0*M_PI);
+	fis1->a *= param->beta_s_mie/(4.0*M_PI);
 }
 
 static void
@@ -993,10 +991,10 @@ fISk(atmo_solverParam_t* param, uint32_t k,
 	}
 
 	// apply Rayleigh/Mie scattering coefficient
-	fisk->r *= param->beta_r_rayleigh/(4.0*M_PI);
-	fisk->g *= param->beta_g_rayleigh/(4.0*M_PI);
-	fisk->b *= param->beta_b_rayleigh/(4.0*M_PI);
-	fisk->a *= param->beta_mie/(4.0*M_PI);
+	fisk->r *= param->beta_s_r_rayleigh/(4.0*M_PI);
+	fisk->g *= param->beta_s_g_rayleigh/(4.0*M_PI);
+	fisk->b *= param->beta_s_b_rayleigh/(4.0*M_PI);
+	fisk->a *= param->beta_s_mie/(4.0*M_PI);
 }
 
 /***********************************************************
@@ -1102,14 +1100,16 @@ atmo_solver_exportData(atmo_solver_t* self,
 	cc_jsmnStream_float(jsmn, param->density_scale_height_mie);
 	cc_jsmnStream_key(jsmn, "%s", "phase_g_mie");
 	cc_jsmnStream_float(jsmn, param->phase_g_mie);
-	cc_jsmnStream_key(jsmn, "%s", "beta_r_rayleigh");
-	cc_jsmnStream_float(jsmn, param->beta_r_rayleigh);
-	cc_jsmnStream_key(jsmn, "%s", "beta_g_rayleigh");
-	cc_jsmnStream_float(jsmn, param->beta_g_rayleigh);
-	cc_jsmnStream_key(jsmn, "%s", "beta_b_rayleigh");
-	cc_jsmnStream_float(jsmn, param->beta_b_rayleigh);
-	cc_jsmnStream_key(jsmn, "%s", "beta_mie");
-	cc_jsmnStream_float(jsmn, param->beta_mie);
+	cc_jsmnStream_key(jsmn, "%s", "beta_s_r_rayleigh");
+	cc_jsmnStream_float(jsmn, param->beta_s_r_rayleigh);
+	cc_jsmnStream_key(jsmn, "%s", "beta_s_g_rayleigh");
+	cc_jsmnStream_float(jsmn, param->beta_s_g_rayleigh);
+	cc_jsmnStream_key(jsmn, "%s", "beta_s_b_rayleigh");
+	cc_jsmnStream_float(jsmn, param->beta_s_b_rayleigh);
+	cc_jsmnStream_key(jsmn, "%s", "beta_s_mie");
+	cc_jsmnStream_float(jsmn, param->beta_s_mie);
+	cc_jsmnStream_key(jsmn, "%s", "beta_a_mie");
+	cc_jsmnStream_float(jsmn, param->beta_a_mie);
 	cc_jsmnStream_key(jsmn, "%s", "spectral_irradiance_r");
 	cc_jsmnStream_float(jsmn, param->spectral_irradiance_r);
 	cc_jsmnStream_key(jsmn, "%s", "spectral_irradiance_g");
@@ -1318,16 +1318,18 @@ atmo_solver_paramValidate(atmo_solverParam_t* param)
 		return 0;
 	}
 
-	if((param->beta_r_rayleigh <= 0.0f) ||
-	   (param->beta_g_rayleigh <= 0.0f) ||
-	   (param->beta_b_rayleigh <= 0.0f) ||
-	   (param->beta_mie        <= 0.0f))
+	if((param->beta_s_r_rayleigh <= 0.0f) ||
+	   (param->beta_s_g_rayleigh <= 0.0f) ||
+	   (param->beta_s_b_rayleigh <= 0.0f) ||
+	   (param->beta_s_mie      <= 0.0f) ||
+	   (param->beta_a_mie      <= 0.0f))
 	{
-		LOGE("invalid beta_r/g/b_rayleigh=%f/%f/%f, beta_mie=%f",
-		     param->beta_r_rayleigh,
-		     param->beta_g_rayleigh,
-		     param->beta_b_rayleigh,
-		     param->beta_mie);
+		LOGE("invalid beta_s_r/g/b_rayleigh=%f/%f/%f, beta_s_mie=%f, beta_a_mie=%f",
+		     param->beta_s_r_rayleigh,
+		     param->beta_s_g_rayleigh,
+		     param->beta_s_b_rayleigh,
+		     param->beta_s_mie,
+		     param->beta_a_mie);
 		return 0;
 	}
 
@@ -1622,11 +1624,12 @@ void atmo_solver_defaultParam(atmo_solver_t* self,
 
 		.phase_g_mie = ATMO_PHASE_G_MIE,
 
-		.beta_r_rayleigh = ATMO_BETA_R_RAYLEIGH,
-		.beta_g_rayleigh = ATMO_BETA_G_RAYLEIGH,
-		.beta_b_rayleigh = ATMO_BETA_B_RAYLEIGH,
+		.beta_s_r_rayleigh = ATMO_BETA_S_R_RAYLEIGH,
+		.beta_s_g_rayleigh = ATMO_BETA_S_G_RAYLEIGH,
+		.beta_s_b_rayleigh = ATMO_BETA_S_B_RAYLEIGH,
 
-		.beta_mie = ATMO_BETA_MIE,
+		.beta_s_mie = ATMO_BETA_S_MIE,
+		.beta_a_mie = ATMO_BETA_A_MIE,
 
 		.spectral_irradiance_r = ATMO_SPECTRAL_IRRADIANCE_R,
 		.spectral_irradiance_g = ATMO_SPECTRAL_IRRADIANCE_G,

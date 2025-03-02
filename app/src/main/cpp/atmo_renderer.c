@@ -222,8 +222,6 @@ atmo_renderer_t* atmo_renderer_new(vkk_engine_t* engine)
 	}
 
 	self->engine = engine;
-	self->Rp     = 6371000.0f;
-	self->Ra     = 6471000.0f;
 
 	atmo_renderer_resetCtrl(self);
 
@@ -590,7 +588,7 @@ void atmo_renderer_draw(atmo_renderer_t* self,
 		fovy /= aspect;
 	}
 
-	float    h     = atmo_renderer_getH(self);
+	float    h     = atmo_renderer_getH(self, param);
 	float    phi   = atmo_renderer_getPhi(self);
 	float    delta = atmo_renderer_getDelta(self);
 	float    omega = atmo_renderer_getOmega(self);
@@ -598,7 +596,7 @@ void atmo_renderer_draw(atmo_renderer_t* self,
 
 	cc_vec3f_t eye =
 	{
-		.z = h + self->Rp,
+		.z = h + param->Rp,
 	};
 
 	cc_vec4f_t P0h =
@@ -654,7 +652,7 @@ void atmo_renderer_draw(atmo_renderer_t* self,
 
 	cc_mat4f_t mvp;
 	cc_mat4f_perspective(&mvp, 1, fovy, aspect,
-	                     1.0f, 2.0f*self->Ra);
+	                     1.0f, 2.0f*param->Ra);
 	cc_mat4f_lookat(&mvp, 0,
 	                eye.x, eye.y, eye.z,
 	                at.x,  at.y,  at.z,
@@ -808,12 +806,13 @@ int atmo_renderer_event(atmo_renderer_t* self,
 	return 0;
 }
 
-float atmo_renderer_getH(atmo_renderer_t* self)
+float atmo_renderer_getH(atmo_renderer_t* self,
+                         atmo_solverParam_t* param)
 {
 	ASSERT(self);
 
 	// clamp h to avoid near clipping plane
-	float Ha = self->Ra - self->Rp;
+	float Ha = param->Ra - param->Rp;
 	return cc_clamp(self->ctrl_h*Ha, 3.0f, Ha - 10.0f);
 }
 
