@@ -1,35 +1,25 @@
 #version 450
 
 // height parameterization
-// LINEAR: u = h/Ha
-// NONLINEAR: u = sqrt(h/Ha)
-#define ATMO_PARAM_HEIGHT_LINEAR    0
-#define ATMO_PARAM_HEIGHT_NONLINEAR 1
+#define ATMO_PARAM_HEIGHT_LINEAR 0
+#define ATMO_PARAM_HEIGHT_POWER  1
 
 // view-azmuth angle parameterization
-// LINEAR: v = (cos(phi) + 1)/2
-// SHERVHEIM: v = 0.5*(1.0 + sign(cos_phi)*
-//                     pow(abs(cos_phi), 1.0/3.0))
-// BODARE: Efficient and Dynamic Atmospheric Scattering
-//         WARNING: ATMO_PARAM_PHI_BODARE is buggy
-#define ATMO_PARAM_PHI_LINEAR    0
-#define ATMO_PARAM_PHI_SHERVHEIM 1
-#define ATMO_PARAM_PHI_BODARE    2
+// WARNING: ATMO_PARAM_PHI_BODARE is buggy
+#define ATMO_PARAM_PHI_LINEAR 0
+#define ATMO_PARAM_PHI_POWER  1
+#define ATMO_PARAM_PHI_BODARE 2
 
 // sun-azmuth angle parameterization
-// linear:    w = (cos(delta) + 1)/2
-// SHERVHEIM: w = 0.5*(1.0 + sign(cos_delta)*
-//                     pow(abs(cos_delta), 1.0/3.0))
-// BODARE: Efficient and Dynamic Atmospheric Scattering
-#define ATMO_PARAM_DELTA_LINEAR    0
-#define ATMO_PARAM_DELTA_SHERVHEIM 1
-#define ATMO_PARAM_DELTA_BODARE    2
+#define ATMO_PARAM_DELTA_LINEAR 0
+#define ATMO_PARAM_DELTA_POWER  1
+#define ATMO_PARAM_DELTA_BODARE 2
 
 // select parameterization
 // requires corresponding change in atmo_solver.c
-#define ATMO_PARAM_HEIGHT ATMO_PARAM_HEIGHT_NONLINEAR
-#define ATMO_PARAM_PHI    ATMO_PARAM_PHI_SHERVHEIM
-#define ATMO_PARAM_DELTA  ATMO_PARAM_DELTA_SHERVHEIM
+#define ATMO_PARAM_HEIGHT ATMO_PARAM_HEIGHT_POWER
+#define ATMO_PARAM_PHI    ATMO_PARAM_PHI_POWER
+#define ATMO_PARAM_DELTA  ATMO_PARAM_DELTA_POWER
 
 layout(location=0) in vec3 varying_V;
 
@@ -100,14 +90,14 @@ void main()
 	float h         = P0H[3];
 
 	float u;
-	#if ATMO_PARAM_HEIGHT == ATMO_PARAM_HEIGHT_NONLINEAR
-	u  = sqrt(h/(Ra - Rp));
+	#if ATMO_PARAM_HEIGHT == ATMO_PARAM_HEIGHT_POWER
+	u  = pow(h/(Ra - Rp), 1.0/2.0);
 	#else
 	u  = h/(Ra - Rp);
 	#endif
 
 	float v;
-	#if ATMO_PARAM_PHI == ATMO_PARAM_PHI_SHERVHEIM
+	#if ATMO_PARAM_PHI == ATMO_PARAM_PHI_POWER
 	v = 0.5*(1.0 + sign(cos_phi)*pow(abs(cos_phi), 1.0/3.0));
 	#elif ATMO_PARAM_PHI == ATMO_PARAM_PHI_BODARE
 	float ch = -sqrt(h*(2.0*Rp + h))/(Rp + h);
@@ -124,7 +114,7 @@ void main()
 	#endif
 
 	float w;
-	#if ATMO_PARAM_DELTA == ATMO_PARAM_DELTA_SHERVHEIM
+	#if ATMO_PARAM_DELTA == ATMO_PARAM_DELTA_POWER
 	w = 0.5*(1.0 + sign(cos_delta)*pow(abs(cos_delta), 1.0/3.0));
 	#elif ATMO_PARAM_DELTA == ATMO_PARAM_DELTA_BODARE
 	w = 0.5*(atan(max(cos_delta, -0.1975)*tan(1.26*1.1))/1.1 +
