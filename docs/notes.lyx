@@ -1605,6 +1605,10 @@ This factorization includes two important properties that facilitate an
 Scattering Intensity Parameterization
 \end_layout
 
+\begin_layout Subsubsection
+Canonical Form
+\end_layout
+
 \begin_layout Standard
 To precompute every scattering intensity from every position 
 \begin_inset Formula $P_{0}\left(x,y,z\right)$
@@ -1875,6 +1879,10 @@ L=-Sun
 
 \end_layout
 
+\begin_layout Subsubsection
+Linear Mapping
+\end_layout
+
 \begin_layout Standard
 The parameters 
 \begin_inset Formula $\left(h,\cos\left(\phi\right),\cos\left(\delta\right)\right)$
@@ -1884,86 +1892,7 @@ The parameters
 \begin_inset Formula $\left(u,v,w\right)$
 \end_inset
 
- for array lookups.
-\end_layout
-
-\begin_layout Standard
-The 3D array indices 
-\begin_inset Formula $\left(x,y,z\right)$
-\end_inset
-
- with dimensions 
-\begin_inset Formula $\left(width,height,depth\right)$
-\end_inset
-
- may be converted to 3D texture coordinates 
-\begin_inset Formula $\left(u,v,w\right)$
-\end_inset
-
- as follows.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\left(u,v,w\right)=\left(\frac{x}{width-1},\frac{y}{height-1},\frac{z}{depth-1}\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The 3D array indices 
-\begin_inset Formula $\left(x,y,z\right)$
-\end_inset
-
- may be interpreted as a 1D array index 
-\begin_inset Formula $\left(i\right)$
-\end_inset
-
- as follows.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-i=x+y*width+z*width*height
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The Efficient and Dynamic Atmospheric Scattering paper uses the following
- texture dimensions where optional optimizations discussed for 
-\begin_inset Formula $v$
-\end_inset
-
- component.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\left(width,height,depth\right)=\left(32,256|128|64,32\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The following subsections explore some potential choices for the mapping
- from parameter to texture coordinate.
-\end_layout
-
-\begin_layout Subsubsection
-Linear Mapping
+ for shader lookups.
 \end_layout
 
 \begin_layout Standard
@@ -2005,7 +1934,7 @@ w=\frac{\cos\left(\delta\right)+1}{2}
 \end_layout
 
 \begin_layout Standard
-These linear mappings may be converted from 3D texture coordinates as follows.
+The linear mappings may be converted from 3D texture coordinates as follows.
 \end_layout
 
 \begin_layout Standard
@@ -2046,11 +1975,12 @@ Nonlinear Mapping
 \end_layout
 
 \begin_layout Standard
-However, the mappings are typically replaced with nonlinear mappings to
- optimize the parameterization space by eliminating unused values and improving
- precision for critical values.
- The Atmospheric Rendering implementation uses the following nonlinear mappings
- from parameters to 3D texture coordinates.
+Linear mappings are typically replaced with nonlinear mappings in order
+ to optimize the parameterization space.
+ This is achieved by eliminating unused values and improving precision for
+ critical values by compressing less critical values.
+ The Atmospheric Rendering implementation proposed the following nonlinear
+ mapping.
 \end_layout
 
 \begin_layout Standard
@@ -2124,8 +2054,8 @@ h=u^{2}\cdot H_{a}
 \end_layout
 
 \begin_layout Standard
-The following diagram shows the linear mapping, nonlinear mapping and 3D
- texture coordinates of the scattering intensity 
+The following diagram shows a comparision between the linear mapping, nonlinear
+ mapping and 3D texture coordinates of the scattering intensity 
 \begin_inset Formula $I_{S}$
 \end_inset
 
@@ -2144,7 +2074,7 @@ The following diagram shows the linear mapping, nonlinear mapping and 3D
 \end_layout
 
 \begin_layout Subsubsection
-Generalized Power Mapping
+Power Mapping
 \end_layout
 
 \begin_layout Standard
@@ -2222,51 +2152,87 @@ h=u^{p_{u}}\cdot H_{a}
 \end_layout
 
 \begin_layout Subsubsection
-Horizon Centric Mapping
+Weighted Power Mapping
 \end_layout
 
 \begin_layout Standard
-The power mapping based approaches have two problems which lead to inefficient
- representation of the View-Zenith Angle.
+The power mapping based approaches have several problems which lead to inefficie
+nt representation of the View-Zenith Angle.
 \end_layout
 
-\begin_layout Standard
-Firstly, the power mapping approach fixes the horizon at 90 degrees.
- However, in practice, the horizon angle increases from 90 degrees towards
- 180 degrees as the height increases towards infinity.
- As a result, the power mapping approach compresses the wrong angles as
- the height increases.
+\begin_layout Itemize
+The horizon 
+\begin_inset Formula $\phi_{H}$
+\end_inset
+
+ increases from 90 degrees at ground level towards 180 degrees as the height
+ increases.
+ However, the power mapping approach fixes the horizon 
+\begin_inset Formula $\phi_{H}$
+\end_inset
+
+ at 90 degrees for all heights which causes incorrect angles to be compressed
+ as the height increases.
 \end_layout
 
-\begin_layout Standard
-Secondly, the power mapping approach does not make efficient use of the
- texture space when 
+\begin_layout Itemize
+The horizon also vanishes quickly as the height increases.
+ As a result, the View-Zenith Angle 
+\begin_inset Formula $\phi$
+\end_inset
+
+ may be compressed around the horizon using a low power 
+\begin_inset Formula $p_{v}$
+\end_inset
+
+ near gound level but requires a higher power 
+\begin_inset Formula $p_{v}$
+\end_inset
+
+ as the height increases.
+ Since the power mapping approach uses a single low power 
+\begin_inset Formula $p_{v}$
+\end_inset
+
+, compression is ineffective as the height increases.
+\end_layout
+
+\begin_layout Itemize
+A large percentage of the texture space is dedicated to parameters which
+ represent little or no atmosphere.
+ For example, at ground level there is no atmosphere when 
 \begin_inset Formula $V$
 \end_inset
 
- intersects the planet surface.
- In the extreme case, when looking straight down at ground level, there
- is no atmosphere at all resulting in half of the texture space being wasted.
+ is downwards.
 \end_layout
 
 \begin_layout Standard
-The following parameterization addresses these problems by incorporating
- the height h into the parameterization for the v coordinate.
+The weighted power mapping addresses these problems by incorporating the
+ height 
+\begin_inset Formula $h$
+\end_inset
+
+ into the parameterization for the 
+\begin_inset Formula $v$
+\end_inset
+
+ coordinate.
 \end_layout
 
 \begin_layout Standard
 The horizon 
-\begin_inset Formula $\phi_{horizon}$
+\begin_inset Formula $\phi_{H}$
 \end_inset
 
- is defined by a triangle consisting of points at the center of the planet,
- a point tangent to the planet and the observer.
+ is defined by a triangle consisting of a point at the center of the planet,
+ a point tangent to the planet and a point at the observer.
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\cos\left(\phi_{horizon}\right)=-1+\frac{adj}{hyp}=-1+\frac{R_{p}}{R_{p}+h}\leq0
+\cos\left(\phi_{H}\right)=-1+\frac{adj}{hyp}=-1+\frac{R_{p}}{R_{p}+h}\leq0
 \]
 
 \end_inset
@@ -2275,12 +2241,232 @@ The horizon
 \end_layout
 
 \begin_layout Standard
-The v coordinate of the View-Zenith Angle 
-\begin_inset Formula $\phi$
+The Mie horizon 
+\begin_inset Formula $\phi_{M}$
 \end_inset
 
- may be computed as follows when viewing the atmosphere, 
-\begin_inset Formula $\cos\left(\phi\right)\geq\cos\left(\phi_{horizon}\right)$
+ is defined by a triangle consisting of a point at the center of the planet,
+ a point tangent at the Mie scale height 
+\begin_inset Formula $H_{M}$
+\end_inset
+
+ and a point at the observer.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\cos\left(\phi_{M}\right)=\left\{ \begin{array}{cc}
+-1+\frac{adj}{hyp}=-1+\frac{R_{p}+H_{M}}{R_{p}+h}\leq0, & h\geq H_{M}\\
+\cos\left(\frac{\pi}{2}\right)=0, & otherwise
+\end{array}\right.
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The height dependent angles 
+\begin_inset Formula $\phi_{H}$
+\end_inset
+
+ and 
+\begin_inset Formula $\phi_{M}$
+\end_inset
+
+ are used to define several regions which may be parameterized independently.
+\end_layout
+
+\begin_layout Standard
+In general, each region is defined by a weight 
+\begin_inset Formula $w_{ij}$
+\end_inset
+
+, a shifted power mapping 
+\begin_inset Formula $p_{ij}$
+\end_inset
+
+ and an offset 
+\begin_inset Formula $o_{ij}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+v_{ij}=w_{ij}\cdot\left(\frac{\cos\left(\phi\right)-\cos\left(\phi_{min}\right)}{\cos\left(\varTheta_{max}\right)-\cos\left(\phi_{min}\right)}\right)^{\frac{1}{p_{ij}}}+o{}_{ij}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The upper atmosphere region is defined by the angles, 
+\begin_inset Formula $\cos\left(0\right)\geq\cos\left(\phi\right)\geq\cos\left(\phi_{M}\right)$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+v_{01}\left(u,\phi,w_{12},w_{23},p_{01}\right)=\left(1-\left(w_{12}+w_{23}\right)\cdot u\right)\cdot\left(\frac{\cos\left(\phi\right)-\cos\left(\phi_{M}\right)}{1-\cos\left(\phi_{M}\right)}\right)^{\frac{1}{p_{01}}}+\left(w_{12}+w_{23}\right)\cdot u
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The lower atmosphere region is defined by the angles, 
+\begin_inset Formula $\cos\left(\phi_{M}\right)>\cos\left(\phi\right)\geq\cos\left(\phi_{H}\right)$
+\end_inset
+
+.
+ Since 
+\begin_inset Formula $\cos\left(\phi_{M}\right)=\cos\left(\phi_{H}\right)=0$
+\end_inset
+
+ when 
+\begin_inset Formula $h=0$
+\end_inset
+
+, include 
+\begin_inset Formula $\epsilon=1e-5$
+\end_inset
+
+ for numerical stability.
+ Also, observe that 
+\begin_inset Formula $v_{12}=0$
+\end_inset
+
+ when 
+\begin_inset Formula $h=0$
+\end_inset
+
+ since 
+\begin_inset Formula $u\left(h,p_{u}\right)=0.$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+v_{12}\left(u,\phi,w_{12},w_{23},p_{12}\right)=w_{12}\cdot u\cdot\left(\frac{\cos\left(\phi\right)-\cos\left(\phi_{H}\right)}{\cos\left(\phi_{M}\right)-\cos\left(\phi_{H}\right)+\epsilon}\right)^{\frac{1}{p_{12}}}+w_{23}\cdot u
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The surface region is defined by the angles, 
+\begin_inset Formula $\cos\left(\phi_{H}\right)>\cos\left(\phi\right)\geq\cos\left(\pi\right)$
+\end_inset
+
+.
+ The one-minus term in 
+\begin_inset Formula $v_{23}$
+\end_inset
+
+ ensures continuity between 
+\begin_inset Formula $v_{12}$
+\end_inset
+
+ and 
+\begin_inset Formula $v_{23}$
+\end_inset
+
+ after crossing the horizon 
+\begin_inset Formula $\phi_{H}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+v_{23}\left(u,\phi,w_{23},p_{23}\right)=w_{23}\cdot u\cdot\left(1-\left(\frac{\cos\left(\phi\right)-\cos\left(\phi_{H}\right)}{-1-\cos\left(\phi_{H}\right)}\right)^{\frac{1}{p_{23}}}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The shifted power base will never be negative and therefore the sign and
+ abs functions are not required.
+\end_layout
+
+\begin_layout Standard
+The sum of the weights is 
+\begin_inset Formula $\sum w_{01}+w_{12}+w_{23}=1$
+\end_inset
+
+.
+ In order to optimize the texture space near ground level, the weights 
+\begin_inset Formula $w_{12}$
+\end_inset
+
+ and 
+\begin_inset Formula $w_{23}$
+\end_inset
+
+ are scaled by 
+\begin_inset Formula $u$
+\end_inset
+
+.
+ This causes the weights 
+\begin_inset Formula $w_{12}$
+\end_inset
+
+ and 
+\begin_inset Formula $w_{23}$
+\end_inset
+
+ to grow from zero at ground level to their normal value at 
+\begin_inset Formula $H_{a}$
+\end_inset
+
+.
+ The weight 
+\begin_inset Formula $w_{01}$
+\end_inset
+
+ is defined as the remainder of the other weights, 
+\begin_inset Formula $w_{01}=1-w_{12}-w_{23}$
+\end_inset
+
+, causing it to shrink from the entire texture space at ground level to
+ its normal value at 
+\begin_inset Formula $H_{a}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+The weighted power mappings may be converted from 3D texture coordinates
+ as follows.
+\end_layout
+
+\begin_layout Standard
+When 
+\begin_inset Formula $v\geq\left(w_{12}+w_{23}\right)\cdot u\left(h,p_{u}\right)$
 \end_inset
 
 :
@@ -2289,7 +2475,7 @@ The v coordinate of the View-Zenith Angle
 \begin_layout Standard
 \begin_inset Formula 
 \[
-v\left(h,p_{u},\phi,s,p_{a},p_{s}\right)=\left(1-s\cdot u\left(h,p_{u}\right)\right)\cdot\left(\frac{\cos\left(\phi\right)-\cos\left(\phi_{horizon}\right)}{1-\cos\left(\phi_{horizon}\right)}\right)^{\frac{1}{p_{a}}}+s\cdot u\left(h,p_{u}\right)
+\cos\left(\phi\right)=\left(1-\cos\left(\phi_{M}\right)\right)\cdot\left(\frac{v-\left(w_{12}+w_{23}\right)\cdot u}{1-\left(w_{12}+w_{23}\right)\cdot u}\right)^{p_{01}}+\cos\left(\phi_{M}\right)
 \]
 
 \end_inset
@@ -2298,13 +2484,17 @@ v\left(h,p_{u},\phi,s,p_{a},p_{s}\right)=\left(1-s\cdot u\left(h,p_{u}\right)\ri
 \end_layout
 
 \begin_layout Standard
-Otherwise, when viewing the surface:
+When 
+\begin_inset Formula $v\geq w_{23}\cdot u\left(h,p_{u}\right)$
+\end_inset
+
+:
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-v\left(h,p_{u},\phi,s,p_{a},p_{s}\right)=s\cdot u\left(h,p_{u}\right)\cdot\left(1-\left(\frac{\cos\left(\phi\right)-\cos\left(\phi_{horizon}\right)}{-1-\cos\left(\phi_{horizon}\right)}\right)^{\frac{1}{p_{s}}}\right)
+\cos\left(\phi\right)=\left(\cos\left(\phi_{M}\right)-\cos\left(\phi_{H}\right)\right)\left(\frac{v-w_{23}\cdot u}{w_{12}\cdot u}\right)^{p_{12}}+\cos\left(\phi_{H}\right)
 \]
 
 \end_inset
@@ -2313,73 +2503,13 @@ v\left(h,p_{u},\phi,s,p_{a},p_{s}\right)=s\cdot u\left(h,p_{u}\right)\cdot\left(
 \end_layout
 
 \begin_layout Standard
-Where the parameters are defined:
-\end_layout
-
-\begin_layout Itemize
-\begin_inset Formula $p_{u}$
-\end_inset
-
-: height power factor (e.g.
- 2)
-\end_layout
-
-\begin_layout Itemize
-\begin_inset Formula $p_{a}$
-\end_inset
-
-: atmosphere power factor (e.g.
- 3)
-\end_layout
-
-\begin_layout Itemize
-\begin_inset Formula $p_{s}$
-\end_inset
-
-: surface power factor (e.g.
- 3)
-\end_layout
-
-\begin_layout Itemize
-\begin_inset Formula $s$
-\end_inset
-
-: maximum ratio of texture space dedicated to surfaces (e.g.
- 0.5)
-\end_layout
-
-\begin_layout Standard
-The View-Zenith Angle 
-\begin_inset Formula $\phi$
-\end_inset
-
- may be computed from the v coordinate as follows when viewing the atmosphere,
- 
-\begin_inset Formula $v\geq s\cdot u\left(h,p_{u}\right)$
-\end_inset
-
-: 
+Otherwise:
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\cos\left(\phi\right)=\left(\frac{v-s\cdot u\left(h,p_{u}\right)}{1-s\cdot u\left(h,p_{u}\right)}\right)^{p_{a}}\cdot\left(1-\cos\left(\phi_{horizon}\right)\right)+\cos\left(\phi_{horizon}\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Otherwise, when viewing the surface:
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\cos\left(\phi\right)=\left(1-\frac{v}{s\cdot u\left(h,p_{u}\right)}\right)^{p_{s}}\cdot\left(-1-\cos\left(\phi_{horizon}\right)\right)+\cos\left(\phi_{horizon}\right)
+\cos\left(\phi\right)=\left(-1-\cos\left(\phi_{H}\right)\right)\left(1-\frac{v_{23}}{w_{23}\cdot u}\right)^{p_{23}}+\cos\left(\phi_{H}\right)
 \]
 
 \end_inset
@@ -2436,6 +2566,80 @@ s with Multiple Scattering in Real-Time paper proposes to omit the parameter
 \end_inset
 
 .
+\end_layout
+
+\begin_layout Subsubsection
+Texture Coordinates and Array Indices
+\end_layout
+
+\begin_layout Standard
+The 3D array indices 
+\begin_inset Formula $\left(x,y,z\right)$
+\end_inset
+
+ with dimensions 
+\begin_inset Formula $\left(width,height,depth\right)$
+\end_inset
+
+ may be converted to 3D texture coordinates 
+\begin_inset Formula $\left(u,v,w\right)$
+\end_inset
+
+ as follows.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\left(u,v,w\right)=\left(\frac{x}{width-1},\frac{y}{height-1},\frac{z}{depth-1}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The 3D array indices 
+\begin_inset Formula $\left(x,y,z\right)$
+\end_inset
+
+ may be interpreted as a 1D array index 
+\begin_inset Formula $\left(i\right)$
+\end_inset
+
+ as follows.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+i=x+y*width+z*width*height
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The Efficient and Dynamic Atmospheric Scattering paper uses the following
+ texture dimensions where optional optimizations discussed for 
+\begin_inset Formula $v$
+\end_inset
+
+ component.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\left(width,height,depth\right)=\left(32,256|128|64,32\right)
+\]
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Section*
