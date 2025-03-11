@@ -132,13 +132,22 @@
 #define ATMO_PARAM_HEIGHT_LINEAR 0
 #define ATMO_PARAM_HEIGHT_POWER  1
 
-// view-azmuth angle parameterization
+// view-zenith angle parameterization
 // WARNING: ATMO_PARAM_PHI_BODARE is buggy
-#define ATMO_PARAM_PHI_LINEAR 0
-#define ATMO_PARAM_PHI_POWER  1
-#define ATMO_PARAM_PHI_BODARE 2
+#define ATMO_PARAM_PHI_LINEAR         0
+#define ATMO_PARAM_PHI_POWER          1
+#define ATMO_PARAM_PHI_BODARE         2
+#define ATMO_PARAM_PHI_WEIGHTED_POWER 3
 
-// sun-azmuth angle parameterization
+// weighted power parameters
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_PU  3.0f
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_PL  1.0f
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_PS  3.0f
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_WL1 (12.0f/32.0f)
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_WS0 (5.0f/32.0f)
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_WS1 (5.0f/32.0f)
+
+// sun-zenith angle parameterization
 #define ATMO_PARAM_DELTA_LINEAR 0
 #define ATMO_PARAM_DELTA_POWER  1
 #define ATMO_PARAM_DELTA_BODARE 2
@@ -146,7 +155,7 @@
 // select parameterization
 // requires corresponding change in atmo_solver.c
 #define ATMO_PARAM_HEIGHT ATMO_PARAM_HEIGHT_POWER
-#define ATMO_PARAM_PHI    ATMO_PARAM_PHI_POWER
+#define ATMO_PARAM_PHI    ATMO_PARAM_PHI_WEIGHTED_POWER
 #define ATMO_PARAM_DELTA  ATMO_PARAM_DELTA_POWER
 
 // sampling modes
@@ -247,16 +256,19 @@ getZenithP(const cc_vec3f_t* P, cc_vec3f_t* Zenith)
 }
 
 static float
-getCosPhiV(atmo_solverParam_t* param, float h, float v)
+getCosPhiV(atmo_solverParam_t* param, float h, float u,
+           float v)
 {
 	ASSERT(param);
+
+	float Rp = param->Rp;
 
 	float cos_phi;
 	#if ATMO_PARAM_PHI == ATMO_PARAM_PHI_POWER
 	float vv = 2.0f*v - 1.0f;
 	cos_phi = cc_sign(vv)*powf(fabs(vv), 3.0f);
 	#elif ATMO_PARAM_PHI == ATMO_PARAM_PHI_BODARE
-	float ch = -sqrtf(h*(2.0f*param->Rp + h))/(param->Rp + h);
+	float ch = -sqrtf(h*(2.0f*Rp + h))/(Rp + h);
 	if(v > 0.5f)
 	{
 		cos_phi = ch + powf(v - 0.5f, 5.0f)*(1.0f - ch);
@@ -264,6 +276,35 @@ getCosPhiV(atmo_solverParam_t* param, float h, float v)
 	else
 	{
 		cos_phi = ch - powf(v, 5.0f)*(1.0f + ch);
+	}
+	#elif ATMO_PARAM_PHI == ATMO_PARAM_PHI_WEIGHTED_POWER
+	// a*a + b*b = c*c
+	float hypH      = Rp + h;
+	float oppH      = Rp;
+	float adjH      = sqrt(hypH*hypH - oppH*oppH);
+	float cos_phi_H = -adjH/hypH;
+
+	float PU  = ATMO_PARAM_PHI_WEIGHTED_POWER_PU;
+	float PL  = ATMO_PARAM_PHI_WEIGHTED_POWER_PL;
+	float PS  = ATMO_PARAM_PHI_WEIGHTED_POWER_PS;
+	float WL1 = ATMO_PARAM_PHI_WEIGHTED_POWER_WL1;
+	float WS0 = ATMO_PARAM_PHI_WEIGHTED_POWER_WS0;
+	float WS1 = ATMO_PARAM_PHI_WEIGHTED_POWER_WS1;
+	float WS  = WS1*u + WS0;
+	float WL  = WL1*u;
+	float WU  = 1.0f - WL - WS;
+	if(v >= WL + WS)
+	{
+		cos_phi = powf((v - (WL + WS))/WU, PU);
+	}
+	else if(v >= WS)
+	{
+		cos_phi = -cos_phi_H*powf((v - WS)/WL, PL) + cos_phi_H;
+	}
+	else
+	{
+		cos_phi = (-1.0f - cos_phi_H)*powf(1.0f - v/WS, PS) +
+		          cos_phi_H;
 	}
 	#else
 	cos_phi = 2.0f*v - 1.0f;
@@ -274,16 +315,18 @@ getCosPhiV(atmo_solverParam_t* param, float h, float v)
 
 static float
 getVCosPhi(atmo_solverParam_t* param, float h,
-           float cos_phi)
+           float cos_phi, float u)
 {
 	ASSERT(param);
+
+	float Rp = param->Rp;
 
 	float v;
 	#if ATMO_PARAM_PHI == ATMO_PARAM_PHI_POWER
 	v = 0.5f*(1.0f + cc_sign(cos_phi)*
 	                 powf(fabsf(cos_phi), 1.0f/3.0f));
 	#elif ATMO_PARAM_PHI == ATMO_PARAM_PHI_BODARE
-	float ch = -sqrtf(h*(2.0f*param->Rp + h))/(param->Rp + h);
+	float ch = -sqrtf(h*(2.0f*Rp + h))/(Rp + h);
 	if(cos_phi > ch)
 	{
 		v = 0.5f*powf((cos_phi - ch)/(1.0f - ch), 0.2f) + 0.5f;
@@ -291,6 +334,37 @@ getVCosPhi(atmo_solverParam_t* param, float h,
 	else
 	{
 		v = 0.5f*powf((ch - cos_phi)/(1.0f + ch), 0.2f);
+	}
+	#elif ATMO_PARAM_PHI == ATMO_PARAM_PHI_WEIGHTED_POWER
+	// a*a + b*b = c*c
+	float hypH      = Rp + h;
+	float oppH      = Rp;
+	float adjH      = sqrt(hypH*hypH - oppH*oppH);
+	float cos_phi_H = -adjH/hypH;
+
+	float PU      = ATMO_PARAM_PHI_WEIGHTED_POWER_PU;
+	float PL      = ATMO_PARAM_PHI_WEIGHTED_POWER_PL;
+	float PS      = ATMO_PARAM_PHI_WEIGHTED_POWER_PS;
+	float WL1     = ATMO_PARAM_PHI_WEIGHTED_POWER_WL1;
+	float WS0     = ATMO_PARAM_PHI_WEIGHTED_POWER_WS0;
+	float WS1     = ATMO_PARAM_PHI_WEIGHTED_POWER_WS1;
+	float WS      = WS1*u + WS0;
+	float WL      = WL1*u;
+	float WU      = 1.0f - WL - WS;
+	float epsilon = 0.00001f;
+	if(cos_phi >= 0.0f)
+	{
+		v = WU*powf(cos_phi, 1.0f/PU) + (WL + WS);
+	}
+	else if(cos_phi >= cos_phi_H)
+	{
+		v = WL*powf((cos_phi - cos_phi_H)/(-cos_phi_H + epsilon),
+		            1.0f/PL) + WS;
+	}
+	else
+	{
+		v = WS*(1.0f - powf((cos_phi - cos_phi_H)/
+		                    (-1.0f - cos_phi_H), 1.0f/PS));
 	}
 	#else
 	v = (cos_phi + 1.0f)/2.0f;
@@ -697,7 +771,7 @@ fISk_sample(atmo_solverParam_t* param, uint32_t k,
 	float cos_phi   = cc_vec3f_dot(&Zenith, V);
 	float cos_delta = cc_vec3f_dot(&Zenith, &Sun);
 	float u         = getUHeight(param, h);
-	float v         = getVCosPhi(param, h, cos_phi);
+	float v         = getVCosPhi(param, h, cos_phi, u);
 	float w         = getWCosDelta(cos_delta);
 	float width1    = (float) (param->texture_width  - 1);
 	float height1   = (float) (param->texture_height - 1);
@@ -1229,7 +1303,7 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4f_t* data)
 				for(y = 0; y < param->texture_height; ++y)
 				{
 					v = ((float) y)/((float) (param->texture_height - 1));
-					cos_phi = getCosPhiV(param, h, v);
+					cos_phi = getCosPhiV(param, h, u, v);
 					phi = acosf(cos_phi);
 
 					getData(param, k, x, y, z, data, &fis);
@@ -1420,7 +1494,7 @@ atmo_solver_step(atmo_solver_t* self, uint32_t k,
 	float w = ((float) z)/(depth - 1.0f);
 
 	float h         = getHeightU(param, u);
-	float cos_phi   = getCosPhiV(param, h, v);
+	float cos_phi   = getCosPhiV(param, h, u, v);
 	float cos_delta = getCosDeltaW(w);
 	float phi       = acos(cos_phi);
 	float delta     = acos(cos_delta);

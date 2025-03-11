@@ -2248,42 +2248,11 @@ The horizon
 \end_layout
 
 \begin_layout Standard
-The Mie horizon 
-\begin_inset Formula $\phi_{M}$
-\end_inset
-
- is defined by a triangle consisting of a point at the center of the planet,
- a point tangent at the Mie scale height 
-\begin_inset Formula $H_{M}$
-\end_inset
-
- and a point at the observer.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\cos\left(\phi_{M}\right)=\left\{ \begin{array}{cc}
--1+\frac{adj}{hyp}=-1+\frac{R_{p}+H_{M}}{R_{p}+h}\leq0, & h\geq H_{M}\\
-0, & otherwise
-\end{array}\right.
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The height dependent angles 
+The height dependent angle 
 \begin_inset Formula $\phi_{H}$
 \end_inset
 
- and 
-\begin_inset Formula $\phi_{M}$
-\end_inset
-
- are used to define several regions (
+ is used to define several regions (
 \begin_inset Formula $U$
 \end_inset
 
@@ -2332,7 +2301,7 @@ The power base will never be negative and therefore the sign and abs functions
 
 \begin_layout Standard
 The upper atmosphere region is defined by the angles, 
-\begin_inset Formula $\cos\left(\phi_{M}\right)\leq\cos\left(\phi\right)\leq1$
+\begin_inset Formula $0\leq\cos\left(\phi\right)\leq1$
 \end_inset
 
 .
@@ -2341,7 +2310,7 @@ The upper atmosphere region is defined by the angles,
 \begin_layout Standard
 \begin_inset Formula 
 \[
-v_{U}\left(\phi\right)=w_{U}\cdot\left(\frac{\cos\left(\phi\right)-\cos\left(\phi_{M}\right)}{1-\cos\left(\phi_{M}\right)}\right)^{\frac{1}{p_{U}}}+\left(w_{L}+w_{S}\right)
+v_{U}\left(\phi\right)=w_{U}\cdot\left(\cos\left(\phi\right)\right)^{\frac{1}{p_{U}}}+\left(w_{L}+w_{S}\right)
 \]
 
 \end_inset
@@ -2351,12 +2320,12 @@ v_{U}\left(\phi\right)=w_{U}\cdot\left(\frac{\cos\left(\phi\right)-\cos\left(\ph
 
 \begin_layout Standard
 The lower atmosphere region is defined by the angles, 
-\begin_inset Formula $\cos\left(\phi_{H}\right)\leq\cos\left(\phi\right)<\cos\left(\phi_{M}\right)$
+\begin_inset Formula $\cos\left(\phi_{H}\right)\leq\cos\left(\phi\right)<0$
 \end_inset
 
 .
  Since 
-\begin_inset Formula $\cos\left(\phi_{H}\right)=\cos\left(\phi_{M}\right)=0$
+\begin_inset Formula $\cos\left(\phi_{H}\right)=0$
 \end_inset
 
  when 
@@ -2386,7 +2355,7 @@ The lower atmosphere region is defined by the angles,
 \begin_layout Standard
 \begin_inset Formula 
 \[
-v_{L}\left(\phi\right)=w_{L}\cdot\left(\frac{\cos\left(\phi\right)-\cos\left(\phi_{H}\right)}{\cos\left(\phi_{M}\right)-\cos\left(\phi_{H}\right)+\epsilon}\right)^{\frac{1}{p_{L}}}+w_{S}
+v_{L}\left(\phi\right)=w_{L}\cdot\left(\frac{\cos\left(\phi\right)-\cos\left(\phi_{H}\right)}{-\cos\left(\phi_{H}\right)+\epsilon}\right)^{\frac{1}{p_{L}}}+w_{S}
 \]
 
 \end_inset
@@ -2544,7 +2513,7 @@ When
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\cos\left(\phi\right)=\left(1-\cos\left(\phi_{M}\right)\right)\cdot\left(\frac{v-\left(w_{L}+w_{S}\right)}{1-\left(w_{L}+w_{S}\right)}\right)^{p_{U}}+\cos\left(\phi_{M}\right)
+\cos\left(\phi\right)=\left(\frac{v-\left(w_{L}+w_{S}\right)}{w_{U}}\right)^{p_{U}}
 \]
 
 \end_inset
@@ -2563,7 +2532,7 @@ When
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\cos\left(\phi\right)=\left(\cos\left(\phi_{M}\right)-\cos\left(\phi_{H}\right)\right)\left(\frac{v-w_{S}}{w_{L}}\right)^{p_{L}}+\cos\left(\phi_{H}\right)
+\cos\left(\phi\right)=-\cos\left(\phi_{H}\right)\left(\frac{v-w_{S}}{w_{L}}\right)^{p_{L}}+\cos\left(\phi_{H}\right)
 \]
 
 \end_inset

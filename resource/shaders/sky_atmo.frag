@@ -4,13 +4,22 @@
 #define ATMO_PARAM_HEIGHT_LINEAR 0
 #define ATMO_PARAM_HEIGHT_POWER  1
 
-// view-azmuth angle parameterization
+// view-zenith angle parameterization
 // WARNING: ATMO_PARAM_PHI_BODARE is buggy
-#define ATMO_PARAM_PHI_LINEAR 0
-#define ATMO_PARAM_PHI_POWER  1
-#define ATMO_PARAM_PHI_BODARE 2
+#define ATMO_PARAM_PHI_LINEAR         0
+#define ATMO_PARAM_PHI_POWER          1
+#define ATMO_PARAM_PHI_BODARE         2
+#define ATMO_PARAM_PHI_WEIGHTED_POWER 3
 
-// sun-azmuth angle parameterization
+// weighted power parameters
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_PU  3.0
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_PL  1.0
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_PS  3.0
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_WL1 (12.0/32.0)
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_WS0 (5.0/32.0)
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_WS1 (5.0/32.0)
+
+// sun-zenith angle parameterization
 #define ATMO_PARAM_DELTA_LINEAR 0
 #define ATMO_PARAM_DELTA_POWER  1
 #define ATMO_PARAM_DELTA_BODARE 2
@@ -18,7 +27,7 @@
 // select parameterization
 // requires corresponding change in atmo_solver.c
 #define ATMO_PARAM_HEIGHT ATMO_PARAM_HEIGHT_POWER
-#define ATMO_PARAM_PHI    ATMO_PARAM_PHI_POWER
+#define ATMO_PARAM_PHI    ATMO_PARAM_PHI_WEIGHTED_POWER
 #define ATMO_PARAM_DELTA  ATMO_PARAM_DELTA_POWER
 
 layout(location=0) in vec3 varying_V;
@@ -87,7 +96,26 @@ void main()
 	float FM        = phaseM(cos_theta);
 	float Ra        = RaRp[0];
 	float Rp        = RaRp[1];
+	vec3  P0        = vec3(P0H);
 	float h         = P0H[3];
+
+	#ifdef DEBUG_COS_PHI
+	if(V.y > 0.0)
+	{
+		float pi = 3.14159265358979323846;
+		float x1 = (180.0/pi)*acos(cos_phi);
+		float x2 = mod(x1, 2.0);
+		if(x2 >= 1.0)
+		{
+			fragColor = vec4(0.75, 0.75, 0.75, 1.0);
+		}
+		else
+		{
+			fragColor = vec4(0.25, 0.25, 0.25, 1.0);
+		}
+		return;
+	}
+	#endif
 
 	float u;
 	#if ATMO_PARAM_HEIGHT == ATMO_PARAM_HEIGHT_POWER
@@ -108,6 +136,61 @@ void main()
 	else
 	{
 		v = 0.5*pow((ch - cos_phi)/(1.0 + ch), 0.2);
+	}
+	#elif ATMO_PARAM_PHI == ATMO_PARAM_PHI_WEIGHTED_POWER
+	// a*a + b*b = c*c
+	float hypH      = Rp + h;
+	float oppH      = Rp;
+	float adjH      = sqrt(hypH*hypH - oppH*oppH);
+	float cos_phi_H = -adjH/hypH;
+
+	float PU      = ATMO_PARAM_PHI_WEIGHTED_POWER_PU;
+	float PL      = ATMO_PARAM_PHI_WEIGHTED_POWER_PL;
+	float PS      = ATMO_PARAM_PHI_WEIGHTED_POWER_PS;
+	float WL1     = ATMO_PARAM_PHI_WEIGHTED_POWER_WL1;
+	float WS0     = ATMO_PARAM_PHI_WEIGHTED_POWER_WS0;
+	float WS1     = ATMO_PARAM_PHI_WEIGHTED_POWER_WS1;
+	float WS      = WS1*u + WS0;
+	float WL      = WL1*u;
+	float WU      = 1.0 - WL - WS;
+	float epsilon = 0.00001;
+	if(cos_phi >= 0.0f)
+	{
+		v = WU*pow(cos_phi, 1.0/PU) + (WL + WS);
+
+		#ifdef DEBUG_COS_PHI
+		if(V.y < 0.0)
+		{
+			fragColor = vec4(0.0, 0.0, 1.0, 1.0);
+			return;
+		}
+		#endif
+	}
+	else if(cos_phi >= cos_phi_H)
+	{
+		v = WL*pow((cos_phi - cos_phi_H)/(-cos_phi_H + epsilon),
+		           1.0/PL) + WS;
+
+		#ifdef DEBUG_COS_PHI
+		if(V.y < 0.0)
+		{
+			fragColor = vec4(1.0, 0.0, 0.0, 1.0);
+			return;
+		}
+		#endif
+	}
+	else
+	{
+		v = WS*(1.0 - pow((cos_phi - cos_phi_H)/
+		                  (-1.0 - cos_phi_H), 1.0/PS));
+
+		#ifdef DEBUG_COS_PHI
+		if(V.y < 0.0)
+		{
+			fragColor = vec4(0.0, 1.0, 0.0, 1.0);
+			return;
+		}
+		#endif
 	}
 	#else
 	v = (cos_phi + 1.0)/2.0;
