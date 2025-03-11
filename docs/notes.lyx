@@ -1692,16 +1692,11 @@ The the Sun-View Azimuth
 \end_layout
 
 \begin_layout Standard
-Where the Zenith is for the point 
+The Zenith is the up vector for the point 
 \begin_inset Formula $P_{0}$
 \end_inset
 
- and 
-\begin_inset Formula $proj\left(X\right)$
-\end_inset
-
- takes a unit vector and projects it onto the horizontal plane perpendicular
- to the Zenith:
+.
 \end_layout
 
 \begin_layout Standard
@@ -1713,6 +1708,18 @@ Zenith=normalize\left(P_{0}\right)
 \end_inset
 
 
+\end_layout
+
+\begin_layout Standard
+The 
+\begin_inset Formula $proj\left(X\right)$
+\end_inset
+
+ function projects the unit vector 
+\begin_inset Formula $X$
+\end_inset
+
+ onto the horizontal plane perpendicular to the Zenith.
 \end_layout
 
 \begin_layout Standard
@@ -1951,7 +1958,7 @@ h=u\cdot H_{a}
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\cos\left(\phi\right)=\left(2v-1\right)
+\cos\left(\phi\right)=2v-1
 \]
 
 \end_inset
@@ -1962,7 +1969,7 @@ h=u\cdot H_{a}
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\cos\left(\delta\right)=\left(2w-1\right)
+\cos\left(\delta\right)=2w-1
 \]
 
 \end_inset
@@ -2034,7 +2041,7 @@ h=u^{2}\cdot H_{a}
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\cos\left(\phi\right)=\left(2v-1\right)^{3}
+\cos\left(\phi\right)=sign\left(2v-1\right)\cdot\left|2v-1\right|^{3}
 \]
 
 \end_inset
@@ -2045,7 +2052,7 @@ h=u^{2}\cdot H_{a}
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\cos\left(\delta\right)=\left(2w-1\right)^{3}
+\cos\left(\delta\right)=sign\left(2w-1\right)\cdot\left|2w-1\right|^{3}
 \]
 
 \end_inset
@@ -2258,7 +2265,7 @@ The Mie horizon
 \[
 \cos\left(\phi_{M}\right)=\left\{ \begin{array}{cc}
 -1+\frac{adj}{hyp}=-1+\frac{R_{p}+H_{M}}{R_{p}+h}\leq0, & h\geq H_{M}\\
-\cos\left(\frac{\pi}{2}\right)=0, & otherwise
+0, & otherwise
 \end{array}\right.
 \]
 
@@ -2276,20 +2283,32 @@ The height dependent angles
 \begin_inset Formula $\phi_{M}$
 \end_inset
 
- are used to define several regions which may be parameterized independently.
+ are used to define several regions (
+\begin_inset Formula $U$
+\end_inset
+
+: upper atmosphere, 
+\begin_inset Formula $L$
+\end_inset
+
+: lower atmosphere, 
+\begin_inset Formula $S$
+\end_inset
+
+: surface) which may be parameterized independently.
 \end_layout
 
 \begin_layout Standard
 In general, each region is defined by a weight 
-\begin_inset Formula $w_{ij}$
+\begin_inset Formula $w_{i}\in\left(0,1\right)$
 \end_inset
 
-, a shifted power mapping 
-\begin_inset Formula $p_{ij}$
+, a power mapping 
+\begin_inset Formula $f\left(\phi\right)^{p_{i}}\in\left(0,1\right)$
 \end_inset
 
  and an offset 
-\begin_inset Formula $o_{ij}$
+\begin_inset Formula $o_{i}\in\left(0,1\right)$
 \end_inset
 
 .
@@ -2298,7 +2317,7 @@ In general, each region is defined by a weight
 \begin_layout Standard
 \begin_inset Formula 
 \[
-v_{ij}=w_{ij}\cdot\left(\frac{\cos\left(\phi\right)-\cos\left(\phi_{min}\right)}{\cos\left(\varTheta_{max}\right)-\cos\left(\phi_{min}\right)}\right)^{\frac{1}{p_{ij}}}+o{}_{ij}
+v_{i}=w_{i}\cdot\left(\frac{\cos\left(\phi\right)-\cos\left(\phi_{min}\right)}{\cos\left(\phi_{max}\right)-\cos\left(\phi_{min}\right)}\right)^{\frac{1}{p_{i}}}+o{}_{i}
 \]
 
 \end_inset
@@ -2307,8 +2326,13 @@ v_{ij}=w_{ij}\cdot\left(\frac{\cos\left(\phi\right)-\cos\left(\phi_{min}\right)}
 \end_layout
 
 \begin_layout Standard
+The power base will never be negative and therefore the sign and abs functions
+ are not required.
+\end_layout
+
+\begin_layout Standard
 The upper atmosphere region is defined by the angles, 
-\begin_inset Formula $\cos\left(0\right)\geq\cos\left(\phi\right)\geq\cos\left(\phi_{M}\right)$
+\begin_inset Formula $\cos\left(\phi_{M}\right)\leq\cos\left(\phi\right)\leq1$
 \end_inset
 
 .
@@ -2317,7 +2341,7 @@ The upper atmosphere region is defined by the angles,
 \begin_layout Standard
 \begin_inset Formula 
 \[
-v_{01}\left(u,\phi,w_{12},w_{23},p_{01}\right)=\left(1-\left(w_{12}+w_{23}\right)\cdot u\right)\cdot\left(\frac{\cos\left(\phi\right)-\cos\left(\phi_{M}\right)}{1-\cos\left(\phi_{M}\right)}\right)^{\frac{1}{p_{01}}}+\left(w_{12}+w_{23}\right)\cdot u
+v_{U}\left(\phi\right)=w_{U}\cdot\left(\frac{\cos\left(\phi\right)-\cos\left(\phi_{M}\right)}{1-\cos\left(\phi_{M}\right)}\right)^{\frac{1}{p_{U}}}+\left(w_{L}+w_{S}\right)
 \]
 
 \end_inset
@@ -2327,12 +2351,12 @@ v_{01}\left(u,\phi,w_{12},w_{23},p_{01}\right)=\left(1-\left(w_{12}+w_{23}\right
 
 \begin_layout Standard
 The lower atmosphere region is defined by the angles, 
-\begin_inset Formula $\cos\left(\phi_{M}\right)>\cos\left(\phi\right)\geq\cos\left(\phi_{H}\right)$
+\begin_inset Formula $\cos\left(\phi_{H}\right)\leq\cos\left(\phi\right)<\cos\left(\phi_{M}\right)$
 \end_inset
 
 .
  Since 
-\begin_inset Formula $\cos\left(\phi_{M}\right)=\cos\left(\phi_{H}\right)=0$
+\begin_inset Formula $\cos\left(\phi_{H}\right)=\cos\left(\phi_{M}\right)=0$
 \end_inset
 
  when 
@@ -2345,7 +2369,7 @@ The lower atmosphere region is defined by the angles,
 
  for numerical stability.
  Also, observe that 
-\begin_inset Formula $v_{12}=0$
+\begin_inset Formula $w_{L}=0$
 \end_inset
 
  when 
@@ -2362,7 +2386,7 @@ The lower atmosphere region is defined by the angles,
 \begin_layout Standard
 \begin_inset Formula 
 \[
-v_{12}\left(u,\phi,w_{12},w_{23},p_{12}\right)=w_{12}\cdot u\cdot\left(\frac{\cos\left(\phi\right)-\cos\left(\phi_{H}\right)}{\cos\left(\phi_{M}\right)-\cos\left(\phi_{H}\right)+\epsilon}\right)^{\frac{1}{p_{12}}}+w_{23}\cdot u
+v_{L}\left(\phi\right)=w_{L}\cdot\left(\frac{\cos\left(\phi\right)-\cos\left(\phi_{H}\right)}{\cos\left(\phi_{M}\right)-\cos\left(\phi_{H}\right)+\epsilon}\right)^{\frac{1}{p_{L}}}+w_{S}
 \]
 
 \end_inset
@@ -2372,20 +2396,20 @@ v_{12}\left(u,\phi,w_{12},w_{23},p_{12}\right)=w_{12}\cdot u\cdot\left(\frac{\co
 
 \begin_layout Standard
 The surface region is defined by the angles, 
-\begin_inset Formula $\cos\left(\phi_{H}\right)>\cos\left(\phi\right)\geq\cos\left(\pi\right)$
+\begin_inset Formula $-1\leq\cos\left(\phi\right)<\cos\left(\phi_{H}\right)$
 \end_inset
 
 .
  The one-minus term in 
-\begin_inset Formula $v_{23}$
+\begin_inset Formula $v_{S}$
 \end_inset
 
  ensures continuity between 
-\begin_inset Formula $v_{12}$
+\begin_inset Formula $v_{L}$
 \end_inset
 
  and 
-\begin_inset Formula $v_{23}$
+\begin_inset Formula $v_{S}$
 \end_inset
 
  after crossing the horizon 
@@ -2398,7 +2422,7 @@ The surface region is defined by the angles,
 \begin_layout Standard
 \begin_inset Formula 
 \[
-v_{23}\left(u,\phi,w_{23},p_{23}\right)=w_{23}\cdot u\cdot\left(1-\left(\frac{\cos\left(\phi\right)-\cos\left(\phi_{H}\right)}{-1-\cos\left(\phi_{H}\right)}\right)^{\frac{1}{p_{23}}}\right)
+v_{S}\left(\phi\right)=w_{S}\cdot\left(1-\left(\frac{\cos\left(\phi\right)-\cos\left(\phi_{H}\right)}{-1-\cos\left(\phi_{H}\right)}\right)^{\frac{1}{p_{S}}}\right)
 \]
 
 \end_inset
@@ -2407,22 +2431,54 @@ v_{23}\left(u,\phi,w_{23},p_{23}\right)=w_{23}\cdot u\cdot\left(1-\left(\frac{\c
 \end_layout
 
 \begin_layout Standard
-The shifted power base will never be negative and therefore the sign and
- abs functions are not required.
+The weights define the amount of texture space allocated for each region.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+w_{U}=1-w_{L}-w_{S}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+w_{L}=w_{L}^{1}\cdot u
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+w_{S}=w_{S}^{1}\cdot u+w_{S}^{0}
+\]
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
 The sum of the weights is 
-\begin_inset Formula $\sum w_{01}+w_{12}+w_{23}=1$
+\begin_inset Formula $\sum w_{U}+w_{L}+w_{S}=1$
 \end_inset
 
 .
  In order to optimize the texture space near ground level, the weights 
-\begin_inset Formula $w_{12}$
+\begin_inset Formula $w_{L}^{1}$
 \end_inset
 
  and 
-\begin_inset Formula $w_{23}$
+\begin_inset Formula $w_{S}^{1}$
 \end_inset
 
  are scaled by 
@@ -2431,29 +2487,42 @@ The sum of the weights is
 
 .
  This causes the weights 
-\begin_inset Formula $w_{12}$
+\begin_inset Formula $w_{L}$
 \end_inset
 
  and 
-\begin_inset Formula $w_{23}$
+\begin_inset Formula $w_{S}$
 \end_inset
 
- to grow from zero at ground level to their normal value at 
-\begin_inset Formula $H_{a}$
+ to grow from a minimum at 
+\begin_inset Formula $u=0$
+\end_inset
+
+ to their maximum at 
+\begin_inset Formula $u=1$
 \end_inset
 
 .
  The weight 
-\begin_inset Formula $w_{01}$
+\begin_inset Formula $w_{U}$
 \end_inset
 
- is defined as the remainder of the other weights, 
-\begin_inset Formula $w_{01}=1-w_{12}-w_{23}$
+ is defined as the remainder of the other weights, causing it to shrink
+ from the maximum at 
+\begin_inset Formula $u=0$
 \end_inset
 
-, causing it to shrink from the entire texture space at ground level to
- its normal value at 
-\begin_inset Formula $H_{a}$
+ to its minimum at 
+\begin_inset Formula $u=1$
+\end_inset
+
+.
+ The weight 
+\begin_inset Formula $w_{S}^{0}$
+\end_inset
+
+ defines a minimal texture parameter space for the surface region at 
+\begin_inset Formula $u=0$
 \end_inset
 
 .
@@ -2466,7 +2535,7 @@ The weighted power mappings may be converted from 3D texture coordinates
 
 \begin_layout Standard
 When 
-\begin_inset Formula $v\geq\left(w_{12}+w_{23}\right)\cdot u\left(h,p_{u}\right)$
+\begin_inset Formula $v\geq w_{L}+w_{S}$
 \end_inset
 
 :
@@ -2475,7 +2544,7 @@ When
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\cos\left(\phi\right)=\left(1-\cos\left(\phi_{M}\right)\right)\cdot\left(\frac{v-\left(w_{12}+w_{23}\right)\cdot u}{1-\left(w_{12}+w_{23}\right)\cdot u}\right)^{p_{01}}+\cos\left(\phi_{M}\right)
+\cos\left(\phi\right)=\left(1-\cos\left(\phi_{M}\right)\right)\cdot\left(\frac{v-\left(w_{L}+w_{S}\right)}{1-\left(w_{L}+w_{S}\right)}\right)^{p_{U}}+\cos\left(\phi_{M}\right)
 \]
 
 \end_inset
@@ -2485,7 +2554,7 @@ When
 
 \begin_layout Standard
 When 
-\begin_inset Formula $v\geq w_{23}\cdot u\left(h,p_{u}\right)$
+\begin_inset Formula $v\geq w_{S}$
 \end_inset
 
 :
@@ -2494,7 +2563,7 @@ When
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\cos\left(\phi\right)=\left(\cos\left(\phi_{M}\right)-\cos\left(\phi_{H}\right)\right)\left(\frac{v-w_{23}\cdot u}{w_{12}\cdot u}\right)^{p_{12}}+\cos\left(\phi_{H}\right)
+\cos\left(\phi\right)=\left(\cos\left(\phi_{M}\right)-\cos\left(\phi_{H}\right)\right)\left(\frac{v-w_{S}}{w_{L}}\right)^{p_{L}}+\cos\left(\phi_{H}\right)
 \]
 
 \end_inset
@@ -2509,7 +2578,7 @@ Otherwise:
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\cos\left(\phi\right)=\left(-1-\cos\left(\phi_{H}\right)\right)\left(1-\frac{v_{23}}{w_{23}\cdot u}\right)^{p_{23}}+\cos\left(\phi_{H}\right)
+\cos\left(\phi\right)=\left(-1-\cos\left(\phi_{H}\right)\right)\left(1-\frac{v}{w_{S}}\right)^{p_{S}}+\cos\left(\phi_{H}\right)
 \]
 
 \end_inset
@@ -2614,7 +2683,7 @@ The 3D array indices
 \begin_layout Standard
 \begin_inset Formula 
 \[
-i=x+y*width+z*width*height
+i=x+y\cdot width+z\cdot width\cdot height
 \]
 
 \end_inset
