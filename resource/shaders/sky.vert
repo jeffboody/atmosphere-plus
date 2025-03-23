@@ -12,8 +12,17 @@ layout(std140, set=0, binding=1) uniform ub001_RaRp
 	vec2 RaRp; // Ra, Rp
 };
 
+layout(std140, set=0, binding=3) uniform ub003_P0H
+{
+	vec4 P0H; // P0, h
+};
+
+layout(location=0) out vec3 varying_V;
+
 void main()
 {
-	float Ra = RaRp[0];
+	float Ra    = RaRp[0];
+	vec3  P0    = vec3(P0H);
+	varying_V   = vertex - P0/Ra;
 	gl_Position = mvp*vec4(Ra*vertex, 1.0);
 }

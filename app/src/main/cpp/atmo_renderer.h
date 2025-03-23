@@ -51,14 +51,14 @@ typedef struct atmo_renderer_s
 	vkk_buffer_t*            scene_ub000_mvp;
 	vkk_buffer_t*            scene_ub001_RaRp; // Ra, Rp
 	vkk_buffer_t*            scene_ub002_L4;
-	vkk_buffer_t*            scene_ub100_P0H; // P0, H
+	vkk_buffer_t*            scene_ub003_P0H; // P0, H
+	vkk_buffer_t*            scene_ub100_Unused;
 	vkk_buffer_t*            scene_ub101_Zenith4;
 	vkk_buffer_t*            scene_ub102_II4;
 	vkk_buffer_t*            scene_ub103_phase_g_mie;
 	vkk_uniformSet_t*        scene_us0;
 	vkk_uniformSet_t*        scene_us1;
 
-	vkk_graphicsPipeline_t*  planet_gp;
 	vkk_graphicsPipeline_t*  sky_flat_gp;
 	vkk_graphicsPipeline_t*  sky_atmo_gp;
 } atmo_renderer_t;
