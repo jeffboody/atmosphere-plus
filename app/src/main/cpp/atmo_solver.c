@@ -94,8 +94,8 @@
 #define ATMO_BETA_S_R_RAYLEIGH (1.0f*5.802e-6f)
 #define ATMO_BETA_S_G_RAYLEIGH (1.0f*13.558e-6f)
 #define ATMO_BETA_S_B_RAYLEIGH (1.0f*33.1e-6f)
-#define ATMO_BETA_S_MIE      (1.0f*3.996e-6f)
-#define ATMO_BETA_A_MIE      (1.0f*4.40e-6f)
+#define ATMO_BETA_S_MIE        (1.0f*3.996e-6f)
+#define ATMO_BETA_A_MIE        (1.0f*4.40e-6f)
 
 // spectral irradiance measures the power density of solar
 // radiation at specific wavelengths
@@ -140,12 +140,12 @@
 #define ATMO_PARAM_PHI_WEIGHTED_POWER 3
 
 // weighted power parameters
-#define ATMO_PARAM_PHI_WEIGHTED_POWER_PU  3.0f
-#define ATMO_PARAM_PHI_WEIGHTED_POWER_PL  1.0f
-#define ATMO_PARAM_PHI_WEIGHTED_POWER_PS  3.0f
-#define ATMO_PARAM_PHI_WEIGHTED_POWER_WL1 (12.0f/32.0f)
-#define ATMO_PARAM_PHI_WEIGHTED_POWER_WS0 (5.0f/32.0f)
-#define ATMO_PARAM_PHI_WEIGHTED_POWER_WS1 (5.0f/32.0f)
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_PU  2.0f
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_PL  2.0f
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_PS  2.0f
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_WL1 (20.0f/32.0f)
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_WS0 (4.0f/32.0f)
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_WS1 (4.0f/32.0f)
 
 // sun-zenith angle parameterization
 #define ATMO_PARAM_DELTA_LINEAR 0
@@ -278,7 +278,6 @@ getCosPhiV(atmo_solverParam_t* param, float h, float u,
 		cos_phi = ch - powf(v, 5.0f)*(1.0f + ch);
 	}
 	#elif ATMO_PARAM_PHI == ATMO_PARAM_PHI_WEIGHTED_POWER
-	// a*a + b*b = c*c
 	float hypH      = Rp + h;
 	float oppH      = Rp;
 	float adjH      = sqrt(hypH*hypH - oppH*oppH);
@@ -336,7 +335,6 @@ getVCosPhi(atmo_solverParam_t* param, float h,
 		v = 0.5f*powf((ch - cos_phi)/(1.0f + ch), 0.2f);
 	}
 	#elif ATMO_PARAM_PHI == ATMO_PARAM_PHI_WEIGHTED_POWER
-	// a*a + b*b = c*c
 	float hypH      = Rp + h;
 	float oppH      = Rp;
 	float adjH      = sqrt(hypH*hypH - oppH*oppH);

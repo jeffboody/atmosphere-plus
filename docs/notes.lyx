@@ -2060,26 +2060,6 @@ h=u^{2}\cdot H_{a}
 
 \end_layout
 
-\begin_layout Standard
-The following diagram shows a comparision between the linear mapping, nonlinear
- mapping and 3D texture coordinates of the scattering intensity 
-\begin_inset Formula $I_{S}$
-\end_inset
-
-.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Graphics
-	filename param-linear-nonlinear-uvw.png
-	lyxscale 50
-	width 50page%
-
-\end_inset
-
-
-\end_layout
-
 \begin_layout Subsubsection
 Power Mapping
 \end_layout
@@ -2234,12 +2214,34 @@ The horizon
 
  is defined by a triangle consisting of a point at the center of the planet,
  a point tangent to the planet and a point at the observer.
+ The function 
+\begin_inset Formula $\cos\left(\phi_{H}\right)$
+\end_inset
+
+ may be derived given the trigonometric identies 
+\begin_inset Formula $\cos\left(\theta\right)=\frac{adj}{hyp}$
+\end_inset
+
+, 
+\begin_inset Formula $a^{2}+b^{2}=c^{2}$
+\end_inset
+
+ and the fact that the horizon 
+\begin_inset Formula $\phi_{H}\geq90$
+\end_inset
+
+ (e.g.
+ 
+\begin_inset Formula $\cos\left(\phi_{H}\right)\leq0$
+\end_inset
+
+).
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\cos\left(\phi_{H}\right)=-1+\frac{adj}{hyp}=-1+\frac{R_{p}}{R_{p}+h}\leq0
+\cos\left(\phi_{H}\right)=-\frac{\sqrt{\left(R_{p}+h\right)^{2}-R_{p}^{2}}}{R_{p}+h}
 \]
 
 \end_inset
@@ -2273,7 +2275,7 @@ In general, each region is defined by a weight
 \end_inset
 
 , a power mapping 
-\begin_inset Formula $f\left(\phi\right)^{p_{i}}\in\left(0,1\right)$
+\begin_inset Formula $f\left(\cos\left(\phi\right),p_{i}\right)\in\left(0,1\right)$
 \end_inset
 
  and an offset 
@@ -2550,6 +2552,85 @@ Otherwise:
 \cos\left(\phi\right)=\left(-1-\cos\left(\phi_{H}\right)\right)\left(1-\frac{v}{w_{S}}\right)^{p_{S}}+\cos\left(\phi_{H}\right)
 \]
 
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The following diagram shows a visualization of the weighted power mapping
+ regions (
+\begin_inset Formula $U$
+\end_inset
+
+: blue, 
+\begin_inset Formula $L$
+\end_inset
+
+: red, 
+\begin_inset Formula $S$
+\end_inset
+
+: green) for 
+\begin_inset Formula $h=H_{a}$
+\end_inset
+
+ and 
+\begin_inset Formula $h=0$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Graphics
+	filename weighted-power-detail.jpg
+	lyxscale 50
+	width 50page%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Mapping Comparision
+\end_layout
+
+\begin_layout Standard
+The following diagram shows a comparision between the linear mapping, nonlinear
+ mapping, weighted power mapping and 3D texture coordinates of the scattering
+ intensity 
+\begin_inset Formula $I_{S}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Graphics
+	filename mapping-comparison.jpg
+	lyxscale 50
+	width 50page%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The following parameters where used for the weighted power mapping.
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $p_{U},p_{L},p_{S}=2,2,2$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $w_{L}^{1},w_{S}^{1},w_{S}^{0}=\frac{20}{32},\frac{4}{32},\frac{4}{32}$
 \end_inset
 
 

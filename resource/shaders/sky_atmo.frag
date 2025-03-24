@@ -12,12 +12,12 @@
 #define ATMO_PARAM_PHI_WEIGHTED_POWER 3
 
 // weighted power parameters
-#define ATMO_PARAM_PHI_WEIGHTED_POWER_PU  3.0
-#define ATMO_PARAM_PHI_WEIGHTED_POWER_PL  1.0
-#define ATMO_PARAM_PHI_WEIGHTED_POWER_PS  3.0
-#define ATMO_PARAM_PHI_WEIGHTED_POWER_WL1 (12.0/32.0)
-#define ATMO_PARAM_PHI_WEIGHTED_POWER_WS0 (5.0/32.0)
-#define ATMO_PARAM_PHI_WEIGHTED_POWER_WS1 (5.0/32.0)
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_PU  2.0f
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_PL  2.0f
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_PS  2.0f
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_WL1 (20.0f/32.0f)
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_WS0 (4.0f/32.0f)
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_WS1 (4.0f/32.0f)
 
 // sun-zenith angle parameterization
 #define ATMO_PARAM_DELTA_LINEAR 0
@@ -138,7 +138,6 @@ void main()
 		v = 0.5*pow((ch - cos_phi)/(1.0 + ch), 0.2);
 	}
 	#elif ATMO_PARAM_PHI == ATMO_PARAM_PHI_WEIGHTED_POWER
-	// a*a + b*b = c*c
 	float hypH      = Rp + h;
 	float oppH      = Rp;
 	float adjH      = sqrt(hypH*hypH - oppH*oppH);
