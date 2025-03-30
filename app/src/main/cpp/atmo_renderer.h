@@ -40,10 +40,8 @@ typedef struct atmo_renderer_s
 	float    ctrl_omega;
 	uint32_t ctrl_k;
 
-	uint32_t        sphere_ic;
-	vkk_indexType_e sphere_it;
-	vkk_buffer_t*   sphere_ib;
-	vkk_buffer_t*   sphere_vb;
+	vkk_buffer_t* vb_vertex;
+	vkk_buffer_t* vb_V;
 
 	vkk_uniformSetFactory_t* scene_usf0;
 	vkk_uniformSetFactory_t* scene_usf1;
