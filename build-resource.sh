@@ -12,7 +12,6 @@ cd ..
 
 echo ADD-RESOURCES
 bfs $RESOURCE blobSet readme.txt
-bfs $RESOURCE blobSet models/Sphere.glb
 bfs $RESOURCE blobSet shaders/sky_vert.spv
 bfs $RESOURCE blobSet shaders/sky_flat_frag.spv
 bfs $RESOURCE blobSet shaders/sky_atmo_frag.spv
