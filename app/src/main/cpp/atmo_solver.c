@@ -193,7 +193,7 @@ static float getUHeight(atmo_solverParam_t* param, float h)
 	#if ATMO_PARAM_HEIGHT == ATMO_PARAM_HEIGHT_POWER
 	u = powf(h/(param->Ra - param->Rp), 1.0f/2.0f);
 	#else
-	u = return h/(param->Ra - param->Rp);
+	u = h/(param->Ra - param->Rp);
 	#endif
 
 	return cc_clamp(u, 0.0f, 1.0f);
