@@ -2250,11 +2250,15 @@ The horizon
 \end_layout
 
 \begin_layout Standard
-The height dependent angle 
+The horizon angle 
 \begin_inset Formula $\phi_{H}$
 \end_inset
 
- is used to define several regions (
+ and zero angle 
+\begin_inset Formula $\phi_{0}$
+\end_inset
+
+ are used to define several regions (
 \begin_inset Formula $U$
 \end_inset
 
@@ -2357,7 +2361,7 @@ The lower atmosphere region is defined by the angles,
 \begin_layout Standard
 \begin_inset Formula 
 \[
-v_{L}\left(\phi\right)=w_{L}\cdot\left(\frac{\cos\left(\phi\right)-\cos\left(\phi_{H}\right)}{-\cos\left(\phi_{H}\right)+\epsilon}\right)^{\frac{1}{p_{L}}}+w_{S}
+v_{L}\left(\phi\right)=w_{L}\cdot\left(\frac{\cos\left(\phi\right)-\cos\left(\phi_{H}\right)}{\max\left(-\cos\left(\phi_{H}\right),\epsilon\right)}\right)^{\frac{1}{p_{L}}}+w_{S}
 \]
 
 \end_inset
@@ -2440,7 +2444,7 @@ w_{S}=w_{S}^{1}\cdot u+w_{S}^{0}
 
 \begin_layout Standard
 The sum of the weights is 
-\begin_inset Formula $\sum w_{U}+w_{L}+w_{S}=1$
+\begin_inset Formula $w_{U}+w_{L}+w_{S}=1$
 \end_inset
 
 .
@@ -2534,7 +2538,7 @@ When
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\cos\left(\phi\right)=-\cos\left(\phi_{H}\right)\left(\frac{v-w_{S}}{w_{L}}\right)^{p_{L}}+\cos\left(\phi_{H}\right)
+\cos\left(\phi\right)=-\cos\left(\phi_{H}\right)\left(\frac{v-w_{S}}{\max\left(w_{L},\epsilon\right)}\right)^{p_{L}}+\cos\left(\phi_{H}\right)
 \]
 
 \end_inset
@@ -2623,7 +2627,7 @@ The following parameters where used for the weighted power mapping.
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $p_{U},p_{L},p_{S}=2,2,2$
+\begin_inset Formula $p_{U},p_{L},p_{S}=2,1,2$
 \end_inset
 
 
@@ -2634,6 +2638,19 @@ The following parameters where used for the weighted power mapping.
 \end_inset
 
 
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Note:
+\series default
+ 
+\begin_inset Formula $p_{L}=1$
+\end_inset
+
+ is important to improve numerical stability at the boundary between the
+ upper and lower atmosphere.
 \end_layout
 
 \begin_layout Subsubsection

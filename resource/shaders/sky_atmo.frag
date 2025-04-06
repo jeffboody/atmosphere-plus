@@ -13,7 +13,7 @@
 
 // weighted power parameters
 #define ATMO_PARAM_PHI_WEIGHTED_POWER_PU  2.0f
-#define ATMO_PARAM_PHI_WEIGHTED_POWER_PL  2.0f
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_PL  1.0f
 #define ATMO_PARAM_PHI_WEIGHTED_POWER_PS  2.0f
 #define ATMO_PARAM_PHI_WEIGHTED_POWER_WL1 (20.0f/32.0f)
 #define ATMO_PARAM_PHI_WEIGHTED_POWER_WS0 (4.0f/32.0f)
@@ -232,7 +232,8 @@ void main()
 	}
 	else if(cos_phi >= cos_phi_H)
 	{
-		v = WL*pow((cos_phi - cos_phi_H)/(-cos_phi_H + epsilon),
+		v = WL*pow((cos_phi - cos_phi_H)/
+		           max(-cos_phi_H, epsilon),
 		           1.0/PL) + WS;
 
 		#ifdef DEBUG_COS_PHI

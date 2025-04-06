@@ -141,7 +141,7 @@
 
 // weighted power parameters
 #define ATMO_PARAM_PHI_WEIGHTED_POWER_PU  2.0f
-#define ATMO_PARAM_PHI_WEIGHTED_POWER_PL  2.0f
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_PL  1.0f
 #define ATMO_PARAM_PHI_WEIGHTED_POWER_PS  2.0f
 #define ATMO_PARAM_PHI_WEIGHTED_POWER_WL1 (20.0f/32.0f)
 #define ATMO_PARAM_PHI_WEIGHTED_POWER_WS0 (4.0f/32.0f)
@@ -292,13 +292,16 @@ getCosPhiV(atmo_solverParam_t* param, float h, float u,
 	float WS  = WS1*u + WS0;
 	float WL  = WL1*u;
 	float WU  = 1.0f - WL - WS;
+	float epsilon = 0.00001f;
 	if(v >= WL + WS)
 	{
 		cos_phi = powf((v - (WL + WS))/WU, PU);
 	}
 	else if(v >= WS)
 	{
-		cos_phi = -cos_phi_H*powf((v - WS)/WL, PL) + cos_phi_H;
+		cos_phi = -cos_phi_H*powf((v - WS)/
+		                          cc_max(WL, epsilon), PL) +
+		           cos_phi_H;
 	}
 	else
 	{
@@ -356,7 +359,8 @@ getVCosPhi(atmo_solverParam_t* param, float h,
 	}
 	else if(cos_phi >= cos_phi_H)
 	{
-		v = WL*powf((cos_phi - cos_phi_H)/(-cos_phi_H + epsilon),
+		v = WL*powf((cos_phi - cos_phi_H)/
+		            cc_max(-cos_phi_H, epsilon),
 		            1.0f/PL) + WS;
 	}
 	else
