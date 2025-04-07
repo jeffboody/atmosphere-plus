@@ -2250,12 +2250,12 @@ The horizon
 \end_layout
 
 \begin_layout Standard
-The horizon angle 
-\begin_inset Formula $\phi_{H}$
+The cosine of the horizon angle 
+\begin_inset Formula $\cos\left(\phi_{H}\right)$
 \end_inset
 
- and zero angle 
-\begin_inset Formula $\phi_{0}$
+ and the horizontal angle 
+\begin_inset Formula $\cos\left(\phi_{90}\right)=0$
 \end_inset
 
  are used to define several regions (
