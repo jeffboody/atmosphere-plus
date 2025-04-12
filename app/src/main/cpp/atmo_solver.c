@@ -115,6 +115,8 @@
 // transmittance numerical integration steps
 #define ATMO_TRANSMITTANCE_STEPS 30
 
+#define ATMO_STEP_THRESH 10.0f
+
 // gathering direction numerical integration steps of the
 // spherical coordinate system for M (theta) and N (phi)
 #define ATMO_GATHER_M_STEPS (180/30)
@@ -508,6 +510,11 @@ transmittance(atmo_solverParam_t* param, cc_vec3f_t* P1,
 	float pR0 = densityR(param, h);
 	float pM0 = densityM(param, h);
 
+	if(ds < ATMO_STEP_THRESH)
+	{
+		return;
+	}
+
 	// integrate transmittance
 	int   i;
 	float pR1;
@@ -701,6 +708,11 @@ fIS1(atmo_solverParam_t* param, float h, float phi,
 	fx0.g = pR*expf(-tPPc.g -tPaP.g);
 	fx0.b = pR*expf(-tPPc.b -tPaP.b);
 	fx0.a = pM*expf(-tPPc.a -tPaP.a);
+
+	if(ds < ATMO_STEP_THRESH)
+	{
+		return;
+	}
 
 	// integrate factored single-scattered intensity
 	int i;
@@ -1032,6 +1044,11 @@ fISk(atmo_solverParam_t* param, uint32_t k,
 	fx0.g = fgk.g*pR*expf(-tPaP.g);
 	fx0.b = fgk.b*pR*expf(-tPaP.b);
 	fx0.a = fgk.a*pM*expf(-tPaP.a);
+
+	if(ds < ATMO_STEP_THRESH)
+	{
+		return;
+	}
 
 	// integrate factored multiple-scattered intensity
 	int i;
