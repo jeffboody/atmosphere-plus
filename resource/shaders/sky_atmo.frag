@@ -12,12 +12,12 @@
 #define ATMO_PARAM_PHI_WEIGHTED_POWER 3
 
 // weighted power parameters
-#define ATMO_PARAM_PHI_WEIGHTED_POWER_PU  2.0f
-#define ATMO_PARAM_PHI_WEIGHTED_POWER_PL  1.0f
-#define ATMO_PARAM_PHI_WEIGHTED_POWER_PS  2.0f
-#define ATMO_PARAM_PHI_WEIGHTED_POWER_WL1 (20.0f/32.0f)
-#define ATMO_PARAM_PHI_WEIGHTED_POWER_WS0 (4.0f/32.0f)
-#define ATMO_PARAM_PHI_WEIGHTED_POWER_WS1 (4.0f/32.0f)
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_PU  2.0
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_PL  1.0
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_PS  2.0
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_WL1 (20.0/32.0)
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_WS0 (4.0/32.0)
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_WS1 (4.0/32.0)
 
 // sun-zenith angle parameterization
 #define ATMO_PARAM_DELTA_LINEAR 0
@@ -29,6 +29,14 @@
 #define ATMO_PARAM_HEIGHT ATMO_PARAM_HEIGHT_POWER
 #define ATMO_PARAM_PHI    ATMO_PARAM_PHI_WEIGHTED_POWER
 #define ATMO_PARAM_DELTA  ATMO_PARAM_DELTA_POWER
+
+// tone mapping
+#define ATMO_TONE_MAPPING_REINHARD          0
+#define ATMO_TONE_MAPPING_REINHARD_EXTENDED 1
+#define ATMO_TONE_MAPPING_UNCHARTED2        2
+
+// select tone mapping
+#define ATMO_TONE_MAPPING ATMO_TONE_MAPPING_REINHARD
 
 layout(location=0) in vec3 varying_V;
 
@@ -139,6 +147,70 @@ int intersect_planet(vec3 P0, vec3 V, out vec3 normal)
 	return 2;
 }
 
+// https://64.github.io/tonemapping/
+float luminance(vec3 v)
+{
+	return dot(v, vec3(0.2126, 0.7152, 0.0722));
+}
+
+// https://64.github.io/tonemapping/
+vec3 change_luminance(vec3 c_in, float l_out)
+{
+	float l_in = luminance(c_in);
+	return c_in * (l_out / l_in);
+}
+
+// https://64.github.io/tonemapping/
+float reinhard(float x)
+{
+	return x / (1.0 + x);
+}
+
+// https://64.github.io/tonemapping/
+vec3 reinhard_extended_luminance(vec3 v, float max_white_l)
+{
+	float l_old = luminance(v);
+	float numerator = l_old * (1.0 + (l_old / (max_white_l * max_white_l)));
+	float l_new = numerator / (1.0 + l_old);
+	return change_luminance(v, l_new);
+}
+
+// https://64.github.io/tonemapping/
+vec3 reinhard_luminance(vec3 v)
+{
+	float l0 = luminance(v);
+	float l1 = reinhard(l0);
+	return v*l1/l0;
+}
+
+// https://64.github.io/tonemapping/
+vec3 uncharted2_tonemap_partial(vec3 x)
+{
+	float A = 0.15;
+	float B = 0.50;
+	float C = 0.10;
+	float D = 0.20;
+	float E = 0.02;
+	float F = 0.30;
+	return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
+}
+
+// https://64.github.io/tonemapping/
+vec3 uncharted2_filmic(vec3 v)
+{
+    float exposure_bias = 2.0;
+    vec3 curr = uncharted2_tonemap_partial(v * exposure_bias);
+
+    vec3 W = vec3(11.2);
+    vec3 white_scale = vec3(1.0) / uncharted2_tonemap_partial(W);
+    return curr * white_scale;
+}
+
+vec3 gamma(vec3 v)
+{
+	return pow(v, vec3(1.0/2.2));
+}
+
 void main()
 {
 	vec3  V         = normalize(varying_V);
@@ -218,7 +290,7 @@ void main()
 	float WL      = WL1*u;
 	float WU      = 1.0 - WL - WS;
 	float epsilon = 0.00001;
-	if(cos_phi >= 0.0f)
+	if(cos_phi >= 0.0)
 	{
 		v = WU*pow(cos_phi, 1.0/PU) + (WL + WS);
 
@@ -282,7 +354,13 @@ void main()
 	               II.b*(FR*fIS.b + FM*fIS.a));
 
 	// apply tone mapping and gamma correction
-	vec3 color = pow(vec3(1.0) - exp(-IS), vec3(1.0/2.2));
+	#if ATMO_TONE_MAPPING == ATMO_TONE_MAPPING_UNCHARTED2
+	vec3 color = gamma(uncharted2_filmic(IS));
+	#elif ATMO_TONE_MAPPING == ATMO_TONE_MAPPING_REINHARD_EXTENDED
+	vec3 color = gamma(reinhard_extended_luminance(IS, 150.0));
+	#else
+	vec3 color = gamma(reinhard_luminance(IS));
+	#endif
 
 	fragColor = vec4(color, 1.0);
 }

@@ -1255,6 +1255,44 @@ atmo_solver_exportData(atmo_solver_t* self,
 
 #ifdef ATMO_SOLVER_DEBUG_DATA
 
+// https://64.github.io/tonemapping/
+static float atmo_solver_luminance(cc_vec4f_t* v)
+{
+	cc_vec4f_t w =
+	{
+		.r = 0.2126f,
+		.g = 0.7152f,
+		.b = 0.0722f,
+	};
+	return cc_vec4f_dot(v, &w);
+}
+
+// https://64.github.io/tonemapping/
+static float atmo_solver_reinhard(float x)
+{
+	return x / (1.0f + x);
+}
+
+// https://64.github.io/tonemapping/
+static void
+atmo_solver_reinhardLuminance(cc_vec4f_t* color)
+{
+	ASSERT(color);
+
+	float l0 = atmo_solver_luminance(color);
+	float l1 = atmo_solver_reinhard(l0);
+	cc_vec4f_muls(color, l1/l0);
+}
+
+static void atmo_solver_gamma(cc_vec4f_t* color)
+{
+	ASSERT(color);
+
+	color->r = powf(color->r, 1.0f/2.2f);
+	color->g = powf(color->g, 1.0f/2.2f);
+	color->b = powf(color->b, 1.0f/2.2f);
+}
+
 static int
 atmo_solver_debugData(atmo_solver_t* self, cc_vec4f_t* data)
 {
@@ -1306,8 +1344,12 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4f_t* data)
 	unsigned char pixel[4] = { 0, 0, 0, 255 };
 	cc_vec4f_t fis;
 	cc_vec4f_t is;
+	cc_vec4f_t color;
+	float      luminance;
+	float      white_point;
 	for(k = 1; k <= param->k; ++k)
 	{
+		white_point = 0.0f;
 		for(x = 0; x < param->texture_width; ++x)
 		{
 			u = ((float) x)/((float) (param->texture_width - 1));
@@ -1334,24 +1376,35 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4f_t* data)
 					is.r = II.r*(FR*fis.r + FM*fis.a);
 					is.g = II.g*(FR*fis.g + FM*fis.a);
 					is.b = II.b*(FR*fis.b + FM*fis.a);
-					is.r = powf(1.0f - expf(-is.r), 1.0f/2.2f);
-					is.g = powf(1.0f - expf(-is.g), 1.0f/2.2f);
-					is.b = powf(1.0f - expf(-is.b), 1.0f/2.2f);
-					is.r = cc_clamp(is.r, 0.0f, 1.0f);
-					is.g = cc_clamp(is.g, 0.0f, 1.0f);
-					is.b = cc_clamp(is.b, 0.0f, 1.0f);
 
-					// set is
-					pixel[0] = (unsigned char) (255.0*is.r);
-					pixel[1] = (unsigned char) (255.0*is.g);
-					pixel[2] = (unsigned char) (255.0*is.b);
+					// find white point
+					luminance = atmo_solver_luminance(&is);
+					if(luminance > white_point)
+					{
+						white_point = luminance;
+					}
+
+					// tone mapping and gamma correction
+					cc_vec4f_copy(&is, &color);
+					atmo_solver_reinhardLuminance(&color);
+					atmo_solver_gamma(&color);
+
+					// clamp output
+					color.r = cc_clamp(color.r, 0.0f, 1.0f);
+					color.g = cc_clamp(color.g, 0.0f, 1.0f);
+					color.b = cc_clamp(color.b, 0.0f, 1.0f);
+
+					// set output
+					pixel[0] = (unsigned char) (255.0f*color.r);
+					pixel[1] = (unsigned char) (255.0f*color.g);
+					pixel[2] = (unsigned char) (255.0f*color.b);
 					texgz_tex_setPixel(tex, x*param->texture_depth + z,
 					                   y, pixel);
 
 					// set u,v,w
-					pixel[0] = (unsigned char) (255.0*u);
-					pixel[1] = (unsigned char) (255.0*v);
-					pixel[2] = (unsigned char) (255.0*w);
+					pixel[0] = (unsigned char) (255.0f*u);
+					pixel[1] = (unsigned char) (255.0f*v);
+					pixel[2] = (unsigned char) (255.0f*w);
 					texgz_tex_setPixel(tex, x*param->texture_depth + z,
 					                   param->texture_height + y, pixel);
 				}
@@ -1359,6 +1412,8 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4f_t* data)
 		}
 		snprintf(fname, 256, "atmo-slice-k%u.png", k);
 		texgz_png_export(tex, fname);
+
+		LOGI("k=%u, white_point=%f", k, white_point);
 	}
 	texgz_tex_delete(&tex);
 

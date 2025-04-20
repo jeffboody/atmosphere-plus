@@ -256,30 +256,225 @@ Tone Mapping and Gamma Correction
 \end_layout
 
 \begin_layout Standard
-The atmospheric simulation inherently outputs high dynamic range (HDR) intensiti
-es that must be transformed for display on standard devices as the final
- step.
+The atmospheric simulation inherently outputs high dynamic range intensities
+ that must be transformed for display on standard devices as the final step.
+\end_layout
+
+\begin_layout Subsubsection
+Tone Mapping Operation (TMO)
 \end_layout
 
 \begin_layout Standard
-Tone mapping transforms the high dynamic range (HDR) intensities such that
- the colors are mapped to the displayable range 
+Tone mapping operations transform the high dynamic range intensities such
+ that the colors are mapped to the displayable range 
 \begin_inset Formula $\left(0.0,1.0\right)$
 \end_inset
 
  while preserving contrast in low-intensity areas and compressing high-intensity
  values.
+ The transformation from HDR-to-LDR (High Dynamic Range to Low Dynamic Range)
+ is a lossy operation which produces subjective results.
+ As a result, many different TMOs have been proposed.
+ The following subsections describe several popular TMO operators.
+\end_layout
+
+\begin_layout Subsubsection
+Reinhard Tone Mapping
+\end_layout
+
+\begin_layout Standard
+The 
+\begin_inset Formula $TMO_{R}$
+\end_inset
+
+ operator converts HDR luminance to LDR luminance.
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-ToneMapping\left(\left(r,g,b\right)_{HDR}\right)=1.0-\exp\left(-\left(r,g,b\right)_{HDR}\right)
+X=\left(r,g,b\right)_{HDR}
 \]
 
 \end_inset
 
 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+L=0.2126\cdot X_{r}+0.7152\cdot X_{g}+0.0722\cdot X_{b}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+TMO_{R}\left(L\right)=\frac{L}{1+L}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The HDR color to LDR color conversion.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+TMO_{R}\left(X,L\right)=X\cdot\frac{TMO_{R}\left(L\right)}{L}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Extended Reinhard Tone Mapping
+\end_layout
+
+\begin_layout Standard
+The simple 
+\begin_inset Formula $TMO_{R}$
+\end_inset
+
+ does not necessarily make the best use of the full LDR while the 
+\begin_inset Formula $TMO_{ER}$
+\end_inset
+
+ addresses this problem by including an additional parameter to set the
+ white point.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+TMO_{ER}\left(L,L_{White}\right)=\frac{L\cdot\left(1+\frac{L}{L_{White}^{2}}\right)}{1+L}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The HDR color to LDR color conversion.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+TMO_{ER}\left(X,L,L_{White}\right)=X\cdot\frac{TMO_{ER}\left(L,L_{White}\right)}{L}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Hable (Uncharted 2) Tone Mapping
+\end_layout
+
+\begin_layout Standard
+The 
+\begin_inset Formula $TMO_{HP}$
+\end_inset
+
+ defines a partial operation that is used to compute 
+\begin_inset Formula $TMO_{H}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+A,B,C,D,E,F=\left(0.15,0.50,0.10,0.20,0.02,0.30\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+TMO_{HP}\left(X\right)=\left(\frac{X\cdot\left(A\cdot X+C\cdot B\right)+D\cdot E}{X\cdot\left(A\cdot X+B\right)+D\cdot F}\right)-\frac{E}{F}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The 
+\begin_inset Formula $TMO_{H}$
+\end_inset
+
+ operator is referred to as a filmic operation since it is designed to emulate
+ real film.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+ExposureBias=2.0
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+W=vec3\left(11.2\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+TMO_{H}\left(X\right)=\frac{TMO_{HP}\left(X\cdot ExposureBias\right)}{TMO_{HP}\left(W\right)}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The 
+\begin_inset Formula $TMO_{ER}$
+\end_inset
+
+ is roughly a linear approximation of 
+\begin_inset Formula $TMO_{H}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsubsection
+Gamma Correction
 \end_layout
 
 \begin_layout Standard
@@ -290,7 +485,7 @@ Gamma correction helps to distribute the compressed values more evenly across
 \begin_layout Standard
 \begin_inset Formula 
 \[
-GammaCorrection(r,g,b)=\left(r,g,b\right)^{1.0/2.2}
+Gamma(r,g,b)=\left(r,g,b\right)^{1.0/2.2}
 \]
 
 \end_inset
@@ -298,19 +493,29 @@ GammaCorrection(r,g,b)=\left(r,g,b\right)^{1.0/2.2}
 
 \end_layout
 
+\begin_layout Subsubsection
+HDR-to-LDR Transformation
+\end_layout
+
 \begin_layout Standard
-The combined tone mapping and gamma correction transformation.
+Typically, the HDR-to-LDR conversion involves both gamma correction and
+ tone mapping.
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\left(r,g,b\right)=\left(1.0-\exp\left(-\left(r,g,b\right)_{HDR}\right)\right)^{1.0/2.2}
+\left(r,g,b\right)_{LDR}=Gamma\left(TMO\left(\left(r,g,b\right)_{HDR}\right)\right)
 \]
 
 \end_inset
 
 
+\end_layout
+
+\begin_layout Standard
+However, be aware that there exists tone mapping operators which integrate
+ gamma correction.
 \end_layout
 
 \begin_layout Subsection
@@ -2883,6 +3088,26 @@ A Scalable and Production Ready Sky and Atmosphere Rendering Technique
 \begin_deeper
 \begin_layout Itemize
 https://sebh.github.io/publications/egsr2020.pdf
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Tone Mapping
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+https://64.github.io/tonemapping/
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Filmic Tonemapping Operators
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+http://filmicworlds.com/blog/filmic-tonemapping-operators/
 \end_layout
 
 \end_deeper
