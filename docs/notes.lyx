@@ -591,6 +591,10 @@ Larger particles (e.g.
 Density Function
 \end_layout
 
+\begin_layout Subsubsection
+Definition of the Density Function
+\end_layout
+
 \begin_layout Standard
 The density function expresses the decrease in atmospheric density in dependence
  on 
@@ -638,6 +642,26 @@ Where
 \end_inset
 
  term).
+\end_layout
+
+\begin_layout Subsubsection
+Visualization of the Density Function
+\end_layout
+
+\begin_layout Standard
+The following diagram shows the exponential decay of the density (Rayleigh
+ and Mie) as a function of height.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Graphics
+	filename densityRM.jpg
+	lyxscale 15
+	width 50page%
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Subsection

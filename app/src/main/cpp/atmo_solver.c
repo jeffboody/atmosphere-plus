@@ -1298,6 +1298,37 @@ static void atmo_solver_gamma(cc_vec4f_t* color)
 }
 
 static int
+atmo_solver_plotDensityRM(atmo_solverParam_t* param)
+{
+	ASSERT(param);
+
+	FILE* f = fopen("plot_densityRM.dat", "w");
+	if(f == NULL)
+	{
+		LOGE("fopen failed");
+		return 0;
+	}
+
+	// output densityRM
+	int   i;
+	int   nh = 100;
+	float Ha = param->Ra - param->Rp;
+	for(i = 0; i < nh; ++i)
+	{
+		float h;
+		h = Ha*((float) i)/((float) (nh - 1));
+
+		fprintf(f, "%f, %f\n",
+		        densityR(param, h),
+		        densityM(param, h));
+	}
+
+	fclose(f);
+
+	return 1;
+}
+
+static int
 atmo_solver_plotAvgT(atmo_solverParam_t* param)
 {
 	ASSERT(param);
@@ -1511,6 +1542,7 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4f_t* data)
 	}
 	texgz_tex_delete(&tex);
 
+	atmo_solver_plotDensityRM(param);
 	atmo_solver_plotAvgT(param);
 
 	return 1;
