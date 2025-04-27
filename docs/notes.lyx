@@ -1941,6 +1941,8 @@ proj(X)=normalize(X-dot(X,Zenith)\cdot Zenith)
 \begin_layout Standard
 The following diagram shows canonical form of the scattering intensity parameter
 ization.
+ Observe that the atmosphere is much thinner in the vertical direction than
+ the horizontal direction.
 \end_layout
 
 \begin_layout Standard
