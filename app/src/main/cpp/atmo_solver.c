@@ -512,6 +512,10 @@ transmittance(atmo_solverParam_t* param, cc_vec3f_t* P1,
 
 	if(ds < ATMO_STEP_THRESH)
 	{
+		out->r = 0.0f;
+		out->g = 0.0f;
+		out->b = 0.0f;
+		out->a = 0.0f;
 		return;
 	}
 
