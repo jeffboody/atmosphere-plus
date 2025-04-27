@@ -1298,6 +1298,96 @@ static void atmo_solver_gamma(cc_vec4f_t* color)
 }
 
 static int
+atmo_solver_plotAvgT(atmo_solverParam_t* param)
+{
+	ASSERT(param);
+
+	FILE* f = fopen("plot_avgT.dat", "w");
+	if(f == NULL)
+	{
+		LOGE("fopen failed");
+		return 0;
+	}
+
+	// output a 3D plot average transmittance
+	int   i;
+	int   j;
+	int   nh   = 40;
+	int   nphi = 721;
+	float Ha   = param->Ra - param->Rp;
+	for(i = 0; i < nh; ++i)
+	{
+		float h;
+		h = cc_clamp(Ha*((float) i)/((float) (nh - 1)),
+		             10.0f, Ha - 10.0f);
+
+		for(j = 0; j < nphi; ++j)
+		{
+			float phi_deg;
+			phi_deg = 180.0f*((float) j)/
+			                 ((float) (nphi - 1));
+
+			float phi_rad;
+			phi_rad = cc_deg2rad(phi_deg);
+
+			// canonical form of the scattering intensity
+			// parameterization for P0 and V
+			cc_vec3f_t P0 =
+			{
+				.z = h + param->Rp,
+			};
+			cc_vec3f_t V =
+			{
+				.x = sinf(phi_rad),
+				.z = cosf(phi_rad),
+			};
+			cc_vec3f_normalize(&V);
+
+			// compute ray-sphere intersection
+			// include a ray offset for the viewing vector
+			// to ensure that the ray does not intersect at P0
+			double Ro = 10.0;
+			cc_vec3f_t Pa;
+			cc_vec3f_t Pb;
+			computePaPb(param, &P0, &V, Ro, &Pa, &Pb);
+
+			cc_vec3f_t Vba;
+			cc_vec3f_subv_copy(&Pb, &Pa, &Vba);
+			float dist = cc_vec3f_mag(&Vba);
+
+			cc_vec4f_t t;
+			transmittance(param, &P0, &Pb, &t);
+
+			cc_vec4f_t T;
+			T.x = exp(-t.x);
+			T.y = exp(-t.y);
+			T.z = exp(-t.z);
+			T.w = exp(-t.w);
+
+			float avgT = (T.x + T.y + T.z + T.w)/4.0f;
+
+			LOGI("h=%f, phi=%f, avgT=%f, dist=%f, T=%f,%f,%f,%f",
+			     h, phi_deg, avgT, dist,
+			     T.x, T.y, T.z, T.w);
+
+			if(j == 0)
+			{
+				fprintf(f, "%f", avgT);
+			}
+			else
+			{
+				fprintf(f, " %f", avgT);
+			}
+		}
+		fprintf(f, "\n");
+	}
+
+	fclose(f);
+
+	return 1;
+}
+
+static int
 atmo_solver_debugData(atmo_solver_t* self, cc_vec4f_t* data)
 {
 	ASSERT(self);
@@ -1420,6 +1510,8 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4f_t* data)
 		LOGI("k=%u, white_point=%f", k, white_point);
 	}
 	texgz_tex_delete(&tex);
+
+	atmo_solver_plotAvgT(param);
 
 	return 1;
 }

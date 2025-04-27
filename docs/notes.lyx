@@ -1032,6 +1032,10 @@ Note:
 Transmittance
 \end_layout
 
+\begin_layout Subsubsection
+Definition of Transmittance
+\end_layout
+
 \begin_layout Standard
 The transmittance function 
 \begin_inset Formula $T\left(P_{1},P_{2},\lambda\right)$
@@ -1065,6 +1069,17 @@ t\left(P_{1},P_{2},\lambda\right)=\beta_{R,M}^{e}\left(\lambda\right)\int_{P_{1}
 
 \begin_layout Standard
 Where the parameters are defined:
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $T$
+\end_inset
+
+: Transmittance, 
+\begin_inset Formula $T\in\left(0,1\right)$
+\end_inset
+
+
 \end_layout
 
 \begin_layout Itemize
@@ -1173,6 +1188,49 @@ Where the functions
 \[
 T\left(P_{1},P_{2},\lambda\right)\cdot T\left(P_{2},P_{3},\lambda\right)=\exp\left(-t\left(P_{1},P_{2},\lambda\right)-t\left(P_{2},P_{3},\lambda\right)\right)
 \]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Visualization of Transmittance
+\end_layout
+
+\begin_layout Standard
+The following diagrams show the average transmittance (Rayleigh and Mie)
+ as a function of altitude 
+\begin_inset Formula $h$
+\end_inset
+
+ and the View-Zenith Angle 
+\begin_inset Formula $\phi$
+\end_inset
+
+.
+ Notice how the valley follows the horizon as the height increases.
+ The transmittance is much lower at the horizon since the atmosphere is
+ much thinner in the vertical direction than the horizontal direction.
+ See the Scattering Intensity Parameterization section for more details.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Graphics
+	filename avgT_side.jpg
+	lyxscale 15
+	width 50page%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Graphics
+	filename avgT_top.jpg
+	lyxscale 15
+	width 50page%
 
 \end_inset
 
