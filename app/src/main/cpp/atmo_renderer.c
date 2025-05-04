@@ -554,11 +554,14 @@ void atmo_renderer_draw(atmo_renderer_t* self,
 	cc_vec4f_t II4 =
 	{
 		.r = param->spectral_irradiance_r*
-		     param->exposure*param->spectral_to_rgb_r,
+		     param->spectral_to_rgb_r*
+		     powf(2.0f, param->exposure),
 		.g = param->spectral_irradiance_g*
-		     param->exposure*param->spectral_to_rgb_g,
+		     param->spectral_to_rgb_g*
+		     powf(2.0f, param->exposure),
 		.b = param->spectral_irradiance_b*
-		     param->exposure*param->spectral_to_rgb_b,
+		     param->spectral_to_rgb_b*
+		     powf(2.0f, param->exposure),
 	};
 
 	cc_mat4f_t mvp;

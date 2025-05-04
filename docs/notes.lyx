@@ -173,7 +173,7 @@ The Atmospheric Rendering implementation defines the spectral intensity
 \begin_layout Standard
 \begin_inset Formula 
 \[
-I_{I}\left(\lambda\right)=SpectralIrradiance\left(\lambda\right)\cdot Exposure\cdot SpectralToRGB\left(\lambda\right)
+I_{I}\left(\lambda\right)=SpectralIrradiance\left(\lambda\right)\cdot SpectralToRGB\left(\lambda\right)\cdot2^{Exposure}
 \]
 
 \end_inset
@@ -213,22 +213,6 @@ The following diagram shows the spectral irradiance over the visible spectrum.
 \end_layout
 
 \begin_layout Standard
-The exposure represents the amount of light exposure which scales the overall
- intensity.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-Exposure=1.0
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
 The spectral to RGB constants are used to convert specific wavelengths into
  high dynamic range RGB values.
  These constants were calculated by converting wavelengths into CIE XYZ
@@ -240,6 +224,27 @@ The spectral to RGB constants are used to convert specific wavelengths into
 \begin_inset Formula 
 \[
 SpectralToRGB\left(r,g,b\right)=\left(133.3209,88.51855,112.7552\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Linear exposure, represented by 
+\begin_inset Formula $2^{Exposure}$
+\end_inset
+
+, scales the overall intensity of color values and mimics the behavior of
+ camera f-stops (e.g.
+ one stop doubles or halves the intensity).
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+Exposure=0.0
 \]
 
 \end_inset

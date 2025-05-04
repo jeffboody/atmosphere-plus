@@ -104,7 +104,7 @@
 #define ATMO_SPECTRAL_IRRADIANCE_B 0.183f
 
 // overall intensity of the incident light from the Sun
-#define ATMO_EXPOSURE 1.0f
+#define ATMO_EXPOSURE 0.0f
 
 // spectral to RGB constants are used to convert specific
 // wavelengths to HDR RGB values
@@ -1469,13 +1469,18 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4f_t* data)
 	// spectral intensity of of incident light from the Sun
 	cc_vec4f_t II =
 	{
-		.r = param->spectral_irradiance_r*param->exposure*
-		     param->spectral_to_rgb_r,
-		.g = param->spectral_irradiance_g*param->exposure*
-		     param->spectral_to_rgb_g,
-		.b = param->spectral_irradiance_b*param->exposure*
-		     param->spectral_to_rgb_b,
+		.r = param->spectral_irradiance_r*
+		     param->spectral_to_rgb_r*
+		     powf(2.0f, param->exposure),
+		.g = param->spectral_irradiance_g*
+		     param->spectral_to_rgb_g*
+		     powf(2.0f, param->exposure),
+		.b = param->spectral_irradiance_b*
+		     param->spectral_to_rgb_b*
+		     powf(2.0f, param->exposure),
 	};
+
+	LOGI("II: r=%f, g=%f, b=%f", II.r, II.g, II.b);
 
 	float phi;
 	float delta;
@@ -1640,8 +1645,8 @@ atmo_solver_paramValidate(atmo_solverParam_t* param)
 		return 0;
 	}
 
-	if((param->exposure <= 0.0f) ||
-	   (param->exposure > 1000.0f))
+	if((param->exposure <= -5.0f) ||
+	   (param->exposure >= 5.0f))
 	{
 		LOGE("invalid exposure=%f", param->exposure);
 		return 0;
