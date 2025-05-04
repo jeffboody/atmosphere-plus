@@ -99,9 +99,9 @@
 
 // spectral irradiance measures the power density of solar
 // radiation at specific wavelengths
-#define ATMO_SPECTRAL_IRRADIANCE_R (1.0f*0.1526f)
-#define ATMO_SPECTRAL_IRRADIANCE_G (1.0f*0.191f)
-#define ATMO_SPECTRAL_IRRADIANCE_B (1.0f*0.208f)
+#define ATMO_SPECTRAL_IRRADIANCE_R 0.1494f
+#define ATMO_SPECTRAL_IRRADIANCE_G 0.1863f
+#define ATMO_SPECTRAL_IRRADIANCE_B 0.183f
 
 // overall intensity of the incident light from the Sun
 #define ATMO_EXPOSURE 1.0f
@@ -1259,6 +1259,8 @@ atmo_solver_exportData(atmo_solver_t* self,
 
 #ifdef ATMO_SOLVER_DEBUG_DATA
 
+#include "atmo_spectralIrradiance.h"
+
 // https://64.github.io/tonemapping/
 static float atmo_solver_luminance(cc_vec4f_t* v)
 {
@@ -1418,6 +1420,31 @@ atmo_solver_plotAvgT(atmo_solverParam_t* param)
 	return 1;
 }
 
+static int atmo_solver_plotSpectralIrradiance(void)
+{
+	FILE* f = fopen("plot_spectralIrradiance.dat", "w");
+	if(f == NULL)
+	{
+		LOGE("invalid");
+		return 0;
+	}
+
+	int min = ATMO_SPECTRAL_IRRADIANCE_MIN;
+	int max = ATMO_SPECTRAL_IRRADIANCE_MAX;
+	int i;
+	double lambda;
+	for(i = min; i <= max; ++i)
+	{
+		lambda = (double) i;
+		fprintf(f, "%lf %lf\n",
+		        lambda, atmo_spectralIrradiance_get(lambda));
+	}
+
+	fclose(f);
+
+	return 1;
+}
+
 static int
 atmo_solver_debugData(atmo_solver_t* self, cc_vec4f_t* data)
 {
@@ -1544,6 +1571,7 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4f_t* data)
 
 	atmo_solver_plotDensityRM(param);
 	atmo_solver_plotAvgT(param);
+	atmo_solver_plotSpectralIrradiance();
 
 	return 1;
 }

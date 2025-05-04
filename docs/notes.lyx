@@ -133,25 +133,25 @@ The typical range of wavelengths include:
 \end_layout
 
 \begin_layout Standard
-The Atmospheric Rendering implementation selected the wavelengths:
+The Precomputed Atmospheric Scattering paper selected the wavelengths:
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $\lambda_{r}=650$
+\begin_inset Formula $\lambda_{r}=680$
 \end_inset
 
  nm
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $\lambda_{g}=510$
+\begin_inset Formula $\lambda_{g}=550$
 \end_inset
 
  nm
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $\lambda_{b}=475$
+\begin_inset Formula $\lambda_{b}=440$
 \end_inset
 
  nm
@@ -173,7 +173,7 @@ The Atmospheric Rendering implementation defines the spectral intensity
 \begin_layout Standard
 \begin_inset Formula 
 \[
-I_{I}\left(\lambda\right)=SpectralIrridence\left(\lambda\right)\cdot Exposure\cdot SpectralToRGB\left(\lambda\right)
+I_{I}\left(\lambda\right)=SpectralIrradiance\left(\lambda\right)\cdot Exposure\cdot SpectralToRGB\left(\lambda\right)
 \]
 
 \end_inset
@@ -189,8 +189,23 @@ The spectral irradiance measures the power density of solar radiation at
 \begin_layout Standard
 \begin_inset Formula 
 \[
-SpectralIrridence\left(r,g,b\right)=\left(0.1526,0.191,0.208\right)
+SpectralIrradiance\left(680,550,440\right)=\left(0.1494,0.1863,0.183\right)
 \]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The following diagram shows the spectral irradiance over the visible spectrum.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Graphics
+	filename spectral-intensity.jpg
+	lyxscale 15
+	width 50page%
 
 \end_inset
 
@@ -243,7 +258,7 @@ The spectral intensity of incident light
 \begin_layout Standard
 \begin_inset Formula 
 \[
-I_{I}\left(r,g,b\right)=\left(20.344770,16.907042,23.453083\right)
+I_{I}\left(r,g,b\right)=\left(19.918,16.491,20.6342\right)
 \]
 
 \end_inset
