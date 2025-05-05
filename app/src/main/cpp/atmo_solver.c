@@ -1260,6 +1260,7 @@ atmo_solver_exportData(atmo_solver_t* self,
 #ifdef ATMO_SOLVER_DEBUG_DATA
 
 #include "atmo_spectralIrradiance.h"
+#include "atmo_spectralToRGB.h"
 
 // https://64.github.io/tonemapping/
 static float atmo_solver_luminance(cc_vec4f_t* v)
@@ -1445,6 +1446,40 @@ static int atmo_solver_plotSpectralIrradiance(void)
 	return 1;
 }
 
+static int atmo_solver_plotSpectralToRGB(void)
+{
+	FILE* f = fopen("plot_spectralToRGB.dat", "w");
+	if(f == NULL)
+	{
+		LOGE("fopen failed");
+		return 0;
+	}
+
+	int i;
+	cc_vec3d_t rgb_none;
+	cc_vec3d_t rgb_sum;
+	cc_vec3d_t rgb_peak;
+	for(i = ATMO_SPECTRAL_TO_RGB_MIN;
+	    i <= ATMO_SPECTRAL_TO_RGB_MAX; ++i)
+	{
+		atmo_spectralToRGB_getRGB(ATMO_SPECTRAL_TO_RGB_NORMALIZE_NONE,
+		                          i, &rgb_none);
+		atmo_spectralToRGB_getRGB(ATMO_SPECTRAL_TO_RGB_NORMALIZE_SUM,
+		                          i, &rgb_sum);
+		atmo_spectralToRGB_getRGB(ATMO_SPECTRAL_TO_RGB_NORMALIZE_PEAK,
+		                          i, &rgb_peak);
+		fprintf(f, "%f %f %f %f %f %f %f %f %f %f\n",
+		        (float) i,
+		        rgb_none.x, rgb_none.y, rgb_none.z,
+		        rgb_sum.x,  rgb_sum.y,  rgb_sum.z,
+		        rgb_peak.x, rgb_peak.y, rgb_peak.z);
+	}
+
+	fclose(f);
+
+	return 1;
+}
+
 static int
 atmo_solver_debugData(atmo_solver_t* self, cc_vec4f_t* data)
 {
@@ -1577,6 +1612,7 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4f_t* data)
 	atmo_solver_plotDensityRM(param);
 	atmo_solver_plotAvgT(param);
 	atmo_solver_plotSpectralIrradiance();
+	atmo_solver_plotSpectralToRGB();
 
 	return 1;
 }

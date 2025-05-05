@@ -161,6 +161,10 @@ The Precomputed Atmospheric Scattering paper selected the wavelengths:
 Spectral Intensity of Incident Light
 \end_layout
 
+\begin_layout Subsubsection
+Definition of Spectral Intensity of Incident Light
+\end_layout
+
 \begin_layout Standard
 The Atmospheric Rendering implementation defines the spectral intensity
  of incident light 
@@ -179,6 +183,29 @@ I_{I}\left(\lambda\right)=SpectralIrradiance\left(\lambda\right)\cdot SpectralTo
 \end_inset
 
 
+\end_layout
+
+\begin_layout Standard
+The spectral intensity of incident light 
+\begin_inset Formula $I_{I}\left(r,g,b\right)$
+\end_inset
+
+:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+I_{I}\left(r,g,b\right)=\left(19.918,16.491,20.6342\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Definition of Spectral Irradiance
 \end_layout
 
 \begin_layout Standard
@@ -212,6 +239,18 @@ The following diagram shows the spectral irradiance over the visible spectrum.
 
 \end_layout
 
+\begin_layout Subsubsection
+Definition of Spectal To RGB
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Warning:
+\series default
+ This section is a work-in-progress.
+\end_layout
+
 \begin_layout Standard
 The spectral to RGB constants are used to convert specific wavelengths into
  high dynamic range RGB values.
@@ -232,6 +271,25 @@ SpectralToRGB\left(r,g,b\right)=\left(133.3209,88.51855,112.7552\right)
 \end_layout
 
 \begin_layout Standard
+The following diagram shows various methods for converting spectral to RGB.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Graphics
+	filename spectral-to-rgb.jpg
+	lyxscale 15
+	width 50page%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Definition of Exposure
+\end_layout
+
+\begin_layout Standard
 Linear exposure, represented by 
 \begin_inset Formula $2^{Exposure}$
 \end_inset
@@ -245,25 +303,6 @@ Linear exposure, represented by
 \begin_inset Formula 
 \[
 Exposure=0.0
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The spectral intensity of incident light 
-\begin_inset Formula $I_{I}\left(r,g,b\right)$
-\end_inset
-
-:
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-I_{I}\left(r,g,b\right)=\left(19.918,16.491,20.6342\right)
 \]
 
 \end_inset
@@ -3212,6 +3251,26 @@ Filmic Tonemapping Operators
 \begin_deeper
 \begin_layout Itemize
 http://filmicworlds.com/blog/filmic-tonemapping-operators/
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Color stuff with spectra 
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+https://gist.github.com/cgobat/9d7f8957523f0ab925043231d431562f
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Some Common RGB Working Space Matrices
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
 \end_layout
 
 \end_deeper
