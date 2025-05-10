@@ -52,15 +52,11 @@ typedef struct atmo_solverParam_s
 	float beta_s_mie;
 	float beta_a_mie;
 
-	float spectral_irradiance_r;
-	float spectral_irradiance_g;
-	float spectral_irradiance_b;
-
 	float exposure;
 
-	float spectral_to_rgb_r;
-	float spectral_to_rgb_g;
-	float spectral_to_rgb_b;
+	float II_r;
+	float II_g;
+	float II_b;
 
 	uint32_t transmittance_steps;
 	uint32_t gather_m_steps;

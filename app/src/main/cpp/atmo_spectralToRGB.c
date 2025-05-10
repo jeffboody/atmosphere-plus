@@ -566,22 +566,9 @@ void atmo_spectralToRGB_getRGB(int normalize, int lambda,
 		}
 	}
 
-	// https://gist.github.com/cgobat/9d7f8957523f0ab925043231d431562f
-	// http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
-	cc_mat3d_t T =
-	{
-		.m00 = 2.3706743,
-		.m01 = -0.9000405,
-		.m02 = -0.4706338,
-		.m10 = -0.5138850,
-		.m11 = 1.4253036,
-		.m12 = 0.0885814,
-		.m20 = 0.0052982,
-		.m21 = -0.0146949,
-		.m22 = 1.0093968,
-	};
-
-	cc_mat3d_mulv_copy(&T, &xyz, rgb);
+	cc_mat3d_t Minv;
+	atmo_spectrlToRGB_getMinv(&Minv);
+	cc_mat3d_mulv_copy(&Minv, &xyz, rgb);
 
 	// normalize rgb
 	// https://gist.github.com/cgobat/9d7f8957523f0ab925043231d431562f
@@ -598,4 +585,21 @@ void atmo_spectralToRGB_getRGB(int normalize, int lambda,
 		}
 		cc_vec3d_muls(rgb, 1.0/peak);
 	}
+}
+
+void atmo_spectrlToRGB_getMinv(cc_mat3d_t* Minv)
+{
+	ASSERT(Minv);
+
+	// https://gist.github.com/cgobat/9d7f8957523f0ab925043231d431562f
+	// http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
+	Minv->m00 = 3.2404542;
+	Minv->m01 = -1.5371385;
+	Minv->m02 = -0.4985314;
+	Minv->m10 = -0.9692660;
+	Minv->m11 = 1.8760108;
+	Minv->m12 = 0.0415560;
+	Minv->m20 = 0.0556434;
+	Minv->m21 = -0.2040259;
+	Minv->m22 = 1.0572252;
 }

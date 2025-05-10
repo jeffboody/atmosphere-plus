@@ -551,17 +551,12 @@ void atmo_renderer_draw(atmo_renderer_t* self,
 	};
 	cc_vec4f_normalize(&L);
 
+	// TODO - move exposure
 	cc_vec4f_t II4 =
 	{
-		.r = param->spectral_irradiance_r*
-		     param->spectral_to_rgb_r*
-		     powf(2.0f, param->exposure),
-		.g = param->spectral_irradiance_g*
-		     param->spectral_to_rgb_g*
-		     powf(2.0f, param->exposure),
-		.b = param->spectral_irradiance_b*
-		     param->spectral_to_rgb_b*
-		     powf(2.0f, param->exposure),
+		.r = powf(2.0f, param->exposure)*param->II_r,
+		.g = powf(2.0f, param->exposure)*param->II_g,
+		.b = powf(2.0f, param->exposure)*param->II_b,
 	};
 
 	cc_mat4f_t mvp;

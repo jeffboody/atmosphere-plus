@@ -24,6 +24,7 @@
 #ifndef atmo_spectralToRGB_H
 #define atmo_spectralToRGB_H
 
+#include "libcc/math/cc_mat3d.h"
 #include "libcc/math/cc_vec3d.h"
 
 #define ATMO_SPECTRAL_TO_RGB_MIN 360
@@ -37,5 +38,6 @@ void atmo_spectralToRGB_getXYZ(int lambda,
                                cc_vec3d_t* xyz);
 void atmo_spectralToRGB_getRGB(int normalize, int lambda,
                                cc_vec3d_t* rgb);
+void atmo_spectrlToRGB_getMinv(cc_mat3d_t* Minv);
 
 #endif

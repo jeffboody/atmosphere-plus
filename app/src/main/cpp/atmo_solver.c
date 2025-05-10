@@ -40,6 +40,8 @@
 #include "texgz/texgz_tex.h"
 #include "texgz/texgz_png.h"
 #include "atmo_solver.h"
+#include "atmo_spectralIrradiance.h"
+#include "atmo_spectralToRGB.h"
 
 // radius of the planet and atmospheric boundary
 // use doubles for radius for numerical stability
@@ -97,20 +99,8 @@
 #define ATMO_BETA_S_MIE        (1.0f*3.996e-6f)
 #define ATMO_BETA_A_MIE        (1.0f*4.40e-6f)
 
-// spectral irradiance measures the power density of solar
-// radiation at specific wavelengths
-#define ATMO_SPECTRAL_IRRADIANCE_R 0.1494f
-#define ATMO_SPECTRAL_IRRADIANCE_G 0.1863f
-#define ATMO_SPECTRAL_IRRADIANCE_B 0.183f
-
 // overall intensity of the incident light from the Sun
 #define ATMO_EXPOSURE 0.0f
-
-// spectral to RGB constants are used to convert specific
-// wavelengths to HDR RGB values
-#define ATMO_SPECTRAL_TO_RGB_R (1.0f*133.3209f)
-#define ATMO_SPECTRAL_TO_RGB_G (1.0f*88.51855f)
-#define ATMO_SPECTRAL_TO_RGB_B (1.0f*112.7552f)
 
 // transmittance numerical integration steps
 #define ATMO_TRANSMITTANCE_STEPS 30
@@ -170,6 +160,63 @@
 /***********************************************************
 * private - compute                                        *
 ***********************************************************/
+
+static void
+atmo_solver_computeII(atmo_solverParam_t* param)
+{
+	ASSERT(param);
+
+	cc_mat3d_t Minv;
+	atmo_spectrlToRGB_getMinv(&Minv);
+
+	int min = ATMO_SPECTRAL_TO_RGB_MIN;
+	if(ATMO_SPECTRAL_IRRADIANCE_MIN > min)
+	{
+		min = ATMO_SPECTRAL_IRRADIANCE_MIN;
+	}
+
+	int max = ATMO_SPECTRAL_TO_RGB_MAX;
+	if(ATMO_SPECTRAL_IRRADIANCE_MAX < max)
+	{
+		max = ATMO_SPECTRAL_IRRADIANCE_MAX;
+	}
+
+	// integrate spectral irradiance and xyz
+	int i;
+	double si;
+	cc_vec3d_t xyz  = { 0 };
+	cc_vec3d_t xyz0;
+	cc_vec3d_t xyz1;
+	cc_vec3d_t tmp;
+	for(i = min; i <= max; ++i)
+	{
+		// Solar irradiance values (W / (m^2 * nm)).
+		si = atmo_spectralIrradiance_get((double) i);
+
+		atmo_spectralToRGB_getXYZ(i, &xyz1);
+		cc_vec3d_muls(&xyz1, si);
+
+		if(i > min)
+		{
+			// apply trapezoidal rule
+			cc_vec3d_addv_copy(&xyz0, &xyz1, &tmp);
+			cc_vec3d_muls(&tmp, 0.5);
+			cc_vec3d_addv(&xyz, &tmp);
+		}
+
+		cc_vec3d_copy(&xyz1, &xyz0);
+	}
+
+	cc_vec3d_t II;
+	cc_mat3d_mulv_copy(&Minv, &xyz, &II);
+
+	param->II_r = (float) II.x;
+	param->II_g = (float) II.y;
+	param->II_b = (float) II.z;
+
+	LOGI("II: r=%f, g=%f, b=%f",
+	     param->II_r, param->II_g, param->II_b);
+}
 
 static uint32_t
 atmo_clamp(uint32_t v, uint32_t min, uint32_t max)
@@ -1199,20 +1246,14 @@ atmo_solver_exportData(atmo_solver_t* self,
 	cc_jsmnStream_float(jsmn, param->beta_s_mie);
 	cc_jsmnStream_key(jsmn, "%s", "beta_a_mie");
 	cc_jsmnStream_float(jsmn, param->beta_a_mie);
-	cc_jsmnStream_key(jsmn, "%s", "spectral_irradiance_r");
-	cc_jsmnStream_float(jsmn, param->spectral_irradiance_r);
-	cc_jsmnStream_key(jsmn, "%s", "spectral_irradiance_g");
-	cc_jsmnStream_float(jsmn, param->spectral_irradiance_g);
-	cc_jsmnStream_key(jsmn, "%s", "spectral_irradiance_b");
-	cc_jsmnStream_float(jsmn, param->spectral_irradiance_b);
 	cc_jsmnStream_key(jsmn, "%s", "exposure");
 	cc_jsmnStream_float(jsmn, param->exposure);
-	cc_jsmnStream_key(jsmn, "%s", "spectral_to_rgb_r");
-	cc_jsmnStream_float(jsmn, param->spectral_to_rgb_r);
-	cc_jsmnStream_key(jsmn, "%s", "spectral_to_rgb_g");
-	cc_jsmnStream_float(jsmn, param->spectral_to_rgb_g);
-	cc_jsmnStream_key(jsmn, "%s", "spectral_to_rgb_b");
-	cc_jsmnStream_float(jsmn, param->spectral_to_rgb_b);
+	cc_jsmnStream_key(jsmn, "%s", "II_r");
+	cc_jsmnStream_float(jsmn, param->II_r);
+	cc_jsmnStream_key(jsmn, "%s", "II_g");
+	cc_jsmnStream_float(jsmn, param->II_g);
+	cc_jsmnStream_key(jsmn, "%s", "II_b");
+	cc_jsmnStream_float(jsmn, param->II_b);
 	cc_jsmnStream_key(jsmn, "%s", "transmittance_steps");
 	cc_jsmnStream_int(jsmn, param->transmittance_steps);
 	cc_jsmnStream_key(jsmn, "%s", "gather_m_steps");
@@ -1258,9 +1299,6 @@ atmo_solver_exportData(atmo_solver_t* self,
 }
 
 #ifdef ATMO_SOLVER_DEBUG_DATA
-
-#include "atmo_spectralIrradiance.h"
-#include "atmo_spectralToRGB.h"
 
 // https://64.github.io/tonemapping/
 static float atmo_solver_luminance(cc_vec4f_t* v)
@@ -1501,18 +1539,13 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4f_t* data)
 		return 0;
 	}
 
+	// TODO - move exposure
 	// spectral intensity of of incident light from the Sun
 	cc_vec4f_t II =
 	{
-		.r = param->spectral_irradiance_r*
-		     param->spectral_to_rgb_r*
-		     powf(2.0f, param->exposure),
-		.g = param->spectral_irradiance_g*
-		     param->spectral_to_rgb_g*
-		     powf(2.0f, param->exposure),
-		.b = param->spectral_irradiance_b*
-		     param->spectral_to_rgb_b*
-		     powf(2.0f, param->exposure),
+		.r = powf(2.0f, param->exposure)*param->II_r,
+		.g = powf(2.0f, param->exposure)*param->II_g,
+		.b = powf(2.0f, param->exposure)*param->II_b,
 	};
 
 	LOGI("II: r=%f, g=%f, b=%f", II.r, II.g, II.b);
@@ -1670,32 +1703,21 @@ atmo_solver_paramValidate(atmo_solverParam_t* param)
 		return 0;
 	}
 
-	if((param->spectral_irradiance_r <= 0.0f) ||
-	   (param->spectral_irradiance_g <= 0.0f) ||
-	   (param->spectral_irradiance_b <= 0.0f))
-	{
-		LOGE("invalid spectral_irradiance_r/g/b=%f/%f/%f",
-		     param->spectral_irradiance_r,
-		     param->spectral_irradiance_g,
-		     param->spectral_irradiance_b);
-		return 0;
-	}
-
-	if((param->exposure <= -5.0f) ||
-	   (param->exposure >= 5.0f))
+	if((param->exposure < -5.0f) ||
+	   (param->exposure > 5.0f))
 	{
 		LOGE("invalid exposure=%f", param->exposure);
 		return 0;
 	}
 
-	if((param->spectral_to_rgb_r <= 0.0f) ||
-	   (param->spectral_to_rgb_g <= 0.0f) ||
-	   (param->spectral_to_rgb_b <= 0.0f))
+	if((param->II_r <= 0.0f) ||
+	   (param->II_g <= 0.0f) ||
+	   (param->II_b <= 0.0f))
 	{
-		LOGE("invalid spectral_to_rgb_r/g/b=%f/%f/%f",
-		     param->spectral_to_rgb_r,
-		     param->spectral_to_rgb_g,
-		     param->spectral_to_rgb_b);
+		LOGE("invalid II_r/g/b=%f/%f/%f",
+		     param->II_r,
+		     param->II_g,
+		     param->II_b);
 		return 0;
 	}
 
@@ -1968,15 +1990,7 @@ void atmo_solver_defaultParam(atmo_solver_t* self,
 		.beta_s_mie = ATMO_BETA_S_MIE,
 		.beta_a_mie = ATMO_BETA_A_MIE,
 
-		.spectral_irradiance_r = ATMO_SPECTRAL_IRRADIANCE_R,
-		.spectral_irradiance_g = ATMO_SPECTRAL_IRRADIANCE_G,
-		.spectral_irradiance_b = ATMO_SPECTRAL_IRRADIANCE_B,
-
 		.exposure = ATMO_EXPOSURE,
-
-		.spectral_to_rgb_r = ATMO_SPECTRAL_TO_RGB_R,
-		.spectral_to_rgb_g = ATMO_SPECTRAL_TO_RGB_G,
-		.spectral_to_rgb_b = ATMO_SPECTRAL_TO_RGB_B,
 
 		.transmittance_steps = ATMO_TRANSMITTANCE_STEPS,
 
@@ -1989,6 +2003,8 @@ void atmo_solver_defaultParam(atmo_solver_t* self,
 		.texture_height = ATMO_TEXTURE_HEIGHT,
 		.texture_depth  = ATMO_TEXTURE_DEPTH,
 	};
+
+	atmo_solver_computeII(&default_param);
 
 	memcpy(param, &default_param, sizeof(atmo_solverParam_t));
 }

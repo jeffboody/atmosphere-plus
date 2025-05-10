@@ -99,12 +99,16 @@ Background
 \end_layout
 
 \begin_layout Subsection
+Light and Color
+\end_layout
+
+\begin_layout Subsubsection
 Wavelength of Light
 \end_layout
 
 \begin_layout Standard
-The wavelength of light is a continuous value, however, we will select 3
- discrete wavelengths to represent red, green and blue light.
+The wavelength of light is a continuous value, however, we typically select
+ 3 discrete wavelengths to represent red, green and blue light.
 \end_layout
 
 \begin_layout Standard
@@ -132,100 +136,19 @@ The typical range of wavelengths include:
  nm
 \end_layout
 
-\begin_layout Standard
-The Precomputed Atmospheric Scattering paper selected the wavelengths:
-\end_layout
-
-\begin_layout Itemize
-\begin_inset Formula $\lambda_{r}=680$
-\end_inset
-
- nm
-\end_layout
-
-\begin_layout Itemize
-\begin_inset Formula $\lambda_{g}=550$
-\end_inset
-
- nm
-\end_layout
-
-\begin_layout Itemize
-\begin_inset Formula $\lambda_{b}=440$
-\end_inset
-
- nm
-\end_layout
-
-\begin_layout Subsection
-Spectral Intensity of Incident Light
-\end_layout
-
 \begin_layout Subsubsection
-Definition of Spectral Intensity of Incident Light
-\end_layout
-
-\begin_layout Standard
-The Atmospheric Rendering implementation defines the spectral intensity
- of incident light 
-\begin_inset Formula $I_{I}\left(\lambda\right)$
-\end_inset
-
- from the Sun.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-I_{I}\left(\lambda\right)=SpectralIrradiance\left(\lambda\right)\cdot SpectralToRGB\left(\lambda\right)\cdot2^{Exposure}
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The spectral intensity of incident light 
-\begin_inset Formula $I_{I}\left(r,g,b\right)$
-\end_inset
-
-:
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-I_{I}\left(r,g,b\right)=\left(19.918,16.491,20.6342\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Subsubsection
-Definition of Spectral Irradiance
+Spectral Irradiance
 \end_layout
 
 \begin_layout Standard
 The spectral irradiance measures the power density of solar radiation at
- specific wavelengths (from measured values found in tables).
+ specific wavelengths at the top of atmosphere (TOA) and may be found in
+ tables of measured values.
 \end_layout
 
 \begin_layout Standard
-\begin_inset Formula 
-\[
-SpectralIrradiance\left(680,550,440\right)=\left(0.1494,0.1863,0.183\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The following diagram shows the spectral irradiance over the visible spectrum.
+The following diagram shows the spectral irradiance over the visible spectrum
+ from the ASTMG173 data set.
 \end_layout
 
 \begin_layout Standard
@@ -240,29 +163,27 @@ The following diagram shows the spectral irradiance over the visible spectrum.
 \end_layout
 
 \begin_layout Subsubsection
-Definition of Spectal To RGB
+Spectral to RGB Color Conversion
 \end_layout
 
 \begin_layout Standard
+To convert a spectral wavelength 
+\begin_inset Formula $\lambda$
+\end_inset
 
-\series bold
-Warning:
-\series default
- This section is a work-in-progress.
-\end_layout
-
-\begin_layout Standard
-The spectral to RGB constants are used to convert specific wavelengths into
- high dynamic range RGB values.
- These constants were calculated by converting wavelengths into CIE XYZ
- color space, then converting XYZ to RGB, followed by normalization and
- scaling.
+ to an RGB color, we will follow a two step process.
+ First, the wavelengths must be converted to a CIE XYZ (1931) color space
+ by looking up the wavelength in a table.
+ Next, the XYZ coordinates can be transformed into a color space via matrix
+ multiplication.
+ For our purposes we will select the sRGB color space since it has been
+ designed to produce outputs that that are optimized for modern displays.
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-SpectralToRGB\left(r,g,b\right)=\left(133.3209,88.51855,112.7552\right)
+C_{rgb}=Normalize\left(M^{-1}\cdot XYZ\left(\lambda\right)\right)
 \]
 
 \end_inset
@@ -271,7 +192,43 @@ SpectralToRGB\left(r,g,b\right)=\left(133.3209,88.51855,112.7552\right)
 \end_layout
 
 \begin_layout Standard
-The following diagram shows various methods for converting spectral to RGB.
+Where the sRGB transformation matrix 
+\begin_inset Formula $M^{-1}$
+\end_inset
+
+ is defined.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+M^{-1}=\left[\begin{array}{ccc}
+3.2404542 & -1.5371385 & -0.4985314\\
+-0.9692660 & 1.8760108 & 0.0415560\\
+0.0556434 & -0.2040259 & 1.0572252
+\end{array}\right]
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The following plot shows the spectral to RGB conversion with various optional
+ normalization techniques.
+\end_layout
+
+\begin_layout Itemize
+None: No normalization
+\end_layout
+
+\begin_layout Itemize
+Sum: Scale XYZ by the sum of XYZ values
+\end_layout
+
+\begin_layout Itemize
+Peak: Scale RGB by the peak RGB value
 \end_layout
 
 \begin_layout Standard
@@ -285,24 +242,61 @@ The following diagram shows various methods for converting spectral to RGB.
 
 \end_layout
 
+\begin_layout Standard
+
+\series bold
+Note:
+\series default
+ RGB colors should be clamped to 
+\begin_inset Formula $\left(0,1\right)$
+\end_inset
+
+ for display.
+\end_layout
+
 \begin_layout Subsubsection
-Definition of Exposure
+Spectral Intensity of Incident Light
 \end_layout
 
 \begin_layout Standard
-Linear exposure, represented by 
-\begin_inset Formula $2^{Exposure}$
+The spectral intensity of incident light 
+\begin_inset Formula $I_{I}$
 \end_inset
 
-, scales the overall intensity of color values and mimics the behavior of
- camera f-stops (e.g.
- one stop doubles or halves the intensity).
+ is defined by the intensity of light at the top of atmosphere (TOA).
+ The computation of 
+\begin_inset Formula $I_{I}$
+\end_inset
+
+ involves computing the integral of the spectral intensity over all wavelengths
+ while simultaneously converting wavelengths into RGB colors.
+ Do not apply clamping or normalization in the integration process.
+ The resulting output is a high dynamic range (HDR) color.
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-Exposure=0.0
+I_{I}\left(r,g,b\right)=M^{-1}\cdot\left(\int_{\lambda}SpectralIrradiance\left(\lambda\right)\cdot XYZ\left(\lambda\right)\cdot d\lambda\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The computed spectral intensity of incident light 
+\begin_inset Formula $I_{I}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+I_{I}\left(r,g,b\right)=\left(213.865952,190.346115,183.806488\right)
 \]
 
 \end_inset
@@ -311,12 +305,48 @@ Exposure=0.0
 \end_layout
 
 \begin_layout Subsection
-Tone Mapping and Gamma Correction
+Exposure, Tone Mapping and Gamma Correction
 \end_layout
 
 \begin_layout Standard
 The atmospheric simulation inherently outputs high dynamic range intensities
  that must be transformed for display on standard devices as the final step.
+\end_layout
+
+\begin_layout Subsubsection
+Exposure
+\end_layout
+
+\begin_layout Standard
+Exposure scales the overall intensity of color values and mimics the behavior
+ of camera f-stops (e.g.
+ one stop doubles or halves the intensity).
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+Exposure\left(C\right)=2^{exposure}\cdot C
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Where the default exposure is defined.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+exposure=0.0
+\]
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Subsubsection
@@ -352,7 +382,7 @@ The
 \begin_layout Standard
 \begin_inset Formula 
 \[
-X=\left(r,g,b\right)_{HDR}
+X=C_{HDR}
 \]
 
 \end_inset
@@ -544,7 +574,7 @@ Gamma correction helps to distribute the compressed values more evenly across
 \begin_layout Standard
 \begin_inset Formula 
 \[
-Gamma(r,g,b)=\left(r,g,b\right)^{1.0/2.2}
+Gamma(C)=C^{1.0/2.2}
 \]
 
 \end_inset
@@ -557,14 +587,14 @@ HDR-to-LDR Transformation
 \end_layout
 
 \begin_layout Standard
-Typically, the HDR-to-LDR conversion involves both gamma correction and
- tone mapping.
+The HDR-to-LDR conversion may include exposure, tone mapping and gamma correctio
+n.
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\left(r,g,b\right)_{LDR}=Gamma\left(TMO\left(\left(r,g,b\right)_{HDR}\right)\right)
+C_{LDR}=Gamma\left(TMO\left(Exposure\left(C_{HDR}\right)\right)\right)
 \]
 
 \end_inset
@@ -573,8 +603,11 @@ Typically, the HDR-to-LDR conversion involves both gamma correction and
 \end_layout
 
 \begin_layout Standard
-However, be aware that there exists tone mapping operators which integrate
- gamma correction.
+
+\series bold
+Warning:
+\series default
+ Some tone mapping operators may integrate exposure and gamma correction.
 \end_layout
 
 \begin_layout Subsection
@@ -900,6 +933,31 @@ The Scalable and Production Ready Sky and Atmosphere Rendering Technique
 \end_inset
 
 
+\end_layout
+
+\begin_layout Standard
+The Rayleigh coefficients were determined assuming the following wavelengths.
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\lambda_{r}=680$
+\end_inset
+
+ nm
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\lambda_{g}=550$
+\end_inset
+
+ nm
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\lambda_{b}=440$
+\end_inset
+
+ nm
 \end_layout
 
 \begin_layout Subsection
@@ -3251,6 +3309,16 @@ Filmic Tonemapping Operators
 \begin_deeper
 \begin_layout Itemize
 http://filmicworlds.com/blog/filmic-tonemapping-operators/
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Solar Spectra
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+https://www.nrel.gov/grid/solar-resource/spectra
 \end_layout
 
 \end_deeper
