@@ -45,11 +45,12 @@ static void atmo_renderer_resetCtrl(atmo_renderer_t* self)
 {
 	ASSERT(self);
 
-	self->ctrl_h     = 0.1f;
-	self->ctrl_phi   = 0.5f;
-	self->ctrl_delta = 0.0f;
-	self->ctrl_omega = 0.0f;
-	self->ctrl_k     = 1;
+	self->ctrl_h        = 0.1f;
+	self->ctrl_phi      = 0.5f;
+	self->ctrl_delta    = 0.0f;
+	self->ctrl_omega    = 0.0f;
+	self->ctrl_k        = 1;
+	self->ctrl_exposure = -5.0f;
 }
 
 /***********************************************************
@@ -153,7 +154,7 @@ atmo_renderer_t* atmo_renderer_new(vkk_engine_t* engine)
 			.type    = VKK_UNIFORM_TYPE_BUFFER,
 			.stage   = VKK_STAGE_FS,
 		},
-		// ub102_II4
+		// ub102_IIE
 		{
 			.binding = 2,
 			.type    = VKK_UNIFORM_TYPE_BUFFER,
@@ -254,11 +255,11 @@ atmo_renderer_t* atmo_renderer_new(vkk_engine_t* engine)
 		goto failure;
 	}
 
-	self->scene_ub102_II4 = vkk_buffer_new(engine, um,
+	self->scene_ub102_IIE = vkk_buffer_new(engine, um,
 	                                       VKK_BUFFER_USAGE_UNIFORM,
 	                                       sizeof(cc_vec4f_t),
 	                                       NULL);
-	if(self->scene_ub102_II4 == NULL)
+	if(self->scene_ub102_IIE == NULL)
 	{
 		goto failure;
 	}
@@ -321,11 +322,11 @@ atmo_renderer_t* atmo_renderer_new(vkk_engine_t* engine)
 			.type    = VKK_UNIFORM_TYPE_BUFFER,
 			.buffer  = self->scene_ub101_Zenith4,
 		},
-		// ub102_II4
+		// ub102_IIE
 		{
 			.binding = 2,
 			.type    = VKK_UNIFORM_TYPE_BUFFER,
-			.buffer  = self->scene_ub102_II4,
+			.buffer  = self->scene_ub102_IIE,
 		},
 		// ub103_phase_g_mie
 		{
@@ -421,7 +422,7 @@ void atmo_renderer_delete(atmo_renderer_t** _self)
 		vkk_uniformSet_delete(&self->scene_us1);
 		vkk_uniformSet_delete(&self->scene_us0);
 		vkk_buffer_delete(&self->scene_ub103_phase_g_mie);
-		vkk_buffer_delete(&self->scene_ub102_II4);
+		vkk_buffer_delete(&self->scene_ub102_IIE);
 		vkk_buffer_delete(&self->scene_ub101_Zenith4);
 		vkk_buffer_delete(&self->scene_ub100_Unused);
 		vkk_buffer_delete(&self->scene_ub003_P0H);
@@ -457,11 +458,12 @@ void atmo_renderer_draw(atmo_renderer_t* self,
 		fovy /= aspect;
 	}
 
-	float    h     = atmo_renderer_getH(self, param);
-	float    phi   = atmo_renderer_getPhi(self);
-	float    delta = atmo_renderer_getDelta(self);
-	float    omega = atmo_renderer_getOmega(self);
-	uint32_t k     = atmo_renderer_getK(self);
+	float    h        = atmo_renderer_getH(self, param);
+	float    phi      = atmo_renderer_getPhi(self);
+	float    delta    = atmo_renderer_getDelta(self);
+	float    omega    = atmo_renderer_getOmega(self);
+	uint32_t k        = atmo_renderer_getK(self);
+	float    exposure = atmo_renderer_getExposure(self);
 
 	cc_vec3f_t eye =
 	{
@@ -551,12 +553,12 @@ void atmo_renderer_draw(atmo_renderer_t* self,
 	};
 	cc_vec4f_normalize(&L);
 
-	// TODO - move exposure
-	cc_vec4f_t II4 =
+	cc_vec4f_t IIE =
 	{
-		.r = powf(2.0f, param->exposure)*param->II_r,
-		.g = powf(2.0f, param->exposure)*param->II_g,
-		.b = powf(2.0f, param->exposure)*param->II_b,
+		.r = param->II_r,
+		.g = param->II_g,
+		.b = param->II_b,
+		.a = exposure,
 	};
 
 	cc_mat4f_t mvp;
@@ -595,9 +597,9 @@ void atmo_renderer_draw(atmo_renderer_t* self,
 		vkk_renderer_updateBuffer(rend, self->scene_ub101_Zenith4,
 		                          sizeof(cc_vec4f_t),
 		                          (const void*) &Zenith4);
-		vkk_renderer_updateBuffer(rend, self->scene_ub102_II4,
+		vkk_renderer_updateBuffer(rend, self->scene_ub102_IIE,
 		                          sizeof(cc_vec4f_t),
-		                          (const void*) &II4);
+		                          (const void*) &IIE);
 		vkk_renderer_updateBuffer(rend, self->scene_ub103_phase_g_mie,
 		                          sizeof(float),
 		                          (const void*) &param->phase_g_mie);
@@ -707,6 +709,16 @@ int atmo_renderer_event(atmo_renderer_t* self,
 			self->ctrl_k = e->keycode - '0';
 			return 1;
 		}
+		else if(e->keycode == '-')
+		{
+			self->ctrl_exposure -= 0.25f;
+			return 1;
+		}
+		else if(e->keycode == '=')
+		{
+			self->ctrl_exposure += 0.25f;
+			return 1;
+		}
 	}
 
 	return 0;
@@ -748,4 +760,11 @@ uint32_t atmo_renderer_getK(atmo_renderer_t* self)
 	ASSERT(self);
 
 	return (self->ctrl_k == 0) ? 10 : self->ctrl_k;
+}
+
+float atmo_renderer_getExposure(atmo_renderer_t* self)
+{
+	ASSERT(self);
+
+	return self->ctrl_exposure;
 }

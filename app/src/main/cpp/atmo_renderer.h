@@ -39,6 +39,7 @@ typedef struct atmo_renderer_s
 	float    ctrl_delta;
 	float    ctrl_omega;
 	uint32_t ctrl_k;
+	float    ctrl_exposure;
 
 	vkk_buffer_t* vb_vertex;
 	vkk_buffer_t* vb_V;
@@ -52,7 +53,7 @@ typedef struct atmo_renderer_s
 	vkk_buffer_t*            scene_ub003_P0H; // P0, H
 	vkk_buffer_t*            scene_ub100_Unused;
 	vkk_buffer_t*            scene_ub101_Zenith4;
-	vkk_buffer_t*            scene_ub102_II4;
+	vkk_buffer_t*            scene_ub102_IIE; // II, Exposure
 	vkk_buffer_t*            scene_ub103_phase_g_mie;
 	vkk_uniformSet_t*        scene_us0;
 	vkk_uniformSet_t*        scene_us1;
@@ -74,5 +75,6 @@ float            atmo_renderer_getPhi(atmo_renderer_t* self);
 float            atmo_renderer_getDelta(atmo_renderer_t* self);
 float            atmo_renderer_getOmega(atmo_renderer_t* self);
 uint32_t         atmo_renderer_getK(atmo_renderer_t* self);
+float            atmo_renderer_getExposure(atmo_renderer_t* self);
 
 #endif

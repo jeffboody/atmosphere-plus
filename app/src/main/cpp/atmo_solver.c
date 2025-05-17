@@ -99,9 +99,6 @@
 #define ATMO_BETA_S_MIE        (1.0f*3.996e-6f)
 #define ATMO_BETA_A_MIE        (1.0f*4.40e-6f)
 
-// overall intensity of the incident light from the Sun
-#define ATMO_EXPOSURE 0.0f
-
 // transmittance numerical integration steps
 #define ATMO_TRANSMITTANCE_STEPS 30
 
@@ -1246,8 +1243,6 @@ atmo_solver_exportData(atmo_solver_t* self,
 	cc_jsmnStream_float(jsmn, param->beta_s_mie);
 	cc_jsmnStream_key(jsmn, "%s", "beta_a_mie");
 	cc_jsmnStream_float(jsmn, param->beta_a_mie);
-	cc_jsmnStream_key(jsmn, "%s", "exposure");
-	cc_jsmnStream_float(jsmn, param->exposure);
 	cc_jsmnStream_key(jsmn, "%s", "II_r");
 	cc_jsmnStream_float(jsmn, param->II_r);
 	cc_jsmnStream_key(jsmn, "%s", "II_g");
@@ -1539,13 +1534,13 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4f_t* data)
 		return 0;
 	}
 
-	// TODO - move exposure
 	// spectral intensity of of incident light from the Sun
+	float exposure = 0.0f;
 	cc_vec4f_t II =
 	{
-		.r = powf(2.0f, param->exposure)*param->II_r,
-		.g = powf(2.0f, param->exposure)*param->II_g,
-		.b = powf(2.0f, param->exposure)*param->II_b,
+		.r = powf(2.0f, exposure)*param->II_r,
+		.g = powf(2.0f, exposure)*param->II_g,
+		.b = powf(2.0f, exposure)*param->II_b,
 	};
 
 	LOGI("II: r=%f, g=%f, b=%f", II.r, II.g, II.b);
@@ -1700,13 +1695,6 @@ atmo_solver_paramValidate(atmo_solverParam_t* param)
 		     param->beta_s_b_rayleigh,
 		     param->beta_s_mie,
 		     param->beta_a_mie);
-		return 0;
-	}
-
-	if((param->exposure < -5.0f) ||
-	   (param->exposure > 5.0f))
-	{
-		LOGE("invalid exposure=%f", param->exposure);
 		return 0;
 	}
 
@@ -1989,8 +1977,6 @@ void atmo_solver_defaultParam(atmo_solver_t* self,
 
 		.beta_s_mie = ATMO_BETA_S_MIE,
 		.beta_a_mie = ATMO_BETA_A_MIE,
-
-		.exposure = ATMO_EXPOSURE,
 
 		.transmittance_steps = ATMO_TRANSMITTANCE_STEPS,
 

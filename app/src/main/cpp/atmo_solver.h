@@ -52,8 +52,6 @@ typedef struct atmo_solverParam_s
 	float beta_s_mie;
 	float beta_a_mie;
 
-	float exposure;
-
 	float II_r;
 	float II_g;
 	float II_b;

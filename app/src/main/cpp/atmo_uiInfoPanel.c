@@ -87,6 +87,13 @@ atmo_uiInfoPanel_refresh(vkk_uiWidget_t* widget)
 		self->last_ctrl_k = renderer->ctrl_k;
 	}
 
+	if(self->last_ctrl_exposure != renderer->ctrl_exposure)
+	{
+		vkk_uiText_label(self->text_ctrl_exposure, "-/=: exposure=%0.2f",
+		                 atmo_renderer_getExposure(renderer));
+		self->last_ctrl_exposure = renderer->ctrl_exposure;
+	}
+
 	return 0;
 }
 
@@ -150,12 +157,19 @@ atmo_uiInfoPanel_new(atmo_uiScreen_t* screen)
 		goto failure;
 	}
 
+	self->text_ctrl_exposure = vkk_uiText_newInfoItem(&screen->base);
+	if(self->text_ctrl_exposure == NULL)
+	{
+		goto failure;
+	}
+
 	vkk_uiText_label(self->heading_ctrl, "%s", "Controls");
-	vkk_uiText_label(self->text_ctrl_h,     "i/o: h=%0.1f", 0.0f);
-	vkk_uiText_label(self->text_ctrl_phi,   "j/k: phi=%0.1f", 0.0f);
-	vkk_uiText_label(self->text_ctrl_delta, "w/s: delta=%0.1f", 0.0f);
-	vkk_uiText_label(self->text_ctrl_omega, "a/d: omega=%0.1f", 0.0f);
-	vkk_uiText_label(self->text_ctrl_k,     "123: k=%u", 0);
+	vkk_uiText_label(self->text_ctrl_h,        "i/o: h=%0.1f", 0.0f);
+	vkk_uiText_label(self->text_ctrl_phi,      "j/k: phi=%0.1f", 0.0f);
+	vkk_uiText_label(self->text_ctrl_delta,    "w/s: delta=%0.1f", 0.0f);
+	vkk_uiText_label(self->text_ctrl_omega,    "a/d: omega=%0.1f", 0.0f);
+	vkk_uiText_label(self->text_ctrl_k,        "123: k=%u", 0);
+	vkk_uiText_label(self->text_ctrl_exposure, "-/=: exposure=%0.2f", 0.0f);
 
 	vkk_uiInfoPanel_t* ip = &self->base;
 	vkk_uiInfoPanel_add(ip, (vkk_uiWidget_t*) self->heading_ctrl);
@@ -164,6 +178,7 @@ atmo_uiInfoPanel_new(atmo_uiScreen_t* screen)
 	vkk_uiInfoPanel_add(ip, (vkk_uiWidget_t*) self->text_ctrl_delta);
 	vkk_uiInfoPanel_add(ip, (vkk_uiWidget_t*) self->text_ctrl_omega);
 	vkk_uiInfoPanel_add(ip, (vkk_uiWidget_t*) self->text_ctrl_k);
+	vkk_uiInfoPanel_add(ip, (vkk_uiWidget_t*) self->text_ctrl_exposure);
 
 	// success
 	return self;
@@ -182,6 +197,7 @@ void atmo_uiInfoPanel_delete(atmo_uiInfoPanel_t** _self)
 	if(self)
 	{
 		vkk_uiInfoPanel_clear(&self->base);
+		vkk_uiText_delete(&self->text_ctrl_exposure);
 		vkk_uiText_delete(&self->text_ctrl_k);
 		vkk_uiText_delete(&self->text_ctrl_omega);
 		vkk_uiText_delete(&self->text_ctrl_delta);

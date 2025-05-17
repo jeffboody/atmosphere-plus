@@ -62,9 +62,9 @@ layout(std140, set=1, binding=1) uniform ub101_Zenith4
 	vec4 Zenith4;
 };
 
-layout(std140, set=1, binding=2) uniform ub102_II4
+layout(std140, set=1, binding=2) uniform ub102_IIE
 {
-	vec4 II4;
+	vec4 IIE; // II, Exposure
 };
 
 layout(std140, set=1, binding=3) uniform ub103_phase_g_mie
@@ -145,6 +145,11 @@ int intersect_planet(vec3 P0, vec3 V, out vec3 normal)
 	// ray has two forward intersections
 	normal = normalize(p0 + t1*V);
 	return 2;
+}
+
+vec3 exposure(vec3 color)
+{
+	return pow(2.0, IIE.a)*color;
 }
 
 // https://64.github.io/tonemapping/
@@ -348,19 +353,21 @@ void main()
 
 	// apply constant phase function and
 	// spectral intensity of incident light
-	vec3 II = vec3(II4);
+	vec3 II = vec3(IIE);
 	vec3 IS = vec3(II.r*(FR*fIS.r + FM*fIS.a),
 	               II.g*(FR*fIS.g + FM*fIS.a),
 	               II.b*(FR*fIS.b + FM*fIS.a));
 
-	// apply tone mapping and gamma correction
+	// apply exposure, tone mapping and gamma correction
+	vec3 color = exposure(IS);
 	#if ATMO_TONE_MAPPING == ATMO_TONE_MAPPING_UNCHARTED2
-	vec3 color = gamma(uncharted2_filmic(IS));
+	color = uncharted2_filmic(color);
 	#elif ATMO_TONE_MAPPING == ATMO_TONE_MAPPING_REINHARD_EXTENDED
-	vec3 color = gamma(reinhard_extended_luminance(IS, 150.0));
+	color = reinhard_extended_luminance(color, 150.0);
 	#else
-	vec3 color = gamma(reinhard_luminance(IS));
+	color = reinhard_luminance(color);
 	#endif
+	color = gamma(color);
 
 	fragColor = vec4(color, 1.0);
 }
