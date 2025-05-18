@@ -93,11 +93,14 @@
 //            Mie scattering coefficient because fog
 //            consists of larger water droplets that scatter
 //            light more strongly.
-#define ATMO_BETA_S_R_RAYLEIGH (1.0f*5.802e-6f)
-#define ATMO_BETA_S_G_RAYLEIGH (1.0f*13.558e-6f)
-#define ATMO_BETA_S_B_RAYLEIGH (1.0f*33.1e-6f)
-#define ATMO_BETA_S_MIE        (1.0f*3.996e-6f)
-#define ATMO_BETA_A_MIE        (1.0f*4.40e-6f)
+#define ATMO_BETA_S_R_RAYLEIGH 5.802e-6f
+#define ATMO_BETA_S_G_RAYLEIGH 13.558e-6f
+#define ATMO_BETA_S_B_RAYLEIGH 33.1e-6f
+#define ATMO_BETA_S_MIE        3.996e-6f
+#define ATMO_BETA_A_MIE        4.40e-6f
+#define ATMO_BETA_A_R_OZONE    0.65e-6f
+#define ATMO_BETA_A_G_OZONE    1.881e-6f
+#define ATMO_BETA_A_B_OZONE    0.085e-6f
 
 // transmittance numerical integration steps
 #define ATMO_TRANSMITTANCE_STEPS 30
@@ -533,10 +536,24 @@ static float densityM(atmo_solverParam_t* param, float h)
 	return expf(-h/param->density_scale_height_mie);
 }
 
+// Ozone density function
+static float densityO(atmo_solverParam_t* param, double h)
+{
+	ASSERT(param);
+
+	float p = 1.0f - fabsf(h - 25000.0f)/15000.0f;
+	if(p < 0.0)
+	{
+		return 0.0f;
+	}
+
+	return p;
+}
+
 // Rayleigh/Mie transmittance
 static void
 transmittance(atmo_solverParam_t* param, cc_vec3f_t* P1,
-              cc_vec3f_t* P2, cc_vec4f_t* out)
+              cc_vec3f_t* P2, cc_vec3f_t* out)
 {
 	ASSERT(param);
 	ASSERT(P1);
@@ -553,13 +570,13 @@ transmittance(atmo_solverParam_t* param, cc_vec3f_t* P1,
 	float h   = getHeightP(param, &P);
 	float pR0 = densityR(param, h);
 	float pM0 = densityM(param, h);
+	float pO0 = densityO(param, h);
 
 	if(ds < ATMO_STEP_THRESH)
 	{
-		out->r = 0.0f;
-		out->g = 0.0f;
-		out->b = 0.0f;
-		out->a = 0.0f;
+		out->x = 0.0f;
+		out->y = 0.0f;
+		out->z = 0.0f;
 		return;
 	}
 
@@ -567,8 +584,10 @@ transmittance(atmo_solverParam_t* param, cc_vec3f_t* P1,
 	int   i;
 	float pR1;
 	float pM1;
+	float pO1;
 	float tR = 0.0f;
 	float tM = 0.0f;
+	float tO = 0.0f;
 	for(i = 0; i < param->transmittance_steps; ++i)
 	{
 		cc_vec3f_addv(&P, &step);
@@ -576,20 +595,39 @@ transmittance(atmo_solverParam_t* param, cc_vec3f_t* P1,
 		h   = getHeightP(param, &P);
 		pR1 = densityR(param, h);
 		pM1 = densityM(param, h);
+		pO1 = densityO(param, h);
 
 		// apply trapesoidal rule
 		tR += 0.5f*(pR0 + pR1)*ds;
 		tM += 0.5f*(pM0 + pM1)*ds;
+		tO += 0.5f*(pO0 + pO1)*ds;
 
 		pR0 = pR1;
 		pM0 = pM1;
+		pO0 = pO1;
 	}
 
+	// extinction coefficients (scattering + absorption)
+	cc_vec3f_t bR =
+	{
+		.x = param->beta_s_r_rayleigh,
+		.y = param->beta_s_g_rayleigh,
+		.z = param->beta_s_b_rayleigh,
+	};
+
+	float bM = param->beta_s_mie + param->beta_a_mie;
+
+	cc_vec3f_t bO =
+	{
+		.x = param->beta_a_r_ozone,
+		.y = param->beta_a_g_ozone,
+		.z = param->beta_a_b_ozone,
+	};
+
 	// apply Rayleigh/Mie scattering coefficient
-	out->r = param->beta_s_r_rayleigh*tR;
-	out->g = param->beta_s_g_rayleigh*tR;
-	out->b = param->beta_s_b_rayleigh*tR;
-	out->a = (param->beta_s_mie + param->beta_a_mie)*tM;
+	out->x = bR.x*tR + bM*tM + bO.x*tO;
+	out->y = bR.y*tR + bM*tM + bO.y*tO;
+	out->z = bR.z*tR + bM*tM + bO.z*tO;
 }
 
 // compute the points Pa and Pb on the viewing vector
@@ -742,8 +780,8 @@ fIS1(atmo_solverParam_t* param, float h, float phi,
 	cc_vec3f_t step;
 	cc_vec4f_t fx0;
 	cc_vec4f_t fx1;
-	cc_vec4f_t tPPc;
-	cc_vec4f_t tPaP;
+	cc_vec3f_t tPPc;
+	cc_vec3f_t tPaP;
 	cc_vec3f_copy(&Pa, &P);
 	cc_vec3f_subv_copy(&Pb, &Pa, &step);
 	cc_vec3f_muls(&step, 1.0f/param->transmittance_steps);
@@ -752,10 +790,11 @@ fIS1(atmo_solverParam_t* param, float h, float phi,
 	float pM = densityM(param, h);
 	transmittance(param, &P, &Pc, &tPPc);
 	transmittance(param, &Pa, &P, &tPaP);
-	fx0.r = pR*expf(-tPPc.r -tPaP.r);
-	fx0.g = pR*expf(-tPPc.g -tPaP.g);
-	fx0.b = pR*expf(-tPPc.b -tPaP.b);
-	fx0.a = pM*expf(-tPPc.a -tPaP.a);
+	fx0.r = pR*expf(-tPPc.x -tPaP.x);
+	fx0.g = pR*expf(-tPPc.y -tPaP.y);
+	fx0.b = pR*expf(-tPPc.z -tPaP.z);
+	fx0.a = pM*expf(-(tPPc.x + tPPc.y + tPPc.z)/3.0f
+	                -(tPaP.y + tPaP.y + tPaP.z)/3.0f);
 
 	if(ds < ATMO_STEP_THRESH)
 	{
@@ -783,10 +822,11 @@ fIS1(atmo_solverParam_t* param, float h, float phi,
 		pM = densityM(param, h);
 		transmittance(param, &P, &Pc, &tPPc);
 		transmittance(param, &Pa, &P, &tPaP);
-		fx1.r = pR*expf(-tPPc.r -tPaP.r);
-		fx1.g = pR*expf(-tPPc.g -tPaP.g);
-		fx1.b = pR*expf(-tPPc.b -tPaP.b);
-		fx1.a = pM*expf(-tPPc.a -tPaP.a);
+		fx1.r = pR*expf(-tPPc.x -tPaP.x);
+		fx1.g = pR*expf(-tPPc.y -tPaP.y);
+		fx1.b = pR*expf(-tPPc.z -tPaP.z);
+		fx1.a = pM*expf(-(tPPc.x + tPPc.y + tPPc.z)/3.0f
+		                -(tPaP.x + tPaP.y + tPaP.z)/3.0f);
 
 		// apply trapesoidal rule
 		fis1->r += 0.5f*(fx1.r + fx0.r)*ds;
@@ -1078,7 +1118,7 @@ fISk(atmo_solverParam_t* param, uint32_t k,
 	cc_vec3f_t step;
 	cc_vec4f_t fx0;
 	cc_vec4f_t fx1;
-	cc_vec4f_t tPaP;
+	cc_vec3f_t tPaP;
 	cc_vec4f_t fgk;
 	cc_vec3f_copy(&Pa, &P);
 	cc_vec3f_subv_copy(&Pb, &Pa, &step);
@@ -1088,10 +1128,10 @@ fISk(atmo_solverParam_t* param, uint32_t k,
 	float pM = densityM(param, h);
 	fGk(param, k - 1, &P0, &V, &L, data, &fgk);
 	transmittance(param, &Pa, &P, &tPaP);
-	fx0.r = fgk.r*pR*expf(-tPaP.r);
-	fx0.g = fgk.g*pR*expf(-tPaP.g);
-	fx0.b = fgk.b*pR*expf(-tPaP.b);
-	fx0.a = fgk.a*pM*expf(-tPaP.a);
+	fx0.r = fgk.r*pR*expf(-tPaP.x);
+	fx0.g = fgk.g*pR*expf(-tPaP.y);
+	fx0.b = fgk.b*pR*expf(-tPaP.z);
+	fx0.a = fgk.a*pM*expf(-(tPaP.x + tPaP.y + tPaP.z)/3.0f);
 
 	if(ds < ATMO_STEP_THRESH)
 	{
@@ -1109,10 +1149,10 @@ fISk(atmo_solverParam_t* param, uint32_t k,
 		pM = densityM(param, h);
 		fGk(param, k - 1, &P, &V, &L, data, &fgk);
 		transmittance(param, &Pa, &P, &tPaP);
-		fx1.r = fgk.r*pR*expf(-tPaP.r);
-		fx1.g = fgk.g*pR*expf(-tPaP.g);
-		fx1.b = fgk.b*pR*expf(-tPaP.b);
-		fx1.a = fgk.a*pM*expf(-tPaP.a);
+		fx1.r = fgk.r*pR*expf(-tPaP.x);
+		fx1.g = fgk.g*pR*expf(-tPaP.y);
+		fx1.b = fgk.b*pR*expf(-tPaP.z);
+		fx1.a = fgk.a*pM*expf(-(tPaP.x + tPaP.y + tPaP.z)/3.0f);
 
 		// apply trapesoidal rule
 		fisk->r += 0.5f*(fx1.r + fx0.r)*ds;
@@ -1243,6 +1283,12 @@ atmo_solver_exportData(atmo_solver_t* self,
 	cc_jsmnStream_float(jsmn, param->beta_s_mie);
 	cc_jsmnStream_key(jsmn, "%s", "beta_a_mie");
 	cc_jsmnStream_float(jsmn, param->beta_a_mie);
+	cc_jsmnStream_key(jsmn, "%s", "beta_a_r_ozone");
+	cc_jsmnStream_float(jsmn, param->beta_a_r_ozone);
+	cc_jsmnStream_key(jsmn, "%s", "beta_a_g_ozone");
+	cc_jsmnStream_float(jsmn, param->beta_a_g_ozone);
+	cc_jsmnStream_key(jsmn, "%s", "beta_a_b_ozone");
+	cc_jsmnStream_float(jsmn, param->beta_a_b_ozone);
 	cc_jsmnStream_key(jsmn, "%s", "II_r");
 	cc_jsmnStream_float(jsmn, param->II_r);
 	cc_jsmnStream_key(jsmn, "%s", "II_g");
@@ -1334,18 +1380,18 @@ static void atmo_solver_gamma(cc_vec4f_t* color)
 }
 
 static int
-atmo_solver_plotDensityRM(atmo_solverParam_t* param)
+atmo_solver_plotDensity(atmo_solverParam_t* param)
 {
 	ASSERT(param);
 
-	FILE* f = fopen("plot_densityRM.dat", "w");
+	FILE* f = fopen("plot_density.dat", "w");
 	if(f == NULL)
 	{
 		LOGE("fopen failed");
 		return 0;
 	}
 
-	// output densityRM
+	// output density
 	int   i;
 	int   nh = 100;
 	float Ha = param->Ra - param->Rp;
@@ -1354,9 +1400,10 @@ atmo_solver_plotDensityRM(atmo_solverParam_t* param)
 		float h;
 		h = Ha*((float) i)/((float) (nh - 1));
 
-		fprintf(f, "%f, %f\n",
+		fprintf(f, "%f, %f, %f\n",
 		        densityR(param, h),
-		        densityM(param, h));
+		        densityM(param, h),
+		        densityO(param, h));
 	}
 
 	fclose(f);
@@ -1422,20 +1469,19 @@ atmo_solver_plotAvgT(atmo_solverParam_t* param)
 			cc_vec3f_subv_copy(&Pb, &Pa, &Vba);
 			float dist = cc_vec3f_mag(&Vba);
 
-			cc_vec4f_t t;
+			cc_vec3f_t t;
 			transmittance(param, &P0, &Pb, &t);
 
-			cc_vec4f_t T;
+			cc_vec3f_t T;
 			T.x = exp(-t.x);
 			T.y = exp(-t.y);
 			T.z = exp(-t.z);
-			T.w = exp(-t.w);
 
-			float avgT = (T.x + T.y + T.z + T.w)/4.0f;
+			float avgT = (T.x + T.y + T.z)/3.0f;
 
-			LOGI("h=%f, phi=%f, avgT=%f, dist=%f, T=%f,%f,%f,%f",
+			LOGI("h=%f, phi=%f, avgT=%f, dist=%f, T=%f,%f,%f",
 			     h, phi_deg, avgT, dist,
-			     T.x, T.y, T.z, T.w);
+			     T.x, T.y, T.z);
 
 			if(j == 0)
 			{
@@ -1637,7 +1683,7 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4f_t* data)
 	}
 	texgz_tex_delete(&tex);
 
-	atmo_solver_plotDensityRM(param);
+	atmo_solver_plotDensity(param);
 	atmo_solver_plotAvgT(param);
 	atmo_solver_plotSpectralIrradiance();
 	atmo_solver_plotSpectralToRGB();
@@ -1686,15 +1732,21 @@ atmo_solver_paramValidate(atmo_solverParam_t* param)
 	if((param->beta_s_r_rayleigh <= 0.0f) ||
 	   (param->beta_s_g_rayleigh <= 0.0f) ||
 	   (param->beta_s_b_rayleigh <= 0.0f) ||
-	   (param->beta_s_mie      <= 0.0f) ||
-	   (param->beta_a_mie      <= 0.0f))
+	   (param->beta_s_mie        <= 0.0f) ||
+	   (param->beta_a_mie        <= 0.0f) ||
+	   (param->beta_a_r_ozone    <= 0.0f) ||
+	   (param->beta_a_g_ozone    <= 0.0f) ||
+	   (param->beta_a_b_ozone    <= 0.0f))
 	{
-		LOGE("invalid beta_s_r/g/b_rayleigh=%f/%f/%f, beta_s_mie=%f, beta_a_mie=%f",
+		LOGE("invalid beta_s_r/g/b_rayleigh=%f/%f/%f, beta_s_mie=%f, beta_a_mie=%f, beta_a_r/g/b_ozone=%f/%f/%f",
 		     param->beta_s_r_rayleigh,
 		     param->beta_s_g_rayleigh,
 		     param->beta_s_b_rayleigh,
 		     param->beta_s_mie,
-		     param->beta_a_mie);
+		     param->beta_a_mie,
+		     param->beta_a_r_ozone,
+		     param->beta_a_g_ozone,
+		     param->beta_a_b_ozone);
 		return 0;
 	}
 
@@ -1977,6 +2029,10 @@ void atmo_solver_defaultParam(atmo_solver_t* self,
 
 		.beta_s_mie = ATMO_BETA_S_MIE,
 		.beta_a_mie = ATMO_BETA_A_MIE,
+
+		.beta_a_r_ozone = ATMO_BETA_A_R_OZONE,
+		.beta_a_g_ozone = ATMO_BETA_A_G_OZONE,
+		.beta_a_b_ozone = ATMO_BETA_A_B_OZONE,
 
 		.transmittance_steps = ATMO_TRANSMITTANCE_STEPS,
 

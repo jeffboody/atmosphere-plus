@@ -52,6 +52,10 @@ typedef struct atmo_solverParam_s
 	float beta_s_mie;
 	float beta_a_mie;
 
+	float beta_a_r_ozone;
+	float beta_a_g_ozone;
+	float beta_a_b_ozone;
+
 	float II_r;
 	float II_g;
 	float II_b;

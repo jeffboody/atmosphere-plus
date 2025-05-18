@@ -664,19 +664,25 @@ Atmospheric Particles
 \end_layout
 
 \begin_layout Standard
-The atmospheric simulation models two types of particles.
+The atmospheric simulation models three types of particles.
 \end_layout
 
 \begin_layout Itemize
-Smaller particles (e.g.
- air molecules such as oxygen, nitrogen and carbon dioxide) are modeled
- by Rayleigh scattering.
+Rayleigh Scattering: Smaller particles consisting of air molecules such
+ as oxygen, nitrogen and carbon dioxide.
 \end_layout
 
 \begin_layout Itemize
-Larger particles (e.g.
- ice crystals, water droplets, dust and air polution) are modeled by Mie
- scattering.
+Mie Scattering and Absorption: Larger particles consisting of ice crystals,
+ water droplets, dust and air polution.
+\end_layout
+
+\begin_layout Itemize
+Ozone Absorption: Ozone particles consist of 
+\begin_inset Formula $O_{3}$
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Subsection
@@ -736,18 +742,37 @@ Where
  term).
 \end_layout
 
+\begin_layout Standard
+Ozone density function, 
+\begin_inset Formula $p_{O}\left(h\right)$
+\end_inset
+
+:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+p_{O}\left(h\right)=\max\left(0,1-\frac{\left|h-25000\right|}{15000}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Subsubsection
 Visualization of the Density Function
 \end_layout
 
 \begin_layout Standard
-The following diagram shows the exponential decay of the density (Rayleigh
- and Mie) as a function of height.
+The following diagram shows the exponential decay of the density (Rayleigh,
+ Mie and Ozone) as a function of height.
 \end_layout
 
 \begin_layout Standard
 \begin_inset Graphics
-	filename densityRM.jpg
+	filename density.jpg
 	lyxscale 15
 	width 50page%
 
@@ -894,17 +919,6 @@ The Scalable and Production Ready Sky and Atmosphere Rendering Technique
 \begin_layout Standard
 \begin_inset Formula 
 \[
-β_{R}^{a}\left(r,g,b\right)=(0,0,0)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
 \beta_{M}^{s}=3.996e-6
 \]
 
@@ -927,7 +941,18 @@ The Scalable and Production Ready Sky and Atmosphere Rendering Technique
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\beta_{R,M}^{e}=\beta_{R,M}^{s}+\beta_{R,M}^{a}
+\beta_{O}^{a}=\left(0.65e-6,1.881e-6,0.085e-6\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\beta_{R,M}^{e}=\beta_{R,M}^{s}+\beta_{M,O}^{a}
 \]
 
 \end_inset
@@ -1200,7 +1225,7 @@ T\left(P_{1},P_{2},\lambda\right)=\exp\left(-t\left(P_{1},P_{2},\lambda\right)\r
 \begin_layout Standard
 \begin_inset Formula 
 \[
-t\left(P_{1},P_{2},\lambda\right)=\beta_{R,M}^{e}\left(\lambda\right)\int_{P_{1}}^{P_{2}}p_{R,M}\left(h\left(P\right)\right)ds
+t\left(P_{1},P_{2},\lambda\right)=\sum_{i\in R,M,O}\beta_{i}^{e}\left(\lambda\right)\int_{P_{1}}^{P_{2}}p_{i}\left(h\left(P\right)\right)ds
 \]
 
 \end_inset
@@ -1247,18 +1272,6 @@ Where the parameters are defined:
 \end_inset
 
 
-\end_layout
-
-\begin_layout Standard
-The outputs are a 4-component vectors 
-\begin_inset Formula $\left(T_{R_{r}},T_{R_{g}},T_{R_{b}},T_{M}\right)$
-\end_inset
-
- and 
-\begin_inset Formula $\left(t_{R_{r}},t_{R_{g}},t_{R_{b}},t_{M}\right)$
-\end_inset
-
-.
 \end_layout
 
 \begin_layout Standard
@@ -1318,7 +1331,7 @@ a^{m}\cdot a^{n}=a^{m+n}
 
 \begin_layout Standard
 Where the functions 
-\begin_inset Formula $t\left(\right)$
+\begin_inset Formula $t\left(\ldots\right)$
 \end_inset
 
  may be rearranged in order to group similar terms.
@@ -1405,7 +1418,7 @@ The single-scattering equation
 \begin_layout Standard
 \begin_inset Formula 
 \[
-I_{S_{R,M}}^{\left(1\right)}\left(P_{0},V,L,\lambda\right)=I_{I}\left(\lambda\right)\cdot F_{R,M}\left(dot\left(L,-V\right)\right)\cdot\frac{\beta_{R,M}\left(\lambda\right)}{4\pi}\cdot
+I_{S_{R,M}}^{\left(1\right)}\left(P_{0},V,L,\lambda\right)=I_{I}\left(\lambda\right)\cdot F_{R,M}\left(dot\left(L,-V\right)\right)\cdot\frac{\beta_{R,M}^{s}\left(\lambda\right)}{4\pi}\cdot
 \]
 
 \end_inset
@@ -1582,7 +1595,7 @@ The multiple-scattering equation
 \begin_layout Standard
 \begin_inset Formula 
 \[
-I_{S_{R,M}}^{\left(k\right)}\left(P_{0},V,L,\lambda\right)=\frac{\beta_{R,M}\left(\lambda\right)}{4\pi}\cdot
+I_{S_{R,M}}^{\left(k\right)}\left(P_{0},V,L,\lambda\right)=\frac{\beta_{R,M}^{s}\left(\lambda\right)}{4\pi}\cdot
 \]
 
 \end_inset
@@ -1819,7 +1832,7 @@ The factored single-scattering equation
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\bar{I}_{S_{R,M}}^{\left(1\right)}\left(P_{0},V,L,\lambda\right)=\frac{\beta_{R,M}\left(\lambda\right)}{4\pi}\cdot
+\bar{I}_{S_{R,M}}^{\left(1\right)}\left(P_{0},V,L,\lambda\right)=\frac{\beta_{R,M}^{s}\left(\lambda\right)}{4\pi}\cdot
 \]
 
 \end_inset
@@ -1868,7 +1881,7 @@ The factored multiple-scattering equation
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\bar{I}_{S_{R,M}}^{\left(k\right)}\left(P_{0},V,L,\lambda\right)=\frac{\beta_{R,M}\left(\lambda\right)}{4\pi}\cdot
+\bar{I}_{S_{R,M}}^{\left(k\right)}\left(P_{0},V,L,\lambda\right)=\frac{\beta_{R,M}^{s}\left(\lambda\right)}{4\pi}\cdot
 \]
 
 \end_inset
