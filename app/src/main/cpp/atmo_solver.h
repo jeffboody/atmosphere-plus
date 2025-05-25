@@ -37,28 +37,28 @@ typedef enum
 
 typedef struct atmo_solverParam_s
 {
-	float Rp;
-	float Ra;
+	double Rp;
+	double Ra;
 
-	float density_scale_height_rayleigh;
-	float density_scale_height_mie;
+	double density_scale_height_rayleigh;
+	double density_scale_height_mie;
 
-	float phase_g_mie;
+	double phase_g_mie;
 
-	float beta_s_r_rayleigh;
-	float beta_s_g_rayleigh;
-	float beta_s_b_rayleigh;
+	double beta_s_r_rayleigh;
+	double beta_s_g_rayleigh;
+	double beta_s_b_rayleigh;
 
-	float beta_s_mie;
-	float beta_a_mie;
+	double beta_s_mie;
+	double beta_a_mie;
 
-	float beta_a_r_ozone;
-	float beta_a_g_ozone;
-	float beta_a_b_ozone;
+	double beta_a_r_ozone;
+	double beta_a_g_ozone;
+	double beta_a_b_ozone;
 
-	float II_r;
-	float II_g;
-	float II_b;
+	double II_r;
+	double II_g;
+	double II_b;
 
 	uint32_t transmittance_steps;
 	uint32_t gather_m_steps;

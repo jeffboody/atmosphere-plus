@@ -467,7 +467,7 @@ void atmo_renderer_draw(atmo_renderer_t* self,
 
 	cc_vec3f_t eye =
 	{
-		.z = h + param->Rp,
+		.z = h + (float) param->Rp,
 	};
 
 	cc_vec4f_t P0h =
@@ -543,21 +543,25 @@ void atmo_renderer_draw(atmo_renderer_t* self,
 	vkk_renderer_updateBuffer(rend, self->vb_V,
 	                          4*sizeof(cc_vec3f_t), V);
 
-	cc_vec2f_t RaRp = { .x = param->Ra, .y = param->Rp };
+	cc_vec2f_t RaRp =
+	{
+		.x = (float) param->Ra,
+		.y = (float) param->Rp,
+	};
 
 	cc_vec4f_t L =
 	{
-		.x = -sin(delta)*cos(omega),
-		.y = -sin(delta)*sin(omega),
-		.z = -cos(delta),
+		.x = -sinf(delta)*cosf(omega),
+		.y = -sinf(delta)*sinf(omega),
+		.z = -cosf(delta),
 	};
 	cc_vec4f_normalize(&L);
 
 	cc_vec4f_t IIE =
 	{
-		.r = param->II_r,
-		.g = param->II_g,
-		.b = param->II_b,
+		.r = (float) param->II_r,
+		.g = (float) param->II_g,
+		.b = (float) param->II_b,
 		.a = exposure,
 	};
 
@@ -591,6 +595,7 @@ void atmo_renderer_draw(atmo_renderer_t* self,
 		{
 			.z = 1.0f,
 		};
+		float phase_g_mie = (float) param->phase_g_mie;
 		vkk_renderer_updateBuffer(rend, self->scene_ub100_Unused,
 		                          sizeof(cc_vec4f_t),
 		                          (const void*) &Unused);
@@ -602,7 +607,7 @@ void atmo_renderer_draw(atmo_renderer_t* self,
 		                          (const void*) &IIE);
 		vkk_renderer_updateBuffer(rend, self->scene_ub103_phase_g_mie,
 		                          sizeof(float),
-		                          (const void*) &param->phase_g_mie);
+		                          (const void*) &phase_g_mie);
 		vkk_uniformAttachment_t ua_array[] =
 		{
 			// sampler104_fIS
