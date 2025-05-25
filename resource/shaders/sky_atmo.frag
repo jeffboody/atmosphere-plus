@@ -36,7 +36,7 @@
 #define ATMO_TONE_MAPPING_UNCHARTED2        2
 
 // select tone mapping
-#define ATMO_TONE_MAPPING ATMO_TONE_MAPPING_REINHARD
+#define ATMO_TONE_MAPPING ATMO_TONE_MAPPING_UNCHARTED2
 
 layout(location=0) in vec3 varying_V;
 
