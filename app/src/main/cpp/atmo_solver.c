@@ -132,7 +132,7 @@
 
 // weighted power parameters
 #define ATMO_PARAM_PHI_WEIGHTED_POWER_PU  2.0
-#define ATMO_PARAM_PHI_WEIGHTED_POWER_PL  1.0
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_PL  2.0
 #define ATMO_PARAM_PHI_WEIGHTED_POWER_PS  2.0
 #define ATMO_PARAM_PHI_WEIGHTED_POWER_WL1 (20.0/32.0)
 #define ATMO_PARAM_PHI_WEIGHTED_POWER_WS0 (4.0/32.0)
@@ -1397,35 +1397,56 @@ atmo_solver_exportData(atmo_solver_t* self,
 #ifdef ATMO_SOLVER_DEBUG_DATA
 
 // https://64.github.io/tonemapping/
-static double atmo_solver_luminance(cc_vec4d_t* v)
-{
-	cc_vec4d_t w =
-	{
-		.r = 0.2126,
-		.g = 0.7152,
-		.b = 0.0722,
-	};
-	return cc_vec4d_dot(v, &w);
-}
-
-// https://64.github.io/tonemapping/
-static double atmo_solver_reinhard(double x)
-{
-	return x / (1.0 + x);
-}
-
-// https://64.github.io/tonemapping/
 static void
-atmo_solver_reinhardLuminance(cc_vec4d_t* color)
+atmo_uncharted2TonemapPartial(cc_vec4d_t* x, cc_vec4d_t* y)
 {
-	ASSERT(color);
+	ASSERT(x);
+	ASSERT(y);
 
-	double l0 = atmo_solver_luminance(color);
-	double l1 = atmo_solver_reinhard(l0);
-	cc_vec4d_muls(color, l1/l0);
+	float A = 0.15;
+	float B = 0.50;
+	float C = 0.10;
+	float D = 0.20;
+	float E = 0.02;
+	float F = 0.30;
+	y->r = ((x->r*(A*x->r+C*B)+D*E)/(x->r*(A*x->r+B)+D*F))-E/F;
+	y->g = ((x->g*(A*x->g+C*B)+D*E)/(x->g*(A*x->g+B)+D*F))-E/F;
+	y->b = ((x->b*(A*x->b+C*B)+D*E)/(x->b*(A*x->b+B)+D*F))-E/F;
 }
 
-static void atmo_solver_gamma(cc_vec4d_t* color)
+// https://64.github.io/tonemapping/
+static void atmo_uncharted2Filmic(cc_vec4d_t* v)
+{
+	ASSERT(v);
+
+	float exposure_bias = 2.0;
+
+	cc_vec4d_t x;
+	cc_vec4d_muls_copy(v, exposure_bias, &x);
+
+	cc_vec4d_t xp = { 0 };
+	atmo_uncharted2TonemapPartial(&x, &xp);
+
+	cc_vec4d_t W =
+	{
+		.r = 11.2,
+		.g = 11.2,
+		.b = 11.2,
+	};
+	cc_vec4d_t Wp = { 0 };
+	atmo_uncharted2TonemapPartial(&W, &Wp);
+
+	cc_vec4d_t white_scale =
+	{
+		.r = 1.0/Wp.r,
+		.g = 1.0/Wp.g,
+		.b = 1.0/Wp.b,
+	};
+
+	cc_vec4d_mulv_copy(&xp, &white_scale, v);
+}
+
+static void atmo_gamma(cc_vec4d_t* color)
 {
 	ASSERT(color);
 
@@ -1464,6 +1485,11 @@ atmo_solver_plotDensity(atmo_solverParam_t* param)
 	fclose(f);
 
 	return 1;
+}
+
+static double atmo_deg2rad(double x)
+{
+	return x*M_PI/180.0;
 }
 
 static int
@@ -1636,7 +1662,7 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4d_t* data)
 	}
 
 	// spectral intensity of incident light from the Sun
-	double exposure = 0.0;
+	double exposure = -5.0;
 	cc_vec4d_t II =
 	{
 		.r = pow(2.0, exposure)*param->II_r,
@@ -1666,11 +1692,8 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4d_t* data)
 	cc_vec4d_t fis;
 	cc_vec4d_t is;
 	cc_vec4d_t color;
-	double     luminance;
-	double     white_point;
 	for(k = 1; k <= param->k; ++k)
 	{
-		white_point = 0.0;
 		for(x = 0; x < param->texture_width; ++x)
 		{
 			u = ((double) x)/((double) (param->texture_width - 1));
@@ -1698,17 +1721,10 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4d_t* data)
 					is.g = II.g*(FR*fis.g + FM*fis.a);
 					is.b = II.b*(FR*fis.b + FM*fis.a);
 
-					// find white point
-					luminance = atmo_solver_luminance(&is);
-					if(luminance > white_point)
-					{
-						white_point = luminance;
-					}
-
 					// tone mapping and gamma correction
 					cc_vec4d_copy(&is, &color);
-					atmo_solver_reinhardLuminance(&color);
-					atmo_solver_gamma(&color);
+					atmo_uncharted2Filmic(&color);
+					atmo_gamma(&color);
 
 					// clamp output
 					color.r = atmo_clampd(color.r, 0.0, 1.0);
@@ -1733,8 +1749,6 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4d_t* data)
 		}
 		snprintf(fname, 256, "atmo-slice-k%u.png", k);
 		texgz_png_export(tex, fname);
-
-		LOGI("k=%u, white_point=%lf", k, white_point);
 	}
 	texgz_tex_delete(&tex);
 

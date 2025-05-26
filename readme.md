@@ -4,12 +4,16 @@ Atmosphere Plus
 Atmosphere Plus is an atmospheric rendering demo.
 
 For additional details please see my
-[notes](docs/notes.pdf).
+[notes](docs/atmosphere-plus.pdf).
 
 Screenshot
 ==========
 
-![Atmosphere Plus](docs/screenshot.jpg?raw=true "Atmosphere Plus")
+The following shows a side-by-side comparison between the rendered atmosphere
+and a picture of
+[Felix Baumgartner (I Jumped From Space)](https://www.youtube.com/watch?v=Hz2F_S3Tl0Y).
+
+![Atmosphere Plus](docs/compare.jpg?raw=true "Atmosphere Plus")
 
 License
 =======

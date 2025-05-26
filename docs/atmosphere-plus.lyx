@@ -94,6 +94,22 @@ These notes describe the atmospheric rendering theory and implementation
  for the Atmosphere Plus demo.
 \end_layout
 
+\begin_layout Standard
+The following shows a side-by-side comparison between the rendered atmosphere
+ and a picture of Felix Baumgartner (I Jumped From Space).
+\end_layout
+
+\begin_layout Standard
+\begin_inset Graphics
+	filename compare.jpg
+	lyxscale 15
+	width 50page%
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Section
 Background
 \end_layout
@@ -341,7 +357,7 @@ Where the default exposure is defined.
 \begin_layout Standard
 \begin_inset Formula 
 \[
-exposure=0.0
+exposure=-5.0
 \]
 
 \end_inset
@@ -363,115 +379,8 @@ Tone mapping operations transform the high dynamic range intensities such
  values.
  The transformation from HDR-to-LDR (High Dynamic Range to Low Dynamic Range)
  is a lossy operation which produces subjective results.
- As a result, many different TMOs have been proposed.
- The following subsections describe several popular TMO operators.
-\end_layout
-
-\begin_layout Subsubsection
-Reinhard Tone Mapping
-\end_layout
-
-\begin_layout Standard
-The 
-\begin_inset Formula $TMO_{R}$
-\end_inset
-
- operator converts HDR luminance to LDR luminance.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-X=C_{HDR}
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-L=0.2126\cdot X_{r}+0.7152\cdot X_{g}+0.0722\cdot X_{b}
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-TMO_{R}\left(L\right)=\frac{L}{1+L}
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The HDR color to LDR color conversion.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-TMO_{R}\left(X,L\right)=X\cdot\frac{TMO_{R}\left(L\right)}{L}
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Subsubsection
-Extended Reinhard Tone Mapping
-\end_layout
-
-\begin_layout Standard
-The simple 
-\begin_inset Formula $TMO_{R}$
-\end_inset
-
- does not necessarily make the best use of the full LDR while the 
-\begin_inset Formula $TMO_{ER}$
-\end_inset
-
- addresses this problem by including an additional parameter to set the
- white point.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-TMO_{ER}\left(L,L_{White}\right)=\frac{L\cdot\left(1+\frac{L}{L_{White}^{2}}\right)}{1+L}
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The HDR color to LDR color conversion.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-TMO_{ER}\left(X,L,L_{White}\right)=X\cdot\frac{TMO_{ER}\left(L,L_{White}\right)}{L}
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Subsubsection
-Hable (Uncharted 2) Tone Mapping
+ Experimental results suggest that the Hable (Uncharted 2) TMO is suitable
+ for atmospheric simulations.
 \end_layout
 
 \begin_layout Standard
@@ -550,18 +459,6 @@ TMO_{H}\left(X\right)=\frac{TMO_{HP}\left(X\cdot ExposureBias\right)}{TMO_{HP}\l
 
 \end_layout
 
-\begin_layout Standard
-The 
-\begin_inset Formula $TMO_{ER}$
-\end_inset
-
- is roughly a linear approximation of 
-\begin_inset Formula $TMO_{H}$
-\end_inset
-
-.
-\end_layout
-
 \begin_layout Subsubsection
 Gamma Correction
 \end_layout
@@ -602,14 +499,6 @@ C_{LDR}=Gamma\left(TMO\left(Exposure\left(C_{HDR}\right)\right)\right)
 
 \end_layout
 
-\begin_layout Standard
-
-\series bold
-Warning:
-\series default
- Some tone mapping operators may integrate exposure and gamma correction.
-\end_layout
-
 \begin_layout Subsection
 Atmospheric Boundary
 \end_layout
@@ -639,24 +528,6 @@ Radius of the atmospheric boundary:
 \end_inset
 
  m
-\end_layout
-
-\begin_layout Standard
-
-\series bold
-Note: 
-\series default
-Special care may be required to perform some mathematical operations on
- floating point values of these magnitudes.
- To preserve numerical precision, convert single precision floats to double
- precision floats prior to performing dangerous mathematical operations.
- Once complete, the result may be converted back to single precision floats.
- For example, the 
-\begin_inset Formula $normalize\left(P\right)$
-\end_inset
-
- function requires computing the square root of the sum of squares of floating
- point values of these magnitudes.
 \end_layout
 
 \begin_layout Subsection
@@ -1353,8 +1224,8 @@ Visualization of Transmittance
 \end_layout
 
 \begin_layout Standard
-The following diagrams show the average transmittance (Rayleigh and Mie)
- as a function of altitude 
+The following diagrams show the average transmittance as a function of altitude
+ 
 \begin_inset Formula $h$
 \end_inset
 
@@ -2397,7 +2268,7 @@ h=u\cdot H_{a}
 \end_layout
 
 \begin_layout Subsubsection
-Nonlinear Mapping
+Power Mapping
 \end_layout
 
 \begin_layout Standard
@@ -2405,86 +2276,8 @@ Linear mappings are typically replaced with nonlinear mappings in order
  to optimize the parameterization space.
  This is achieved by eliminating unused values and improving precision for
  critical values by compressing less critical values.
- The Atmospheric Rendering implementation proposed the following nonlinear
- mapping.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-u=\sqrt{\frac{h}{H_{a}}}
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-v=\frac{sign\left(\cos\left(\phi\right)\right)\cdot\left|\cos\left(\phi\right)\right|^{\frac{1}{3}}+1}{2}
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-w=\frac{sign\left(\cos\left(\delta\right)\right)\cdot\left|\cos\left(\delta\right)\right|^{\frac{1}{3}}+1}{2}
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The nonlinear mappings may be converted from 3D texture coordinates as follows.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-h=u^{2}\cdot H_{a}
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\cos\left(\phi\right)=sign\left(2v-1\right)\cdot\left|2v-1\right|^{3}
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\cos\left(\delta\right)=sign\left(2w-1\right)\cdot\left|2w-1\right|^{3}
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Subsubsection
-Power Mapping
-\end_layout
-
-\begin_layout Standard
-The linear and nonlinear mappings may be generalized for an arbitrary power.
+ The linear and nonlinear mappings may be generalized for an arbitrary power
+ as follows.
 \end_layout
 
 \begin_layout Standard
@@ -2562,8 +2355,8 @@ Weighted Power Mapping
 \end_layout
 
 \begin_layout Standard
-The power mapping based approaches have several problems which lead to inefficie
-nt representation of the View-Zenith Angle.
+The View-Zenith Angle is especially difficult to generalize due to the following
+ conditions which lead to inefficient parameterization.
 \end_layout
 
 \begin_layout Itemize
@@ -2573,7 +2366,7 @@ The horizon
 
  increases from 90 degrees at ground level towards 180 degrees as the height
  increases.
- However, the power mapping approach fixes the horizon 
+ However, the published approaches typically fix the horizon 
 \begin_inset Formula $\phi_{H}$
 \end_inset
 
@@ -2582,35 +2375,15 @@ The horizon
 \end_layout
 
 \begin_layout Itemize
-The horizon also vanishes quickly as the height increases.
- As a result, the View-Zenith Angle 
-\begin_inset Formula $\phi$
-\end_inset
-
- may be compressed around the horizon using a low power 
-\begin_inset Formula $p_{v}$
-\end_inset
-
- near gound level but requires a higher power 
-\begin_inset Formula $p_{v}$
-\end_inset
-
- as the height increases.
- Since the power mapping approach uses a single low power 
-\begin_inset Formula $p_{v}$
-\end_inset
-
-, compression is ineffective as the height increases.
+The horizon also vanishes quickly as the height increases leading to ineffective
+ compression at different altitudes.
 \end_layout
 
 \begin_layout Itemize
-A large percentage of the texture space is dedicated to parameters which
+At ground level there is no atmosphere when looking downwards, whereas at
+ the TOA there is no atmosphere when looking upwards.
+ A large percentage of the texture space is dedicated to parameters which
  represent little or no atmosphere.
- For example, at ground level there is no atmosphere when 
-\begin_inset Formula $V$
-\end_inset
-
- is downwards.
 \end_layout
 
 \begin_layout Standard
@@ -2717,11 +2490,6 @@ v_{i}=w_{i}\cdot\left(\frac{\cos\left(\phi\right)-\cos\left(\phi_{min}\right)}{\
 \end_inset
 
 
-\end_layout
-
-\begin_layout Standard
-The power base will never be negative and therefore the sign and abs functions
- are not required.
 \end_layout
 
 \begin_layout Standard
@@ -2980,6 +2748,10 @@ Otherwise:
 
 \end_layout
 
+\begin_layout Subsubsection
+Weighted Power Mapping Visualization
+\end_layout
+
 \begin_layout Standard
 The following diagram shows a visualization of the weighted power mapping
  regions (
@@ -3017,13 +2789,12 @@ The following diagram shows a visualization of the weighted power mapping
 \end_layout
 
 \begin_layout Subsubsection
-Mapping Comparision
+Linear vs Weighted Power Mapping Comparision
 \end_layout
 
 \begin_layout Standard
-The following diagram shows a comparision between the linear mapping, nonlinear
- mapping, weighted power mapping and 3D texture coordinates of the scattering
- intensity 
+The following diagram shows a comparision between the linear mapping and
+ weighted power mapping of the scattering intensity 
 \begin_inset Formula $I_{S}$
 \end_inset
 
@@ -3046,7 +2817,7 @@ The following parameters where used for the weighted power mapping.
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $p_{U},p_{L},p_{S}=2,1,2$
+\begin_inset Formula $p_{U},p_{L},p_{S}=2,2,2$
 \end_inset
 
 
@@ -3057,19 +2828,6 @@ The following parameters where used for the weighted power mapping.
 \end_inset
 
 
-\end_layout
-
-\begin_layout Standard
-
-\series bold
-Note:
-\series default
- 
-\begin_inset Formula $p_{L}=1$
-\end_inset
-
- is important to improve numerical stability at the boundary between the
- upper and lower atmosphere.
 \end_layout
 
 \begin_layout Subsubsection
@@ -3376,6 +3134,16 @@ https://github.com/SebLague/Solar-System
 
 \begin_layout Itemize
 https://www.youtube.com/watch?v=DxfEbulyFcY
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+I Jumped From Space (World Record Supersonic Freefall)
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+https://www.youtube.com/watch?v=Hz2F_S3Tl0Y
 \end_layout
 
 \end_deeper

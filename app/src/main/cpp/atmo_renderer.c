@@ -45,11 +45,11 @@ static void atmo_renderer_resetCtrl(atmo_renderer_t* self)
 {
 	ASSERT(self);
 
-	self->ctrl_h        = 0.1f;
+	self->ctrl_h        = 0.3f;
 	self->ctrl_phi      = 0.5f;
 	self->ctrl_delta    = 0.0f;
 	self->ctrl_omega    = 0.0f;
-	self->ctrl_k        = 1;
+	self->ctrl_k        = 5;
 	self->ctrl_exposure = -5.0f;
 }
 
