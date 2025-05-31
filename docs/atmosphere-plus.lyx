@@ -857,215 +857,6 @@ The Rayleigh coefficients were determined assuming the following wavelengths.
 \end_layout
 
 \begin_layout Subsection
-Numerical Integration
-\end_layout
-
-\begin_layout Standard
-The atmospheric simulation requires the computation of integrals that must
- be approximated using numerical integration due to complexity of the equations.
-\end_layout
-
-\begin_layout Standard
-The trapezoidal rule may be used to approximate 1D integrals of the function
- 
-\begin_inset Formula $f\left(x\right)$
-\end_inset
-
-.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\int_{a}^{b}f\left(x\right)dx\thickapprox\sum_{i=1}^{n}\frac{f\left(x_{i-1}\right)+f\left(x_{i}\right)}{2}\cdot dx
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Where the parameters are defined:
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-dx=\frac{x_{n}-x_{0}}{n}
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-x_{i}=x_{0}+i\cdot dx
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The endpoints of the 1D integral are defined as 
-\begin_inset Formula $x_{0}=a$
-\end_inset
-
- and 
-\begin_inset Formula $x_{n}=b$
-\end_inset
-
-.
-\end_layout
-
-\begin_layout Standard
-The trapezoidal rule may be extended to approximate 2D integrals of the
- function 
-\begin_inset Formula $f\left(x,y\right)$
-\end_inset
-
-.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\int_{a}^{b}\int_{c}^{d}f\left(x,y\right)dy\cdot dx\approx
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\frac{1}{4}dx\cdot dy\cdot\left(f\left(x_{0},y_{0}\right)+f\left(x_{n},y_{0}\right)+f\left(x_{0},y_{m}\right)+f\left(x_{n},y_{m}\right)+\right.
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-2\sum_{j=1}^{n-1}f\left(x_{j},y_{0}\right)+2\sum_{j=1}^{n-1}f\left(x_{j},y_{m}\right)+2\sum_{i=1}^{m-1}f\left(x_{0},y_{i}\right)+2\sum_{i=1}^{m-1}f\left(x_{n},y_{i}\right)+
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\left.4\sum_{i=1}^{m-1}\sum_{j=1}^{n-1}f\left(x_{j},y_{i}\right)\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Where the parameters are defined:
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-dx=\frac{x_{n}-x_{0}}{n}
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-dy=\frac{y_{m}-y_{0}}{m}
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-x_{j}=x_{0}+j\cdot dx
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-y_{i}=y_{0}+i\cdot dy
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The edges of the 2D integral are defined as 
-\begin_inset Formula $x_{0}=a$
-\end_inset
-
-, 
-\begin_inset Formula $x_{n}=b$
-\end_inset
-
-, 
-\begin_inset Formula $y_{0}=c$
-\end_inset
-
- and 
-\begin_inset Formula $y_{m}=d$
-\end_inset
-
-.
-\end_layout
-
-\begin_layout Standard
-
-\series bold
-Note:
-\series default
- The trapezoidal rule for 2D integrals can also be separated into two passes
- by applying the 1D rule in the horizontal and vertical directions.
- The implementation using separate passes may be faster, however, the accuracy
- may be lower due to strong coupling between the 
-\begin_inset Formula $x$
-\end_inset
-
- and 
-\begin_inset Formula $y$
-\end_inset
-
- variables.
- As a result, the 2D approach is generally preferred for its robustness
- unless the function is well-understood and separability is confirmed.
-\end_layout
-
-\begin_layout Subsection
 Transmittance
 \end_layout
 
@@ -1529,70 +1320,6 @@ Where the following parameters are defined:
 
 : Scattering angle, 
 \begin_inset Formula $\cos\left(\theta\right)=dot\left(-\omega,-V\right)$
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The gather-scattering equation 
-\begin_inset Formula $G_{R,M}^{\left(k\right)}$
-\end_inset
-
- requires the computation of an integral over all directions 
-\begin_inset Formula $\omega$
-\end_inset
-
-.
- This can be accomplished by rewriting the equation using a spherical coordinate
- system.
- For example, a function 
-\begin_inset Formula $f\left(\omega\right)$
-\end_inset
-
- can be integrated over every direction by the double integral.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\int_{4\pi}f\left(\omega\right)d\omega=\int_{\varPhi=0}^{2\pi}\int_{\varTheta=0}^{\pi}f\left(\varTheta,\varPhi\right)\sin\left(\varTheta\right)d\varTheta\cdot d\varPhi
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Where the gathering direction 
-\begin_inset Formula $\omega$
-\end_inset
-
- and element area 
-\begin_inset Formula $d\omega$
-\end_inset
-
- are defined:
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\omega=\left(\sin\left(\varTheta\right)\cos\left(\varPhi\right),\sin\left(\varTheta\right)\sin\left(\varPhi\right),\cos\left(\varTheta\right)\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-d\omega=\sin\left(\varTheta\right)d\varTheta\cdot d\varPhi
-\]
-
 \end_inset
 
 
@@ -2948,6 +2675,256 @@ The Efficient and Dynamic Atmospheric Scattering paper uses the following
 \begin_inset Formula 
 \[
 \left(width,height,depth\right)=\left(32,256|128|64,32\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Numerical Integration
+\end_layout
+
+\begin_layout Standard
+The atmospheric simulation requires the computation of integrals that must
+ be approximated using numerical integration due to complexity of the equations.
+\end_layout
+
+\begin_layout Subsection
+1D Trapezoidal Rule
+\end_layout
+
+\begin_layout Standard
+The trapezoidal rule may be used to approximate 1D integrals of the function
+ 
+\begin_inset Formula $f\left(x\right)$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\int_{a}^{b}f\left(x\right)dx\thickapprox\sum_{i=1}^{n}\frac{f\left(x_{i-1}\right)+f\left(x_{i}\right)}{2}\cdot dx
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Where the parameters are defined:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+dx=\frac{x_{n}-x_{0}}{n}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+x_{i}=x_{0}+i\cdot dx
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The endpoints of the 1D integral are defined as 
+\begin_inset Formula $x_{0}=a$
+\end_inset
+
+ and 
+\begin_inset Formula $x_{n}=b$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+2D Trapezoidal Rule
+\end_layout
+
+\begin_layout Standard
+The trapezoidal rule may be extended to approximate 2D integrals of the
+ function 
+\begin_inset Formula $f\left(x,y\right)$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\int_{a}^{b}\int_{c}^{d}f\left(x,y\right)dy\cdot dx\approx
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\frac{1}{4}dx\cdot dy\cdot\left(f\left(x_{0},y_{0}\right)+f\left(x_{n},y_{0}\right)+f\left(x_{0},y_{m}\right)+f\left(x_{n},y_{m}\right)+\right.
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+2\sum_{j=1}^{n-1}f\left(x_{j},y_{0}\right)+2\sum_{j=1}^{n-1}f\left(x_{j},y_{m}\right)+2\sum_{i=1}^{m-1}f\left(x_{0},y_{i}\right)+2\sum_{i=1}^{m-1}f\left(x_{n},y_{i}\right)+
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\left.4\sum_{i=1}^{m-1}\sum_{j=1}^{n-1}f\left(x_{j},y_{i}\right)\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Where the parameters are defined:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+dx=\frac{x_{n}-x_{0}}{n}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+dy=\frac{y_{m}-y_{0}}{m}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+x_{j}=x_{0}+j\cdot dx
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+y_{i}=y_{0}+i\cdot dy
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The edges of the 2D integral are defined as 
+\begin_inset Formula $x_{0}=a$
+\end_inset
+
+, 
+\begin_inset Formula $x_{n}=b$
+\end_inset
+
+, 
+\begin_inset Formula $y_{0}=c$
+\end_inset
+
+ and 
+\begin_inset Formula $y_{m}=d$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Spherical Integration
+\end_layout
+
+\begin_layout Standard
+Spherical integration is the process of evaluating integrals over three-dimensio
+nal regions by converting to spherical coordinates.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\int_{4\pi}f\left(\omega\right)d\omega=\int_{\varPhi=0}^{2\pi}\int_{\varTheta=0}^{\pi}f\left(\varTheta,\varPhi\right)\sin\left(\varTheta\right)d\varTheta\cdot d\varPhi
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Where the direction vector 
+\begin_inset Formula $\omega$
+\end_inset
+
+ and element area 
+\begin_inset Formula $d\omega$
+\end_inset
+
+ are defined:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\omega=\left(\sin\left(\varTheta\right)\cos\left(\varPhi\right),\sin\left(\varTheta\right)\sin\left(\varPhi\right),\cos\left(\varTheta\right)\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+d\omega=\sin\left(\varTheta\right)d\varTheta\cdot d\varPhi
 \]
 
 \end_inset
