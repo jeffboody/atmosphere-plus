@@ -626,9 +626,9 @@ transmittance(atmo_solverParam_t* param, cc_vec3d_t* P1,
 		pO1 = densityO(param, h);
 
 		// apply trapesoidal rule
-		tR += 0.5d*(pR0 + pR1)*ds;
-		tM += 0.5d*(pM0 + pM1)*ds;
-		tO += 0.5d*(pO0 + pO1)*ds;
+		tR += 0.5*(pR0 + pR1)*ds;
+		tM += 0.5*(pM0 + pM1)*ds;
+		tO += 0.5*(pO0 + pO1)*ds;
 
 		pR0 = pR1;
 		pM0 = pM1;
@@ -838,10 +838,10 @@ fIS1(atmo_solverParam_t* param, double h, double phi,
 		if(computePc(param, &P, &L, &Pc) == 0)
 		{
 			// PPc intersects planet
-			fx0.r = 0.0d;
-			fx0.g = 0.0d;
-			fx0.b = 0.0d;
-			fx0.a = 0.0d;
+			fx0.r = 0.0;
+			fx0.g = 0.0;
+			fx0.b = 0.0;
+			fx0.a = 0.0;
 			continue;
 		}
 
