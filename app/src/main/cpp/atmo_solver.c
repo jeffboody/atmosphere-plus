@@ -1922,12 +1922,27 @@ atmo_solver_finish(atmo_solver_t* self, cc_vec4d_t* data)
 
 	atmo_solverParam_t* param = &self->param;
 
-	// compute total intensity for each k
-	uint32_t k;
-	uint32_t x;
-	uint32_t y;
-	uint32_t z;
+	uint32_t   x;
+	uint32_t   y;
+	uint32_t   z;
+	double     mag0 = 0.0;
 	cc_vec4d_t fis0;
+	for(z = 0; z < param->texture_depth; ++z)
+	{
+		for(y = 0; y < param->texture_height; ++y)
+		{
+			for(x = 0; x < param->texture_width; ++x)
+			{
+				getData(param, 1, x, y, z, data, &fis0);
+				mag0 += cc_vec4d_mag(&fis0);
+			}
+		}
+	}
+	LOGI("k=1, mag=%lf", mag0);
+
+	// compute total intensity for each k
+	uint32_t   k;
+	double     mag1 = 0.0;
 	cc_vec4d_t fis1;
 	cc_vec4d_t fis;
 	for(k = 2; k <= param->k; ++k)
@@ -1940,11 +1955,16 @@ atmo_solver_finish(atmo_solver_t* self, cc_vec4d_t* data)
 				{
 					getData(param, k - 1, x, y, z, data, &fis0);
 					getData(param, k,     x, y, z, data, &fis1);
+					mag1 += cc_vec4d_mag(&fis1);
 					cc_vec4d_addv_copy(&fis0, &fis1, &fis);
 					setData(param, k, x, y, z, data, &fis);
 				}
 			}
 		}
+		LOGI("k=%u, mag=%lf, atten=%lf", k, mag1, mag1/mag0);
+
+		mag0 = mag1;
+		mag1 = 0.0;
 	}
 }
 
