@@ -180,12 +180,39 @@ atmo_solver_computeII(atmo_solverParam_t* param)
 		max = ATMO_SPECTRAL_IRRADIANCE_MAX;
 	}
 
-	// integrate spectral irradiance and xyz
 	int i;
-	double si;
-	cc_vec3d_t xyz  = { 0 };
 	cc_vec3d_t xyz0;
 	cc_vec3d_t xyz1;
+
+	// normalization of xyz essentially disables HDR color
+	#ifdef ATMO_NORMALIZE_XYZ
+	atmo_spectralToRGB_getXYZ(min, &xyz0);
+	double y0 = xyz0.y;
+	double y1;
+
+	// compute normalization factor for XYZ
+	double si0 = atmo_spectralIrradiance_get((double) min);
+	double si1;
+	double K = 0.0;
+	for(i = min + 1; i <= max; ++i)
+	{
+		// Solar irradiance values (W / (m^2 * nm)).
+		si1 = atmo_spectralIrradiance_get((double) i);
+		atmo_spectralToRGB_getXYZ(i, &xyz1);
+		y1 = xyz1.y;
+
+		// apply trapezoidal rule
+		K += 0.5*(si0*y0 + si1*y1);
+
+		si0 = si1;
+		y0  = y1;
+	}
+	LOGI("K=%lf", K);
+	#endif
+
+	// integrate spectral irradiance and xyz
+	double si;
+	cc_vec3d_t xyz  = { 0 };
 	cc_vec3d_t tmp;
 	for(i = min; i <= max; ++i)
 	{
@@ -205,6 +232,10 @@ atmo_solver_computeII(atmo_solverParam_t* param)
 
 		cc_vec3d_copy(&xyz1, &xyz0);
 	}
+
+	#ifdef ATMO_NORMALIZE_XYZ
+	cc_vec3d_muls(&xyz, 1.0/K);
+	#endif
 
 	cc_vec3d_t II;
 	cc_mat3d_mulv_copy(&Minv, &xyz, &II);
