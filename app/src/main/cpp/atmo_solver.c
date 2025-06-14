@@ -609,10 +609,10 @@ static double densityO(atmo_solverParam_t* param, double h)
 	return p;
 }
 
-// Rayleigh/Mie transmittance
+// Rayleigh/Mie optical depth
 static void
-transmittance(atmo_solverParam_t* param, cc_vec3d_t* P1,
-              cc_vec3d_t* P2, cc_vec3d_t* out)
+opticalDepth(atmo_solverParam_t* param, cc_vec3d_t* P1,
+             cc_vec3d_t* P2, cc_vec3d_t* out)
 {
 	ASSERT(param);
 	ASSERT(P1);
@@ -639,7 +639,7 @@ transmittance(atmo_solverParam_t* param, cc_vec3d_t* P1,
 		return;
 	}
 
-	// integrate transmittance
+	// integrate optical depth
 	int    i;
 	double pR1;
 	double pM1;
@@ -847,8 +847,8 @@ fIS1(atmo_solverParam_t* param, double h, double phi,
 	double ds = cc_vec3d_mag(&step);
 	double pR = densityR(param, h);
 	double pM = densityM(param, h);
-	transmittance(param, &P, &Pc, &tPPc);
-	transmittance(param, &Pa, &P, &tPaP);
+	opticalDepth(param, &P, &Pc, &tPPc);
+	opticalDepth(param, &Pa, &P, &tPaP);
 	fx0.r = pR*exp(-tPPc.x -tPaP.x);
 	fx0.g = pR*exp(-tPPc.y -tPaP.y);
 	fx0.b = pR*exp(-tPPc.z -tPaP.z);
@@ -879,8 +879,8 @@ fIS1(atmo_solverParam_t* param, double h, double phi,
 		h  = getHeightP(param, &P);
 		pR = densityR(param, h);
 		pM = densityM(param, h);
-		transmittance(param, &P, &Pc, &tPPc);
-		transmittance(param, &Pa, &P, &tPaP);
+		opticalDepth(param, &P, &Pc, &tPPc);
+		opticalDepth(param, &Pa, &P, &tPaP);
 		fx1.r = pR*exp(-tPPc.x -tPaP.x);
 		fx1.g = pR*exp(-tPPc.y -tPaP.y);
 		fx1.b = pR*exp(-tPPc.z -tPaP.z);
@@ -1186,7 +1186,7 @@ fISk(atmo_solverParam_t* param, uint32_t k,
 	double pR = densityR(param, h);
 	double pM = densityM(param, h);
 	fGk(param, k - 1, &P0, &V, &L, data, &fgk);
-	transmittance(param, &Pa, &P, &tPaP);
+	opticalDepth(param, &Pa, &P, &tPaP);
 	fx0.r = fgk.r*pR*exp(-tPaP.x);
 	fx0.g = fgk.g*pR*exp(-tPaP.y);
 	fx0.b = fgk.b*pR*exp(-tPaP.z);
@@ -1207,7 +1207,7 @@ fISk(atmo_solverParam_t* param, uint32_t k,
 		pR = densityR(param, h);
 		pM = densityM(param, h);
 		fGk(param, k - 1, &P, &V, &L, data, &fgk);
-		transmittance(param, &Pa, &P, &tPaP);
+		opticalDepth(param, &Pa, &P, &tPaP);
 		fx1.r = fgk.r*pR*exp(-tPaP.x);
 		fx1.g = fgk.g*pR*exp(-tPaP.y);
 		fx1.b = fgk.b*pR*exp(-tPaP.z);
@@ -1582,7 +1582,7 @@ atmo_solver_plotAvgT(atmo_solverParam_t* param)
 			double dist = cc_vec3d_mag(&Vba);
 
 			cc_vec3d_t t;
-			transmittance(param, &P0, &Pb, &t);
+			opticalDepth(param, &P0, &Pb, &t);
 
 			cc_vec3d_t T;
 			T.x = exp(-t.x);

@@ -911,6 +911,17 @@ Where the parameters are defined:
 \end_layout
 
 \begin_layout Itemize
+\begin_inset Formula $t$
+\end_inset
+
+: Optical depth, 
+\begin_inset Formula $t\in\left(0,\infty\right)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
 \begin_inset Formula $P$
 \end_inset
 
