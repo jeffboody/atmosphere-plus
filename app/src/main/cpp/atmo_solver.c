@@ -62,6 +62,9 @@
 #define ATMO_DENSITY_SCALE_HEIGHT_RAYLEIGH 8000.0
 #define ATMO_DENSITY_SCALE_HEIGHT_MIE      1200.0
 
+// also requires changes to shaders
+#define ATMO_USE_MODIFIED_RAYLEIGH_PHASE_FUNCTION
+
 // Mie asymmetry factor
 //
 // Clear day: 0.7 to 0.8
@@ -763,14 +766,25 @@ computePc(atmo_solverParam_t* param, cc_vec3d_t* P,
 	return computePaPb(param, P, &Sun, Ro, &Pa, Pc);
 }
 
+#ifdef ATMO_USE_MODIFIED_RAYLEIGH_PHASE_FUNCTION
 // modified Rayleigh phase function
 static double
 atmo_phaseR(atmo_solverParam_t* param, double cos_theta)
 {
 	ASSERT(param);
 
-	return 0.8*(1.4 + 0.5*cos_theta*cos_theta);
+	return 0.8*(1.4 + 0.5*cos_theta);
 }
+#else
+// standard Rayleigh phase function
+static double
+atmo_phaseR(atmo_solverParam_t* param, double cos_theta)
+{
+	ASSERT(param);
+
+	return 0.75*(1.0 + cos_theta*cos_theta);
+}
+#endif
 
 // Mie phase function
 static double

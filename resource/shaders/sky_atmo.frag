@@ -77,7 +77,7 @@ layout(set=1, binding=4) uniform sampler3D sampler104_fIS;
 // modified Rayleigh phase function
 float phaseR(float cos_theta)
 {
-	return 0.8*(1.4 + 0.5*cos_theta*cos_theta);
+	return 0.8*(1.4 + 0.5*cos_theta);
 }
 
 // Mie phase function

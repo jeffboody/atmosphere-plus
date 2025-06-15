@@ -712,7 +712,7 @@ ions introduced for the scattering intensity parameterization.
 \begin_layout Standard
 \begin_inset Formula 
 \[
-F_{R}\left(\cos\left(\theta\right)\right)=\frac{8}{10}\left(\frac{7}{5}+\frac{1}{2}\cos^{2}\left(\theta\right)\right)
+F_{R}\left(\cos\left(\theta\right)\right)=\frac{8}{10}\left(\frac{7}{5}+\frac{1}{2}\cos\left(\theta\right)\right)
 \]
 
 \end_inset
