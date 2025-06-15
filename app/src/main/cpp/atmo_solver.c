@@ -831,8 +831,6 @@ fIS1(atmo_solverParam_t* param, double h, double phi,
 		.x = -sin(delta),
 		.z = -cos(delta),
 	};
-	cc_vec3d_normalize(&V);
-	cc_vec3d_normalize(&L);
 
 	// compute ray-sphere intersection
 	// include a ray offset for the viewing vector
@@ -1042,7 +1040,6 @@ fGk_step(atmo_solverParam_t* param, uint32_t k,
 		.y = sin(xj)*sin(yi),
 		.z = cos(xj),
 	};
-	cc_vec3d_normalize(&omega);
 
 	// compute phase
 	double cos_theta;
@@ -1175,8 +1172,6 @@ fISk(atmo_solverParam_t* param, uint32_t k,
 		.x = -sin(delta),
 		.z = -cos(delta),
 	};
-	cc_vec3d_normalize(&V);
-	cc_vec3d_normalize(&L);
 
 	// compute ray-sphere intersection
 	// include a ray offset for the viewing vector
@@ -1581,7 +1576,6 @@ atmo_solver_plotAvgT(atmo_solverParam_t* param)
 				.x = sin(phi_rad),
 				.z = cos(phi_rad),
 			};
-			cc_vec3d_normalize(&V);
 
 			// compute ray-sphere intersection
 			// include a ray offset for the viewing vector
