@@ -1137,7 +1137,7 @@ fGk(atmo_solverParam_t* param, uint32_t k, cc_vec3d_t* P,
 	}
 
 	// apply 2D trapezoidal rule scale
-	cc_vec4d_muls(fgk, 4.0*dx*dy);
+	cc_vec4d_muls(fgk, 0.25*dx*dy);
 }
 
 // factored multiple-scattered intensity
