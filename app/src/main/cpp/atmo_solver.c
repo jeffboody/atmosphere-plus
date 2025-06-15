@@ -1701,7 +1701,7 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4d_t* data)
 	}
 
 	// spectral intensity of incident light from the Sun
-	double exposure = -5.0;
+	double exposure = -2.5;
 	cc_vec4d_t II =
 	{
 		.r = pow(2.0, exposure)*param->II_r,

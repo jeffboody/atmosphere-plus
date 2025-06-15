@@ -50,7 +50,7 @@ static void atmo_renderer_resetCtrl(atmo_renderer_t* self)
 	self->ctrl_delta    = 0.0f;
 	self->ctrl_omega    = 0.0f;
 	self->ctrl_k        = 5;
-	self->ctrl_exposure = -5.0f;
+	self->ctrl_exposure = -2.5f;
 }
 
 /***********************************************************
