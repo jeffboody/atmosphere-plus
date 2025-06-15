@@ -159,6 +159,11 @@
 // select sampling mode
 #define ATMO_SAMPLE_MODE ATMO_SAMPLE_MODE_LINEAR
 
+// experimental change which attempts to adjust the
+// attenuation of multiple scattering passes which have
+// much lower intensity than expected
+// #define ATMO_ADJUST_ATTENUATION
+
 /***********************************************************
 * private - compute                                        *
 ***********************************************************/
@@ -1964,7 +1969,8 @@ atmo_solver_finish(atmo_solver_t* self, cc_vec4d_t* data)
 	uint32_t   x;
 	uint32_t   y;
 	uint32_t   z;
-	double     mag0 = 0.0;
+	double     mag0_r = 0.0;
+	double     mag0_m = 0.0;
 	cc_vec4d_t fis0;
 	for(z = 0; z < param->texture_depth; ++z)
 	{
@@ -1973,17 +1979,22 @@ atmo_solver_finish(atmo_solver_t* self, cc_vec4d_t* data)
 			for(x = 0; x < param->texture_width; ++x)
 			{
 				getData(param, 1, x, y, z, data, &fis0);
-				mag0 += cc_vec4d_mag(&fis0);
+				mag0_r += cc_vec3d_mag((cc_vec3d_t*) &fis0);
+				mag0_m += fis0.a;
 			}
 		}
 	}
-	LOGI("k=1, mag=%lf", mag0);
+	LOGI("k=1, mag0_r=%lf, mag0_m=%lf", mag0_r, mag0_m);
 
 	// compute total intensity for each k
 	uint32_t   k;
-	double     mag1 = 0.0;
+	double     mag1_r = 0.0;
+	double     mag1_m = 0.0;
+	double     ATTEN_R = 0.97;
+	double     ATTEN_M = 0.8;
+	double     atten_r = ATTEN_R;
+	double     atten_m = ATTEN_M;
 	cc_vec4d_t fis1;
-	cc_vec4d_t fis;
 	for(k = 2; k <= param->k; ++k)
 	{
 		for(z = 0; z < param->texture_depth; ++z)
@@ -1992,18 +2003,46 @@ atmo_solver_finish(atmo_solver_t* self, cc_vec4d_t* data)
 			{
 				for(x = 0; x < param->texture_width; ++x)
 				{
+					getData(param, k, x, y, z, data, &fis1);
+					mag1_r += cc_vec3d_mag((cc_vec3d_t*) &fis1);
+					mag1_m += fis1.a;
+				}
+			}
+		}
+		LOGI("k=%u, mag1_r=%lf, mag1_m=%lf, atten_r=%lf (%lf), atten_m=%lf (%lf)",
+		     k, mag1_r, mag1_m, mag1_r/mag0_r, atten_r, mag1_m/mag0_m, atten_m);
+
+		cc_vec4d_t fis;
+		for(z = 0; z < param->texture_depth; ++z)
+		{
+			for(y = 0; y < param->texture_height; ++y)
+			{
+				for(x = 0; x < param->texture_width; ++x)
+				{
 					getData(param, k - 1, x, y, z, data, &fis0);
 					getData(param, k,     x, y, z, data, &fis1);
-					mag1 += cc_vec4d_mag(&fis1);
+
+					// optionally adjust the attenuation for each k
+					#ifdef ATMO_ADJUST_ATTENUATION
+					fis1.r *= atten_r*mag0_r/mag1_r;
+					fis1.g *= atten_r*mag0_r/mag1_r;
+					fis1.b *= atten_r*mag0_r/mag1_r;
+					fis1.a *= atten_m*mag0_m/mag1_m;
+					#endif
+
 					cc_vec4d_addv_copy(&fis0, &fis1, &fis);
 					setData(param, k, x, y, z, data, &fis);
 				}
 			}
 		}
-		LOGI("k=%u, mag=%lf, atten=%lf", k, mag1, mag1/mag0);
 
-		mag0 = mag1;
-		mag1 = 0.0;
+		mag1_r = 0.0;
+		mag1_m = 0.0;
+		atten_r *= ATTEN_R;
+		if(k <= 3)
+		{
+			atten_m *= ATTEN_M;
+		}
 	}
 }
 
