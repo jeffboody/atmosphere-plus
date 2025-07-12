@@ -123,30 +123,56 @@ Wavelength of Light
 \end_layout
 
 \begin_layout Standard
-The wavelength of light is a continuous value, however, we typically select
- 3 discrete wavelengths to represent red, green and blue light.
+The wavelength of light is a continuous value which represents the light
+ color.
 \end_layout
 
 \begin_layout Standard
-The typical range of wavelengths include:
+The typical range of wavelengths for each light color include.
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $\lambda_{r}=\left(620,750\right)$
+\begin_inset Formula $\lambda_{r}\thicksim\left(620,750\right)$
 \end_inset
 
  nm
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $\lambda_{g}=\left(495,570\right)$
+\begin_inset Formula $\lambda_{g}\thicksim\left(495,570\right)$
 \end_inset
 
  nm
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $\lambda_{b}=\left(380,500\right)$
+\begin_inset Formula $\lambda_{b}\thicksim\left(380,500\right)$
+\end_inset
+
+ nm
+\end_layout
+
+\begin_layout Standard
+However, atmospheric simulations typically select a discrete set of wavelengths
+ to represent the light color.
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\lambda_{r}=680$
+\end_inset
+
+ nm
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\lambda_{g}=550$
+\end_inset
+
+ nm
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\lambda_{b}=440$
 \end_inset
 
  nm
@@ -191,7 +217,7 @@ To convert a spectral wavelength
  First, the wavelengths must be converted to a CIE XYZ (1931) color space
  by looking up the wavelength in a table.
  Next, the XYZ coordinates can be transformed into a color space via matrix
- multiplication.
+ multiplication followed by optional normalization.
  For our purposes we will select the sRGB color space since it has been
  designed to produce outputs that that are optimized for modern displays.
 \end_layout
@@ -276,24 +302,28 @@ Spectral Intensity of Incident Light
 
 \begin_layout Standard
 The spectral intensity of incident light 
-\begin_inset Formula $I_{I}$
+\begin_inset Formula $I$
 \end_inset
 
  is defined by the intensity of light at the top of atmosphere (TOA).
  The computation of 
-\begin_inset Formula $I_{I}$
+\begin_inset Formula $I$
 \end_inset
 
  involves computing the integral of the spectral intensity over all wavelengths
- while simultaneously converting wavelengths into RGB colors.
- Do not apply clamping or normalization in the integration process.
+ while simultaneously converting wavelengths into RGB colors (do not apply
+ clamping or normalization when computing 
+\begin_inset Formula $I$
+\end_inset
+
+).
  The resulting output is a high dynamic range (HDR) color.
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-I_{I}\left(r,g,b\right)=M^{-1}\cdot\left(\int_{\lambda}SpectralIrradiance\left(\lambda\right)\cdot XYZ\left(\lambda\right)\cdot d\lambda\right)
+I\left(\lambda\right)=M^{-1}\cdot\left(\int_{\lambda}SpectralIrradiance\left(\lambda\right)\cdot XYZ\left(\lambda\right)\cdot d\lambda\right)
 \]
 
 \end_inset
@@ -303,7 +333,7 @@ I_{I}\left(r,g,b\right)=M^{-1}\cdot\left(\int_{\lambda}SpectralIrradiance\left(\
 
 \begin_layout Standard
 The computed spectral intensity of incident light 
-\begin_inset Formula $I_{I}$
+\begin_inset Formula $I$
 \end_inset
 
 .
@@ -312,7 +342,7 @@ The computed spectral intensity of incident light
 \begin_layout Standard
 \begin_inset Formula 
 \[
-I_{I}\left(r,g,b\right)=\left(213.865952,190.346115,183.806488\right)
+I=I\left(\lambda_{r},\lambda_{g},\lambda_{b}\right)=\left(213.865952,190.346115,183.806488\right)
 \]
 
 \end_inset
@@ -504,30 +534,107 @@ Atmospheric Boundary
 \end_layout
 
 \begin_layout Standard
-The atmospheric simulation models the atmosphere as the region where the
- effects of the atmosphere are non-negligible, extending from the Earth's
- surface to an atmospheric boundary.
+The atmosphere consists of 5 layers where the height of each layer is defined
+ as follows.
 \end_layout
 
+\begin_layout Itemize
+Troposphere
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+0 km to 20 km at the equator
+\end_layout
+
+\begin_layout Itemize
+0 km to 9 km at 50 degree latitude
+\end_layout
+
+\begin_layout Itemize
+0 km to 6 km at the poles
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Stratosphere 
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+Troposphere to 50 km
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Mesophere
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+50 km to 85 km
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Thermosphere
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+85 km to 600 km
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Exosphere
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+600 km to 10,000 km
+\end_layout
+
+\end_deeper
 \begin_layout Standard
-The Scalable and Production Ready Sky and Atmosphere Rendering Technique
+However, atmospheric simulations commonly model the atmosphere as the region
+ where it's effects are non-negligible.
+ This region extends from the Earth's surface to an atmospheric boundary
+ referred to as the 
+\begin_inset Quotes eld
+\end_inset
+
+top of atmosphere
+\begin_inset Quotes erd
+\end_inset
+
+ (TOA).
+ The Scalable and Production Ready Sky and Atmosphere Rendering Technique
  paper uses the following constants for these radii.
 \end_layout
 
 \begin_layout Itemize
 Radius of the planet: 
-\begin_inset Formula $R_{p}=6360000$
+\begin_inset Formula $R_{p}=6360$
 \end_inset
 
- m
+ km
 \end_layout
 
 \begin_layout Itemize
 Radius of the atmospheric boundary: 
-\begin_inset Formula $R_{a}=6460000$
+\begin_inset Formula $R_{a}=6460$
 \end_inset
 
- m
+ km
+\end_layout
+
+\begin_layout Itemize
+TOA: 
+\begin_inset Formula $TOA=R_{a}-R_{p}=100$
+\end_inset
+
+ km
 \end_layout
 
 \begin_layout Subsection
@@ -598,14 +705,14 @@ p_{R,M}\left(h\right)=\exp\left(-\frac{h}{H_{R,M}}\right)
 
 \begin_layout Standard
 Where 
-\begin_inset Formula $H_{R}\thickapprox8000m$
+\begin_inset Formula $H_{R}\thickapprox8000$
 \end_inset
 
- and 
-\begin_inset Formula $H_{M}\thickapprox1200m$
+ m and 
+\begin_inset Formula $H_{M}\thickapprox1200$
 \end_inset
 
- are the Rayleigh/Mie scale heights (e.g.
+ m are the Rayleigh/Mie scale heights (e.g.
  the altitude where the density of particles scales down by a 
 \begin_inset Formula $\frac{1}{e}$
 \end_inset
@@ -637,8 +744,7 @@ Visualization of the Density Function
 \end_layout
 
 \begin_layout Standard
-The following diagram shows the exponential decay of the density (Rayleigh,
- Mie and Ozone) as a function of height.
+The following plot show the Rayleigh, Mie and Ozone density functions.
 \end_layout
 
 \begin_layout Standard
@@ -701,26 +807,6 @@ Where the scattering angle
 \end_layout
 
 \begin_layout Standard
-The Rayleigh scattering phase function 
-\begin_inset Formula $F_{R}$
-\end_inset
-
- may be modified, in practice, to produce more natural results given simplificat
-ions introduced for the scattering intensity parameterization.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-F_{R}\left(\cos\left(\theta\right)\right)=\frac{8}{10}\left(\frac{7}{5}+\frac{1}{2}\cos\left(\theta\right)\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
 Mie scattering phase function, 
 \begin_inset Formula $F_{M}$
 \end_inset
@@ -754,7 +840,7 @@ The parameter
 
 \begin_layout Standard
 The Scalable and Production Ready Sky and Atmosphere Rendering Technique
- paper uses 
+ paper uses a default value of 
 \begin_inset Formula $g=0.8$
 \end_inset
 
@@ -779,7 +865,7 @@ The Scalable and Production Ready Sky and Atmosphere Rendering Technique
 \begin_layout Standard
 \begin_inset Formula 
 \[
-β_{R}^{s}\left(r,g,b\right)=(5.802e-6,13.558e-6,33.1e-6)
+β_{R}^{s}=\beta_{R}^{s}\left(\lambda_{r},\lambda_{g},\lambda_{b}\right)=(5.802e-6,13.558e-6,33.1e-6)
 \]
 
 \end_inset
@@ -812,7 +898,7 @@ The Scalable and Production Ready Sky and Atmosphere Rendering Technique
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\beta_{O}^{a}=\left(0.65e-6,1.881e-6,0.085e-6\right)
+\beta_{O}^{a}=\beta_{O}^{a}\left(\lambda_{r},\lambda_{g},\lambda_{b}\right)=\left(0.65e-6,1.881e-6,0.085e-6\right)
 \]
 
 \end_inset
@@ -823,7 +909,7 @@ The Scalable and Production Ready Sky and Atmosphere Rendering Technique
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\beta_{R,M}^{e}=\beta_{R,M}^{s}+\beta_{M,O}^{a}
+\beta_{R,M,O}^{e}=\beta_{R,M}^{s}+\beta_{M,O}^{a}
 \]
 
 \end_inset
@@ -832,28 +918,13 @@ The Scalable and Production Ready Sky and Atmosphere Rendering Technique
 \end_layout
 
 \begin_layout Standard
-The Rayleigh coefficients were determined assuming the following wavelengths.
-\end_layout
 
-\begin_layout Itemize
-\begin_inset Formula $\lambda_{r}=680$
-\end_inset
-
- nm
-\end_layout
-
-\begin_layout Itemize
-\begin_inset Formula $\lambda_{g}=550$
-\end_inset
-
- nm
-\end_layout
-
-\begin_layout Itemize
-\begin_inset Formula $\lambda_{b}=440$
-\end_inset
-
- nm
+\series bold
+Note:
+\series default
+ The Rayleigh/ozone coefficients are 3-component vectors (color / wavelength
+ dependent) while the Mie coefficients is a scalar (grayscale / wavelength
+ independent).
 \end_layout
 
 \begin_layout Subsection
@@ -866,7 +937,7 @@ Definition of Transmittance
 
 \begin_layout Standard
 The transmittance function 
-\begin_inset Formula $T\left(P_{1},P_{2},\lambda\right)$
+\begin_inset Formula $T\left(P_{1},P_{2}\right)$
 \end_inset
 
  expresses the amount of attenuated light after it passes between two points
@@ -876,7 +947,7 @@ The transmittance function
 \begin_layout Standard
 \begin_inset Formula 
 \[
-T\left(P_{1},P_{2},\lambda\right)=\exp\left(-t\left(P_{1},P_{2},\lambda\right)\right)
+T\left(P_{1},P_{2}\right)=\exp\left(-t\left(P_{1},P_{2}\right)\right)
 \]
 
 \end_inset
@@ -887,7 +958,7 @@ T\left(P_{1},P_{2},\lambda\right)=\exp\left(-t\left(P_{1},P_{2},\lambda\right)\r
 \begin_layout Standard
 \begin_inset Formula 
 \[
-t\left(P_{1},P_{2},\lambda\right)=\sum_{i\in R,M,O}\beta_{i}^{e}\left(\lambda\right)\int_{P_{1}}^{P_{2}}p_{i}\left(h\left(P\right)\right)ds
+t\left(P_{1},P_{2}\right)=\sum_{i\in R,M,O}\beta_{i}^{e}\int_{P_{1}}^{P_{2}}p_{i}\left(h\left(P\right)\right)ds
 \]
 
 \end_inset
@@ -958,7 +1029,8 @@ The Rendering Parametrizable Planetary Atmospheres with Multiple Scattering
 
 \begin_layout Standard
 The light ray may change direction as it interacts with particles while
- passing through a medium.
+ passing through a medium (e.g.
+ the atmosphere).
  Consider a light ray which passes between the points 
 \begin_inset Formula $P_{1},P_{2},P_{3}$
 \end_inset
@@ -978,7 +1050,7 @@ The light ray may change direction as it interacts with particles while
 \begin_layout Standard
 \begin_inset Formula 
 \[
-T\left(P_{1},P_{2},\lambda\right)\cdot T\left(P_{2},P_{3},\lambda\right)=\exp\left(-t\left(P_{1},P_{2},\lambda\right)\right)\cdot\exp\left(-t\left(P_{2},P_{3},\lambda\right)\right)
+T\left(P_{1},P_{2}\right)\cdot T\left(P_{2},P_{3}\right)=\exp\left(-t\left(P_{1},P_{2}\right)\right)\cdot\exp\left(-t\left(P_{2},P_{3}\right)\right)
 \]
 
 \end_inset
@@ -1013,7 +1085,7 @@ Where the functions
 \begin_layout Standard
 \begin_inset Formula 
 \[
-T\left(P_{1},P_{2},\lambda\right)\cdot T\left(P_{2},P_{3},\lambda\right)=\exp\left(-t\left(P_{1},P_{2},\lambda\right)-t\left(P_{2},P_{3},\lambda\right)\right)
+T\left(P_{1},P_{2}\right)\cdot T\left(P_{2},P_{3}\right)=\exp\left(-t\left(P_{1},P_{2}\right)-t\left(P_{2},P_{3}\right)\right)
 \]
 
 \end_inset
@@ -1038,7 +1110,7 @@ The following diagrams show the average transmittance as a function of altitude
 .
  Notice how the valley follows the horizon as the height increases.
  The transmittance is much lower at the horizon since the atmosphere is
- much thinner in the vertical direction than the horizontal direction.
+ much thicker in the horizontal direction than the vertical direction.
  See the Scattering Intensity Parameterization section for more details.
 \end_layout
 
@@ -1065,23 +1137,32 @@ The following diagrams show the average transmittance as a function of altitude
 \end_layout
 
 \begin_layout Section
-Sky Rendering
+Atmospheric Simulation Passes
+\end_layout
+
+\begin_layout Standard
+The atmospheric simulation requires solving a series of complex equations
+ for which there does not exist a closed form solution.
+ These equations model different interactions of light with atmospheric
+ particles and the planet surface.
+ An iterative procedure will be applied to compute the contribution of each
+ individual interaction over multiple scattering orders.
 \end_layout
 
 \begin_layout Subsection
-Single-scattering
+Single-scattering Pass
 \end_layout
 
 \begin_layout Standard
 The single-scattering equation 
-\begin_inset Formula $I_{S_{R,M}}^{\left(1\right)}$
+\begin_inset Formula $S^{\left(1\right)}$
 \end_inset
 
  describes the intensity of light that reaches an observer 
 \begin_inset Formula $P_{0}$
 \end_inset
 
- looking in the direction 
+ looking in the viewing direction 
 \begin_inset Formula $V$
 \end_inset
 
@@ -1091,7 +1172,7 @@ The single-scattering equation
 \begin_layout Standard
 \begin_inset Formula 
 \[
-I_{S_{R,M}}^{\left(1\right)}\left(P_{0},V,L,\lambda\right)=I_{I}\left(\lambda\right)\cdot F_{R,M}\left(dot\left(L,-V\right)\right)\cdot\frac{\beta_{R,M}^{s}\left(\lambda\right)}{4\pi}\cdot
+S^{\left(1\right)}\left(P_{0},V,L\right)=\sum_{i\in R,M}I\cdot F_{i}\left(dot\left(L,-V\right)\right)\cdot\frac{\beta_{i}^{s}}{4\pi}\cdot
 \]
 
 \end_inset
@@ -1102,7 +1183,7 @@ I_{S_{R,M}}^{\left(1\right)}\left(P_{0},V,L,\lambda\right)=I_{I}\left(\lambda\ri
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\cdot\int_{P_{a}}^{P_{b}}p_{R,M}\left(h\left(P\right)\right)\cdot T\left(P_{c},P,\lambda\right)\cdot T\left(P,P_{a},\lambda\right)ds
+\cdot\int_{P_{a}}^{P_{b}}p_{i}\left(h\left(P\right)\right)\cdot T\left(P_{c},P\right)\cdot T\left(P,P_{a}\right)ds
 \]
 
 \end_inset
@@ -1115,58 +1196,10 @@ Where the following parameters are defined:
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $P$
-\end_inset
-
-: Sample point parameterized by 
-\begin_inset Formula $s$
-\end_inset
-
-, 
-\begin_inset Formula $P=P_{a}+s\left(P_{b}-P_{a}\right)$
-\end_inset
-
-
-\end_layout
-
-\begin_layout Itemize
-\begin_inset Formula $h$
-\end_inset
-
-: Height is parameterized by P, 
-\begin_inset Formula $h\left(P\right)=\left|P\right|-R_{p}$
-\end_inset
-
-
-\end_layout
-
-\begin_layout Itemize
-\begin_inset Formula $V$
-\end_inset
-
-: Viewing direction, 
-\begin_inset Formula $V=nomalize\left(P_{b}-P_{a}\right)$
-\end_inset
-
-
-\end_layout
-
-\begin_layout Itemize
 \begin_inset Formula $L$
 \end_inset
 
 : Direction of light from the Sun
-\end_layout
-
-\begin_layout Itemize
-\begin_inset Formula $\theta$
-\end_inset
-
-: Scattering angle, 
-\begin_inset Formula $\cos\left(\theta\right)=dot\left(L,-V\right)$
-\end_inset
-
-
 \end_layout
 
 \begin_layout Itemize
@@ -1198,6 +1231,43 @@ Where the following parameters are defined:
 \end_layout
 
 \begin_layout Itemize
+\begin_inset Formula $P$
+\end_inset
+
+: Sample point parameterized by 
+\begin_inset Formula $s$
+\end_inset
+
+, 
+\begin_inset Formula $P=P_{a}+s\left(P_{b}-P_{a}\right)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $h$
+\end_inset
+
+: Height is parameterized by P, 
+\begin_inset Formula $h\left(P\right)=\left|P\right|-R_{p}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\theta$
+\end_inset
+
+: Scattering angle, 
+\begin_inset Formula $\cos\left(\theta\right)=dot\left(L,-V\right)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
 \begin_inset Formula $P_{c}$
 \end_inset
 
@@ -1206,7 +1276,7 @@ Where the following parameters are defined:
 \end_inset
 
  in the direction of the Sun (e.g.
- the atmosphere boundary or the Earth's surface).
+ the atmosphere boundary).
  If the ray intersects the Earth then the point 
 \begin_inset Formula $P$
 \end_inset
@@ -1217,27 +1287,164 @@ Where the following parameters are defined:
 \begin_inset Formula $P$
 \end_inset
 
- may still contribute to the multiple scattering intensity as described
- in the next section.
+ may still contribute to the multiple scattering intensity.
 \end_layout
 
-\begin_layout Standard
-The phase function 
-\begin_inset Formula $F_{R,M}$
+\begin_layout Itemize
+\begin_inset Formula $ds$
 \end_inset
 
- can be excluded from integration if we assume all light rays coming from
- the Sun are parallel.
+: Step delta for the sample points 
+\begin_inset Formula $P$
+\end_inset
+
+ between 
+\begin_inset Formula $P_{a}$
+\end_inset
+
+and 
+\begin_inset Formula $P_{b}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Diffuse Lighting Pass
 \end_layout
 
 \begin_layout Standard
-The total intensity of the single-scattering light:
+The diffuse lighting equation describes the direct illumination color contributi
+on to the planet surface by the incident light that was attenuated by the
+ atmosphere.
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-I_{S}^{\left(1\right)}=I_{S_{R}}^{\left(1\right)}+I_{S_{M}}^{\left(1\right)}
+D\left(P_{p},L\right)=C\cdot dot\left(N,L\right)\cdot I\cdot T\left(P_{p},P_{c}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Where the following parameters are defined:
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $C$
+\end_inset
+
+: The diffuse color of the surface
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $P_{p}$
+\end_inset
+
+: A point on the planet surface
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $P_{c}$
+\end_inset
+
+: The nearest intersection point along the ray from 
+\begin_inset Formula $P_{p}$
+\end_inset
+
+ in the direction of the Sun (e.g.
+ the atmosphere boundary).
+ If the ray intersects the Earth then the point 
+\begin_inset Formula $P_{p}$
+\end_inset
+
+ is shadowed by the Earth and does not contribute to diffuse lighting.
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $N$
+\end_inset
+
+: The surface normal at the ray intersection point 
+\begin_inset Formula $P_{p}$
+\end_inset
+
+, 
+\begin_inset Formula $N=normalize\left(P_{p}\right)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Ambient Lighting Pass
+\end_layout
+
+\begin_layout Standard
+The ambient lighting equation describes the indirect illumination color
+ contribution to the planet surface (assuming 
+\begin_inset Formula $h=0$
+\end_inset
+
+) by the light scattered through the atmosphere.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+A^{\left(1\right)}\left(L\right)=0
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+A^{\left(k>1\right)}\left(L\right)=C\cdot\int_{2\cdot\pi}dot\left(N,\omega\right)\cdot S^{\left(k-1\right)}\left(0,\omega,L\right)d\omega
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Where the following parameters are defined:
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $C$
+\end_inset
+
+: The diffuse color of the surface
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $N$
+\end_inset
+
+: The surface normal at the planet surface, 
+\begin_inset Formula $N=\left(0,0,1\right)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The total intensity of the ambient light is the sum over all orders.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+A=\sum_{k=1}^{K}A^{\left(k\right)}
 \]
 
 \end_inset
@@ -1251,7 +1458,7 @@ Multiple-scattering
 
 \begin_layout Standard
 The multiple-scattering equation 
-\begin_inset Formula $I_{S_{R,M}}^{\left(k\right)}$
+\begin_inset Formula $S^{\left(k\right)}$
 \end_inset
 
  describes the intensity of light that reaches an observer 
@@ -1268,7 +1475,7 @@ The multiple-scattering equation
 \begin_layout Standard
 \begin_inset Formula 
 \[
-I_{S_{R,M}}^{\left(k\right)}\left(P_{0},V,L,\lambda\right)=\frac{\beta_{R,M}^{s}\left(\lambda\right)}{4\pi}\cdot
+S^{\left(k\right)}\left(P_{0},V,L\right)=\sum_{i\in R,M}\frac{\beta_{i}^{s}}{4\pi}\cdot
 \]
 
 \end_inset
@@ -1279,7 +1486,7 @@ I_{S_{R,M}}^{\left(k\right)}\left(P_{0},V,L,\lambda\right)=\frac{\beta_{R,M}^{s}
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\cdot\int_{P_{a}}^{P_{b}}G_{R,M}^{\left(k-1\right)}\left(P,V,L,\lambda\right)\cdot p_{R,M}\left(h\left(P\right)\right)\cdot T\left(P,P_{a},\lambda\right)ds
+\cdot\int_{P_{a}}^{P_{b}}G_{i}^{\left(k-1\right)}\left(P,V,L\right)\cdot p_{i}\left(h\left(P\right)\right)\cdot T\left(P,P_{a}\right)ds
 \]
 
 \end_inset
@@ -1289,7 +1496,7 @@ I_{S_{R,M}}^{\left(k\right)}\left(P_{0},V,L,\lambda\right)=\frac{\beta_{R,M}^{s}
 
 \begin_layout Standard
 Where the gather-scattering equation 
-\begin_inset Formula $G_{R,M}^{\left(k\right)}$
+\begin_inset Formula $G_{i}^{\left(k\right)}$
 \end_inset
 
  describes the intensity of light that reaches the point 
@@ -1301,12 +1508,17 @@ Where the gather-scattering equation
 \end_inset
 
  towards the observer for the kth order scattering event.
+ This variation of 
+\begin_inset Formula $G_{i}^{\left(k\right)}$
+\end_inset
+
+ includes contributions from diffuse and ambient lighting passes.
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-G_{R,M}^{\left(k\right)}\left(P,V,L,\lambda\right)=\int_{4\pi}F_{R,M}\left(dot\left(-\omega,-V\right)\right)\cdot I_{S_{R,M}}^{\left(k\right)}\left(P,\omega,L,\lambda\right)d\omega
+G_{i}^{\left(k\right)}\left(P,V,L\right)=\int_{4\pi}F_{i}\left(dot\left(-\omega,-V\right)\right)\cdot H^{\left(k\right)}\left(P,\omega,L\right)d\omega
 \]
 
 \end_inset
@@ -1336,299 +1548,80 @@ Where the following parameters are defined:
 
 \end_layout
 
-\begin_layout Standard
-The first order of 
-\begin_inset Formula $I_{S_{R,M}}^{\left(k\right)}$
+\begin_layout Itemize
+\begin_inset Formula $H^{\left(1\right)}\left(P,\omega,L\right)=S^{\left(1\right)}\left(P,\omega,L\right)$
 \end_inset
 
- is initialized with the single-scattering output 
-\begin_inset Formula $I_{S_{R,M}}^{\left(1\right)}$
+
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $H^{\left(2\right)}\left(P,\omega,L\right)=S^{\left(2\right)}\left(P,\omega,L\right)+\frac{1}{\pi}D\left(P_{p}\left(\omega\right),L\right)$
 \end_inset
 
- while subsequent orders of 
-\begin_inset Formula $I_{S_{R,M}}^{\left(k\right)}$
+
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $H^{\left(k>2\right)}\left(P,\omega,L\right)=S^{\left(k\right)}\left(P,\omega,L\right)+\frac{1}{\pi}A^{\left(k\right)}\left(L\right)$
 \end_inset
 
- are computed iteratively by sampling the previous output 
-\begin_inset Formula $I_{S_{R,M}}^{\left(k-1\right)}$
-\end_inset
 
-.
 \end_layout
 
 \begin_layout Standard
-Observe that the light vector 
-\begin_inset Formula $L$
+The diffuse and ambient terms of 
+\begin_inset Formula $H$
 \end_inset
 
- is used in computation of the phase function 
-\begin_inset Formula $F_{R,M}$
-\end_inset
-
- for the single-scattering equation 
-\begin_inset Formula $I_{S_{R,M}}^{\left(1\right)}$
-\end_inset
-
-, but not for the gather-scattering equation 
-\begin_inset Formula $G_{R,M}^{\left(k\right)}$
-\end_inset
-
-.
- As a result, the phase function 
-\begin_inset Formula $F_{R,M}$
-\end_inset
-
- in the gather-scattering equation 
-\begin_inset Formula $G_{R,M}^{\left(k\right)}$
-\end_inset
-
- may not be excluded from integration because 
-\begin_inset Formula $\theta$
-\end_inset
-
- depends on the integration variable 
+ are zero if 
 \begin_inset Formula $\omega$
 \end_inset
 
-.
- The light vector 
-\begin_inset Formula $L$
+ does not intersect the planet.
+ In addition, the diffuse and ambient terms require a 
+\begin_inset Formula $\frac{1}{\pi}$
 \end_inset
 
- is also required to parameterize the Sun-Zenith angle for all scattering
- orders as shown in subsequent sections.
-\end_layout
-
-\begin_layout Standard
-The total intensity of the multiple-scattering light:
+ Lambertian normalization factor to conserve energy.
+ The coefficient is a result of the BRDF (Bidirectional Reflectance Distribution
+ Function) which describes how light reflects off a surface from different
+ directions.
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-I_{S}=\sum_{k=1}^{K}I_{S_{R}}^{\left(k\right)}+I_{S_{M}}^{\left(k\right)}=I_{S_{R}}+I_{S_{M}}
+\int_{\varOmega}f_{r}\cdot\cos\left(\theta\right)d\omega=f_{r}\cdot\int_{0}^{2\cdot\pi}\int_{0}^{\frac{\pi}{2}}\cos\left(\theta\right)\cdot\sin\left(\theta\right)\cdot d\theta\cdot d\phi=f_{r}\cdot\pi=1
 \]
 
 \end_inset
 
 
+\end_layout
+
+\begin_layout Standard
+The total intensity of the multiple scattered light is the sum over all
+ orders.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+S=\sum_{k=1}^{K}S^{\left(k\right)}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Texture Parameterization
 \end_layout
 
 \begin_layout Subsection
-Scattering Equation Factorization
-\end_layout
-
-\begin_layout Standard
-The following derivation factors the constant phase function 
-\begin_inset Formula $F_{R,M}\left(dot\left(L,-V\right)\right)$
-\end_inset
-
- and the spectral intensity of incident light 
-\begin_inset Formula $I_{I}\left(\lambda\right)$
-\end_inset
-
- from the scattering equations.
-\end_layout
-
-\begin_layout Standard
-The factored single-scattering equation 
-\begin_inset Formula $\bar{I}_{S_{R,M}}^{\left(1\right)}$
-\end_inset
-
-:
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\bar{I}_{S_{R,M}}^{\left(1\right)}\left(P_{0},V,L,\lambda\right)=\frac{\beta_{R,M}^{s}\left(\lambda\right)}{4\pi}\cdot
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\cdot\int_{P_{a}}^{P_{b}}p_{R,M}\left(h\left(P\right)\right)\cdot T\left(P_{c},P,\lambda\right)\cdot T\left(P,P_{a},\lambda\right)ds
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Where 
-\begin_inset Formula $I_{S_{R,M}}^{\left(1\right)}$
-\end_inset
-
-:
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-I_{S_{R,M}}^{\left(1\right)}\left(P_{0},V,L,\lambda\right)=I_{I}\left(\lambda\right)\cdot F_{R,M}\left(dot\left(L,-V\right)\right)\cdot\bar{I}_{S_{R,M}}^{\left(1\right)}\left(P_{0},V,L,\lambda\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The factored multiple-scattering equation 
-\begin_inset Formula $\bar{I}_{S_{R,M}}^{\left(k\right)}$
-\end_inset
-
-:
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\bar{I}_{S_{R,M}}^{\left(k\right)}\left(P_{0},V,L,\lambda\right)=\frac{\beta_{R,M}^{s}\left(\lambda\right)}{4\pi}\cdot
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\cdot\int_{P_{a}}^{P_{b}}\bar{G}_{R,M}^{\left(k-1\right)}\left(P,V,L,\lambda\right)\cdot p_{R,M}\left(h\left(P\right)\right)\cdot T\left(P,P_{a},\lambda\right)ds
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Where 
-\begin_inset Formula $I_{S_{R,M}}^{\left(k\right)}$
-\end_inset
-
-:
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-I_{S_{R,M}}^{\left(k\right)}\left(P_{0},V,L,\lambda\right)=I_{I}\left(\lambda\right)\cdot F_{R,M}\left(dot\left(L,-V\right)\right)\cdot\bar{I}_{S_{R,M}}^{\left(k\right)}\left(P_{0},V,L,\lambda\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The factored gather-scattering equation 
-\begin_inset Formula $\bar{G}_{R,M}^{\left(k\right)}$
-\end_inset
-
-:
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\bar{G}_{R,M}^{\left(k\right)}\left(P,V,L,\lambda\right)=\int_{4\pi}F_{R,M}\left(dot\left(-\omega,-V\right)\right)\cdot\bar{I}_{S_{R,M}}^{\left(k\right)}\left(P,\omega,L,\lambda\right)d\omega
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Where 
-\begin_inset Formula $G_{R,M}^{\left(k\right)}$
-\end_inset
-
-:
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-G_{R,M}^{\left(k\right)}\left(P,V,L,\lambda\right)=I_{I}\left(\lambda\right)\cdot F_{R,M}\left(dot\left(L,-V\right)\right)\cdot\bar{G}_{R,M}^{\left(k\right)}\left(P,V,L,\lambda\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The total scattering intensity using the factored equations:
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-I_{S}=I_{I}\left(\lambda\right)\cdot\left(F_{R}\left(dot\left(L,-V\right)\right)\cdot\bar{I}_{S_{R}}+F_{M}\left(dot\left(L,-V\right)\right)\cdot\bar{I}_{S_{M}}\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-This factorization includes two important properties that facilitate an
- efficient rendering implementation.
- First, the wavelength dependent components, 
-\begin_inset Formula $I_{I}\left(\lambda\right)$
-\end_inset
-
- and 
-\begin_inset Formula $\bar{I}_{S_{R}}$
-\end_inset
-
-, may be separated from the wavelength independent component 
-\begin_inset Formula $\bar{I}_{S_{M}}$
-\end_inset
-
-.
- The spectral intensity of incident light 
-\begin_inset Formula $I_{I}\left(\lambda\right)$
-\end_inset
-
- may be applied directly in the fragment shader and the factored scattering
- intensity 
-\begin_inset Formula $\bar{I}_{S}$
-\end_inset
-
- may be determined by performing a single 3D texture fetch.
- The Rayleigh factored scattering intensity 
-\begin_inset Formula $\bar{I}_{S_{R}}$
-\end_inset
-
- is stored in the RGB channels while the Mie factored scattering intensity
- 
-\begin_inset Formula $\bar{I}_{S_{M}}$
-\end_inset
-
- is stored in the alpha channel.
- Second, the constant phase function 
-\begin_inset Formula $F_{R,M}\left(dot\left(L,-V\right)\right)$
-\end_inset
-
- may be applied directly in the fragment shader which partially accounts
- for the omitted Sun-View Azimuth parameter.
- These properties are fundamental to the scattering intensity parameterization
- that is described in the next section.
-\end_layout
-
-\begin_layout Subsection
-Scattering Intensity Parameterization
+Scattering Texture Parameterization
 \end_layout
 
 \begin_layout Subsubsection
@@ -2113,11 +2106,6 @@ The horizon
 \end_layout
 
 \begin_layout Itemize
-The horizon also vanishes quickly as the height increases leading to ineffective
- compression at different altitudes.
-\end_layout
-
-\begin_layout Itemize
 At ground level there is no atmosphere when looking downwards, whereas at
  the TOA there is no atmosphere when looking upwards.
  A large percentage of the texture space is dedicated to parameters which
@@ -2566,57 +2554,6 @@ The following parameters where used for the weighted power mapping.
 \end_inset
 
 
-\end_layout
-
-\begin_layout Subsubsection
-Sun-View Azimuth Mapping
-\end_layout
-
-\begin_layout Standard
-To reduce the parameter count, the Rendering Parametrizable Planetary Atmosphere
-s with Multiple Scattering in Real-Time paper proposes to omit the parameter
- 
-\begin_inset Formula $\omega$
-\end_inset
-
- from precomputation.
- This omission causes uniformity of the atmospheric color with respect to
- 
-\begin_inset Formula $\omega$
-\end_inset
-
- and is primarily visible during sunsets in parts of the sky where there
- is no direct illumunation.
- Two techniques are proposed to address the omission of 
-\begin_inset Formula $\omega$
-\end_inset
-
-.
- First, the modified Rayleigh scattering phase function 
-\begin_inset Formula $F_{R}$
-\end_inset
-
- ensures that the darkest area of the sky during sunset is on the opposite
- side of the sky from the Sun.
- Second, the parameter 
-\begin_inset Formula $\omega$
-\end_inset
-
- is dependent on the scattering angle 
-\begin_inset Formula $\theta$
-\end_inset
-
-.
- By evaluating the constant phase function 
-\begin_inset Formula $F_{R,M}\left(dot\left(L,-V\right)\right)$
-\end_inset
-
- during rendering, we are able to reduce the uniformity of the atmospheric
- color with respect to 
-\begin_inset Formula $\omega$
-\end_inset
-
-.
 \end_layout
 
 \begin_layout Subsubsection
@@ -3108,6 +3045,16 @@ Spectral Intensity of Incident Light Questions with Perplexity
 \begin_deeper
 \begin_layout Itemize
 II-perplexity.pdf
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Layers of the Atmosphere
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+https://www.noaa.gov/jetstream/atmosphere/layers-of-atmosphere
 \end_layout
 
 \end_deeper
