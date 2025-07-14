@@ -1146,7 +1146,7 @@ The atmospheric simulation requires solving a series of complex equations
  These equations model different interactions of light with atmospheric
  particles and the planet surface.
  An iterative procedure will be applied to compute the contribution of each
- individual interaction over multiple scattering orders.
+ individual pass over multiple scattering orders.
 \end_layout
 
 \begin_layout Subsection
@@ -1277,17 +1277,6 @@ Where the following parameters are defined:
 
  in the direction of the Sun (e.g.
  the atmosphere boundary).
- If the ray intersects the Earth then the point 
-\begin_inset Formula $P$
-\end_inset
-
- is shadowed by the Earth and does not contribute to the single-scattering
- intensity.
- However, the point 
-\begin_inset Formula $P$
-\end_inset
-
- may still contribute to the multiple scattering intensity.
 \end_layout
 
 \begin_layout Itemize
@@ -1307,6 +1296,18 @@ and
 \end_inset
 
 .
+\end_layout
+
+\begin_layout Standard
+The single-scattering contribution is shadowed (zero) if the ray from 
+\begin_inset Formula $P$
+\end_inset
+
+ to 
+\begin_inset Formula $P_{c}$
+\end_inset
+
+ intersects the planet.
 \end_layout
 
 \begin_layout Subsection
@@ -1358,18 +1359,13 @@ Where the following parameters are defined:
 
  in the direction of the Sun (e.g.
  the atmosphere boundary).
- If the ray intersects the Earth then the point 
-\begin_inset Formula $P_{p}$
-\end_inset
-
- is shadowed by the Earth and does not contribute to diffuse lighting.
 \end_layout
 
 \begin_layout Itemize
 \begin_inset Formula $N$
 \end_inset
 
-: The surface normal at the ray intersection point 
+: The surface normal at 
 \begin_inset Formula $P_{p}$
 \end_inset
 
@@ -1380,23 +1376,45 @@ Where the following parameters are defined:
 
 \end_layout
 
+\begin_layout Standard
+The diffuse contribution is shadowed (zero) if the ray from 
+\begin_inset Formula $P_{p}$
+\end_inset
+
+ to 
+\begin_inset Formula $P_{c}$
+\end_inset
+
+ intersects the planet.
+\end_layout
+
+\begin_layout Standard
+When rendering the planet surface, the diffuse lighting should incorporate
+ the actual terrain (
+\begin_inset Formula $P_{p}$
+\end_inset
+
+, 
+\begin_inset Formula $N$
+\end_inset
+
+ and shadow occlusion).
+\end_layout
+
 \begin_layout Subsection
-Ambient Lighting Pass
+Ambient Lighting Passes
 \end_layout
 
 \begin_layout Standard
 The ambient lighting equation describes the indirect illumination color
- contribution to the planet surface (assuming 
-\begin_inset Formula $h=0$
-\end_inset
-
-) by the light scattered through the atmosphere.
+ contribution to the planet surface by the light scattered through the atmospher
+e.
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-A^{\left(1\right)}\left(L\right)=0
+A^{\left(1\right)}\left(P_{p},L\right)=0
 \]
 
 \end_inset
@@ -1407,7 +1425,7 @@ A^{\left(1\right)}\left(L\right)=0
 \begin_layout Standard
 \begin_inset Formula 
 \[
-A^{\left(k>1\right)}\left(L\right)=C\cdot\int_{2\cdot\pi}dot\left(N,\omega\right)\cdot S^{\left(k-1\right)}\left(0,\omega,L\right)d\omega
+A^{\left(k>1\right)}\left(P_{p},L\right)=C\cdot\int_{2\cdot\pi}dot\left(N,\omega\right)\cdot S^{\left(k-1\right)}\left(P_{p},\omega,L\right)d\omega
 \]
 
 \end_inset
@@ -1430,8 +1448,12 @@ Where the following parameters are defined:
 \begin_inset Formula $N$
 \end_inset
 
-: The surface normal at the planet surface, 
-\begin_inset Formula $N=\left(0,0,1\right)$
+: The surface normal at 
+\begin_inset Formula $P_{p}$
+\end_inset
+
+, 
+\begin_inset Formula $N=normalize\left(P_{p}\right)$
 \end_inset
 
 
@@ -1452,8 +1474,13 @@ A=\sum_{k=1}^{K}A^{\left(k\right)}
 
 \end_layout
 
+\begin_layout Standard
+When rendering the planet surface, the ambient lighting may incorporate
+ an ambient occlusion map to partially account for the actual terrain.
+\end_layout
+
 \begin_layout Subsection
-Multiple-scattering
+Multiple-scattering Passes
 \end_layout
 
 \begin_layout Standard
@@ -1549,6 +1576,17 @@ Where the following parameters are defined:
 \end_layout
 
 \begin_layout Itemize
+\begin_inset Formula $P_{p}$
+\end_inset
+
+: Intersection of the gathering direction 
+\begin_inset Formula $\omega$
+\end_inset
+
+ with the planet surface
+\end_layout
+
+\begin_layout Itemize
 \begin_inset Formula $H^{\left(1\right)}\left(P,\omega,L\right)=S^{\left(1\right)}\left(P,\omega,L\right)$
 \end_inset
 
@@ -1556,30 +1594,29 @@ Where the following parameters are defined:
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $H^{\left(2\right)}\left(P,\omega,L\right)=S^{\left(2\right)}\left(P,\omega,L\right)+\frac{1}{\pi}D\left(P_{p}\left(\omega\right),L\right)$
+\begin_inset Formula $H^{\left(2\right)}\left(P,\omega,L\right)=S^{\left(2\right)}\left(P,\omega,L\right)+\frac{1}{\pi}\cdot D\left(P_{p},L\right)\cdot T\left(P_{p},P\right)$
 \end_inset
 
 
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $H^{\left(k>2\right)}\left(P,\omega,L\right)=S^{\left(k\right)}\left(P,\omega,L\right)+\frac{1}{\pi}A^{\left(k\right)}\left(L\right)$
+\begin_inset Formula $H^{\left(k>2\right)}\left(P,\omega,L\right)=S^{\left(k\right)}\left(P,\omega,L\right)+\frac{1}{\pi}\cdot A^{\left(k\right)}\left(P_{p},L\right)\cdot T\left(P_{p},P\right)$
 \end_inset
 
 
 \end_layout
 
 \begin_layout Standard
-The diffuse and ambient terms of 
-\begin_inset Formula $H$
-\end_inset
-
- are zero if 
+The diffuse and ambient contributions are zero if 
 \begin_inset Formula $\omega$
 \end_inset
 
  does not intersect the planet.
- In addition, the diffuse and ambient terms require a 
+\end_layout
+
+\begin_layout Standard
+In addition, the diffuse and ambient terms require a 
 \begin_inset Formula $\frac{1}{\pi}$
 \end_inset
 
