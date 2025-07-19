@@ -339,7 +339,7 @@ getZenithP(const cc_vec3d_t* P, cc_vec3d_t* Zenith)
 	cc_vec3d_normalize_copy(P, Zenith);
 }
 
-static double atmo_signd(float x)
+static double atmo_signd(double x)
 {
 	if(x < 0.0)
 	{
