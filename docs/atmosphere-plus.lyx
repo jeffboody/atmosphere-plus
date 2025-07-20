@@ -2943,13 +2943,13 @@ Surface Shader
 
 \begin_layout Standard
 The surface color may be computed at runtime by performing an ambient texture
- lookup and two transmittance texture lookups.
+ lookup and three transmittance texture lookups.
 \end_layout
 
 \begin_layout Standard
 \begin_inset Formula 
 \[
-C\left(P_{0},V,L\right)=\left(A\left(P_{p},L\right)+D\left(P_{p},L\right)\right)\cdot T\left(P_{0},P_{p}\right)
+C\left(P_{0},V,L\right)=\left(A\left(P_{p},L\right)+D\left(P_{p},L\right)\right)\cdot T\left(P_{0},P_{t}\right)
 \]
 
 \end_inset
@@ -2958,15 +2958,52 @@ C\left(P_{0},V,L\right)=\left(A\left(P_{p},L\right)+D\left(P_{p},L\right)\right)
 \end_layout
 
 \begin_layout Standard
-Where the first texture lookup 
-\begin_inset Formula $T\left(P_{0},P_{p}\right)$
+Where the first two texture lookups 
+\begin_inset Formula $T\left(P_{0},P_{t}\right)$
 \end_inset
 
- applies aerial perspective and the second texture lookup 
+ apply the aerial perspective and the third texture lookup 
 \begin_inset Formula $T\left(P_{p},P_{c}\right)$
 \end_inset
 
  is required to compute diffuse lighting.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+T\left(P_{0},P_{t}\right)=T\left(P_{0},P_{p}\right)-T\left(P_{t},P_{p}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Where the parameters are defined:
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $P_{t}$
+\end_inset
+
+: Intersection point along V with the actual 3D terrain (
+\begin_inset Formula $h\left(P_{t}\right)\geq0$
+\end_inset
+
+)
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $P_{p}$
+\end_inset
+
+: Intersection point along V with the ideal planet surface (
+\begin_inset Formula $h\left(P_{p}\right)=0$
+\end_inset
+
+)
 \end_layout
 
 \begin_layout Standard
@@ -2979,7 +3016,7 @@ Must apply exposure, tone mapping and gamma correction operations.
 
 \begin_layout Itemize
 Should incorporate the actual terrain parameters (
-\begin_inset Formula $P_{p}$
+\begin_inset Formula $P_{t}$
 \end_inset
 
 , 
@@ -2990,8 +3027,8 @@ Should incorporate the actual terrain parameters (
 \end_layout
 
 \begin_layout Itemize
-May incorporate an ambient occlusion map to account for local terrain effects
- on ambient lighting.
+May incorporate an ambient occlusion map to account for localized occlusion
+ effects on ambient lighting.
 \end_layout
 
 \begin_layout Subsection
