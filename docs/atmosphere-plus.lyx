@@ -1728,21 +1728,14 @@ Where the parameters are defined:
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $H^{\left(1\right)}\left(P,\omega,L\right)=S^{\left(1\right)}\left(P,\omega,L\right)$
+\begin_inset Formula $H^{\left(1\right)}\left(P,\omega,L\right)=S^{\left(1\right)}\left(P,\omega,L\right)+D\left(P_{p},L\right)\cdot T\left(P_{p},P\right)$
 \end_inset
 
 
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $H^{\left(2\right)}\left(P,\omega,L\right)=S^{\left(2\right)}\left(P,\omega,L\right)+D\left(P_{p},L\right)\cdot T\left(P_{p},P\right)$
-\end_inset
-
-
-\end_layout
-
-\begin_layout Itemize
-\begin_inset Formula $H^{\left(k>2\right)}\left(P,\omega,L\right)=S^{\left(k\right)}\left(P,\omega,L\right)+A^{\left(k\right)}\left(P_{p},L\right)\cdot T\left(P_{p},P\right)$
+\begin_inset Formula $H^{\left(k>1\right)}\left(P,\omega,L\right)=S^{\left(k\right)}\left(P,\omega,L\right)+A^{\left(k\right)}\left(P_{p},L\right)\cdot T\left(P_{p},P\right)$
 \end_inset
 
 
