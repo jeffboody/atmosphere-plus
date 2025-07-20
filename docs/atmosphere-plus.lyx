@@ -1162,7 +1162,7 @@ The Lambertian BRDF
 \begin_layout Standard
 \begin_inset Formula 
 \[
-f_{r}\left(\omega_{i},\omega_{r}\right)=\frac{dL_{r}\left(\omega_{r}\right)}{dE_{i}\left(\omega_{i}\right)}\leq1
+f_{r}\left(\omega_{i},\omega_{r}\right)=\frac{dL_{r}\left(\omega_{r}\right)}{dE_{i}\left(\omega_{i}\right)}=\frac{\rho}{\pi}\leq1
 \]
 
 \end_inset
@@ -1186,6 +1186,21 @@ Where the parameters are defined:
 \end_inset
 
  is the reflected radiance direction
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\rho$
+\end_inset
+
+ is the surface albedo (e.g.
+ diffuse surface color)
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\frac{1}{\pi}$
+\end_inset
+
+ is an energy conservation factor
 \end_layout
 
 \begin_layout Standard
@@ -1232,29 +1247,6 @@ Where the parameters are defined:
  is the incident light intensity
 \end_layout
 
-\begin_layout Itemize
-\begin_inset Formula $f_{r}=\frac{\rho}{\pi}$
-\end_inset
-
- is the Lambertian BRDF function where the outgoing radiance is constant
- in all directions
-\end_layout
-
-\begin_layout Itemize
-\begin_inset Formula $\rho$
-\end_inset
-
- is the surface albedo (e.g.
- diffuse surface color)
-\end_layout
-
-\begin_layout Itemize
-\begin_inset Formula $\frac{1}{\pi}$
-\end_inset
-
- is an energy conservation factor
-\end_layout
-
 \begin_layout Subsubsection
 Ambient Lighting
 \end_layout
@@ -1297,12 +1289,12 @@ Atmospheric Simulation Passes
 \end_layout
 
 \begin_layout Standard
-The atmospheric simulation requires solving a series of complex equations
- for which there does not exist a closed form solution.
- These equations model different interactions of light with atmospheric
- particles and the planet surface.
- An iterative procedure will be applied to compute the contribution of each
- individual pass over multiple scattering orders.
+The atmospheric simulation involves modeling interactions between light
+ rays, atmospheric particles and the planet surface.
+ An iterative procedure will be applied over multiple passes to compute
+ the contribution of each light scattering interaction.
+ The following sections describe the single-scattering, diffuse lighting,
+ ambient lighting and multiple-scattering passes.
 \end_layout
 
 \begin_layout Subsection
@@ -1479,7 +1471,7 @@ on to the planet surface by the incident light that was attenuated by the
 \begin_layout Standard
 \begin_inset Formula 
 \[
-D\left(P_{p},L\right)=\frac{C}{\pi}\cdot dot\left(N,L\right)\cdot I\cdot T\left(P_{p},P_{c}\right)
+D\left(P_{p},L\right)=\frac{C}{\pi}\cdot I\cdot T\left(P_{p},P_{c}\right)\cdot\max\left(0,dot\left(N,L\right)\right)
 \]
 
 \end_inset
@@ -1581,7 +1573,7 @@ A^{\left(1\right)}\left(P_{p},L\right)=0
 \begin_layout Standard
 \begin_inset Formula 
 \[
-A^{\left(k>1\right)}\left(P_{p},L\right)=\frac{C}{\pi}\cdot\int_{\varOmega}dot\left(N,\omega\right)\cdot S^{\left(k-1\right)}\left(P_{p},\omega,L\right)d\omega
+A^{\left(k>1\right)}\left(P_{p},L\right)=\frac{C}{\pi}\cdot\int_{\varOmega}S^{\left(k-1\right)}\left(P_{p},\omega,L\right)\cdot dot\left(N,\omega\right)d\omega
 \]
 
 \end_inset
