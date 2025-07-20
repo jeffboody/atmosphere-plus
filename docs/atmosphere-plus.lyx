@@ -1136,6 +1136,162 @@ The following diagrams show the average transmittance as a function of altitude
 
 \end_layout
 
+\begin_layout Subsection
+Lambertian Model
+\end_layout
+
+\begin_layout Standard
+The Lambertian BRDF (bidirectional reflectance distribution function) describes
+ a perfectly diffuse (matte) surface that reflects incident light equally
+ in all directions, regardless of the viewing angle, resulting in an appearance
+ that is consistently bright across its surface.
+\end_layout
+
+\begin_layout Subsubsection
+Definition
+\end_layout
+
+\begin_layout Standard
+The Lambertian BRDF 
+\begin_inset Formula $f_{r}$
+\end_inset
+
+ is defined:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+f_{r}\left(\omega_{i},\omega_{r}\right)=\frac{dL_{r}\left(\omega_{r}\right)}{dE_{i}\left(\omega_{i}\right)}\leq1
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Where the parameters are defined:
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\omega_{i}$
+\end_inset
+
+ is the irradiance light source direction
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\omega_{r}$
+\end_inset
+
+ is the reflected radiance direction
+\end_layout
+
+\begin_layout Standard
+An important property of the Lambertian model is that it conserves energy
+ such that the reflected light intensity is less than or equal to the incident
+ light intensity.
+\end_layout
+
+\begin_layout Subsubsection
+Diffuse Lighting
+\end_layout
+
+\begin_layout Standard
+The diffuse lighting equation calculates the light reflected from a surface
+ point for a directional light source.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+L_{o}=f_{r}\cdot L_{i}\cdot dot\left(N,L\right)=\frac{\rho}{\pi}\cdot L_{i}\cdot\max\left(0,dot\left(N,L\right)\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Where the parameters are defined:
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $L_{o}$
+\end_inset
+
+ is the outgoing radiance
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $L_{i}$
+\end_inset
+
+ is the incident light intensity
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $f_{r}=\frac{\rho}{\pi}$
+\end_inset
+
+ is the Lambertian BRDF function where the outgoing radiance is constant
+ in all directions
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\rho$
+\end_inset
+
+ is the surface albedo (e.g.
+ diffuse surface color)
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\frac{1}{\pi}$
+\end_inset
+
+ is an energy conservation factor
+\end_layout
+
+\begin_layout Subsubsection
+Ambient Lighting
+\end_layout
+
+\begin_layout Standard
+The ambient lighting equation calculates the light reflected from a surface
+ point when light arrives from all directions above it (e.g.
+ light scattered through the atmosphere).
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+L_{o}=f_{r}\cdot E=\frac{\rho}{\pi}\cdot\int_{\varOmega}L_{i}\left(\omega\right)\cdot dot\left(N,\omega\right)\cdot d\omega
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Where the parameters are defined:
+\end_layout
+
+\begin_layout Itemize
+E is the total irradiance of the indirect light on the surface point
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\varOmega$
+\end_inset
+
+ is a hemisphere above the surface point
+\end_layout
+
 \begin_layout Section
 Atmospheric Simulation Passes
 \end_layout
@@ -1192,7 +1348,7 @@ S^{\left(1\right)}\left(P_{0},V,L\right)=\sum_{i\in R,M}I\cdot F_{i}\left(dot\le
 \end_layout
 
 \begin_layout Standard
-Where the following parameters are defined:
+Where the parameters are defined:
 \end_layout
 
 \begin_layout Itemize
@@ -1323,7 +1479,7 @@ on to the planet surface by the incident light that was attenuated by the
 \begin_layout Standard
 \begin_inset Formula 
 \[
-D\left(P_{p},L\right)=C\cdot dot\left(N,L\right)\cdot I\cdot T\left(P_{p},P_{c}\right)
+D\left(P_{p},L\right)=\frac{C}{\pi}\cdot dot\left(N,L\right)\cdot I\cdot T\left(P_{p},P_{c}\right)
 \]
 
 \end_inset
@@ -1332,7 +1488,7 @@ D\left(P_{p},L\right)=C\cdot dot\left(N,L\right)\cdot I\cdot T\left(P_{p},P_{c}\
 \end_layout
 
 \begin_layout Standard
-Where the following parameters are defined:
+Where the parameters are defined:
 \end_layout
 
 \begin_layout Itemize
@@ -1425,7 +1581,7 @@ A^{\left(1\right)}\left(P_{p},L\right)=0
 \begin_layout Standard
 \begin_inset Formula 
 \[
-A^{\left(k>1\right)}\left(P_{p},L\right)=C\cdot\int_{2\cdot\pi}dot\left(N,\omega\right)\cdot S^{\left(k-1\right)}\left(P_{p},\omega,L\right)d\omega
+A^{\left(k>1\right)}\left(P_{p},L\right)=\frac{C}{\pi}\cdot\int_{\varOmega}dot\left(N,\omega\right)\cdot S^{\left(k-1\right)}\left(P_{p},\omega,L\right)d\omega
 \]
 
 \end_inset
@@ -1434,7 +1590,7 @@ A^{\left(k>1\right)}\left(P_{p},L\right)=C\cdot\int_{2\cdot\pi}dot\left(N,\omega
 \end_layout
 
 \begin_layout Standard
-Where the following parameters are defined:
+Where the parameters are defined:
 \end_layout
 
 \begin_layout Itemize
@@ -1454,6 +1610,17 @@ Where the following parameters are defined:
 
 , 
 \begin_inset Formula $N=normalize\left(P_{p}\right)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\varOmega$
+\end_inset
+
+: A hemisphere around the planet surface at 
+\begin_inset Formula $P_{p}$
 \end_inset
 
 
@@ -1535,11 +1702,11 @@ Where the gather-scattering equation
 \end_inset
 
  towards the observer for the kth order scattering event.
- This variation of 
+ The gathering-scattering equation 
 \begin_inset Formula $G_{i}^{\left(k\right)}$
 \end_inset
 
- includes contributions from diffuse and ambient lighting passes.
+ includes contributions from scattering, diffuse and ambient passes.
 \end_layout
 
 \begin_layout Standard
@@ -1554,7 +1721,7 @@ G_{i}^{\left(k\right)}\left(P,V,L\right)=\int_{4\pi}F_{i}\left(dot\left(-\omega,
 \end_layout
 
 \begin_layout Standard
-Where the following parameters are defined:
+Where the parameters are defined:
 \end_layout
 
 \begin_layout Itemize
@@ -1594,14 +1761,14 @@ Where the following parameters are defined:
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $H^{\left(2\right)}\left(P,\omega,L\right)=S^{\left(2\right)}\left(P,\omega,L\right)+\frac{1}{\pi}\cdot D\left(P_{p},L\right)\cdot T\left(P_{p},P\right)$
+\begin_inset Formula $H^{\left(2\right)}\left(P,\omega,L\right)=S^{\left(2\right)}\left(P,\omega,L\right)+D\left(P_{p},L\right)\cdot T\left(P_{p},P\right)$
 \end_inset
 
 
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $H^{\left(k>2\right)}\left(P,\omega,L\right)=S^{\left(k\right)}\left(P,\omega,L\right)+\frac{1}{\pi}\cdot A^{\left(k\right)}\left(P_{p},L\right)\cdot T\left(P_{p},P\right)$
+\begin_inset Formula $H^{\left(k>2\right)}\left(P,\omega,L\right)=S^{\left(k\right)}\left(P,\omega,L\right)+A^{\left(k\right)}\left(P_{p},L\right)\cdot T\left(P_{p},P\right)$
 \end_inset
 
 
@@ -1613,28 +1780,6 @@ The diffuse and ambient contributions are zero if
 \end_inset
 
  does not intersect the planet.
-\end_layout
-
-\begin_layout Standard
-In addition, the diffuse and ambient terms require a 
-\begin_inset Formula $\frac{1}{\pi}$
-\end_inset
-
- Lambertian normalization factor to conserve energy.
- The coefficient is a result of the BRDF (Bidirectional Reflectance Distribution
- Function) which describes how light reflects off a surface from different
- directions.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-\int_{\varOmega}f_{r}\cdot\cos\left(\theta\right)d\omega=f_{r}\cdot\int_{0}^{2\cdot\pi}\int_{0}^{\frac{\pi}{2}}\cos\left(\theta\right)\cdot\sin\left(\theta\right)\cdot d\theta\cdot d\phi=f_{r}\cdot\pi=1
-\]
-
-\end_inset
-
-
 \end_layout
 
 \begin_layout Standard
