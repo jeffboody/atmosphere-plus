@@ -1536,19 +1536,6 @@ The diffuse contribution is shadowed (zero) if the ray from
  intersects the planet.
 \end_layout
 
-\begin_layout Standard
-When rendering the planet surface, the diffuse lighting should incorporate
- the actual terrain (
-\begin_inset Formula $P_{p}$
-\end_inset
-
-, 
-\begin_inset Formula $N$
-\end_inset
-
- and shadow occlusion).
-\end_layout
-
 \begin_layout Subsection
 Ambient Lighting Passes
 \end_layout
@@ -1631,11 +1618,6 @@ A=\sum_{k=1}^{K}A^{\left(k\right)}
 \end_inset
 
 
-\end_layout
-
-\begin_layout Standard
-When rendering the planet surface, the ambient lighting may incorporate
- an ambient occlusion map to partially account for the actual terrain.
 \end_layout
 
 \begin_layout Subsection
@@ -1795,7 +1777,7 @@ Texture Parameterization
 \end_layout
 
 \begin_layout Subsection
-Scattering Texture Parameterization
+Scattering Parameterization
 \end_layout
 
 \begin_layout Subsubsection
@@ -2731,7 +2713,7 @@ The following parameters where used for the weighted power mapping.
 \end_layout
 
 \begin_layout Subsubsection
-Texture Coordinates and Array Indices
+Texture Coordinates
 \end_layout
 
 \begin_layout Standard
@@ -2761,6 +2743,10 @@ The 3D array indices
 
 \end_layout
 
+\begin_layout Subsubsection
+Array Indices
+\end_layout
+
 \begin_layout Standard
 The 3D array indices 
 \begin_inset Formula $\left(x,y,z\right)$
@@ -2784,6 +2770,10 @@ i=x+y\cdot width+z\cdot width\cdot height
 
 \end_layout
 
+\begin_layout Subsubsection
+Texture Dimensions
+\end_layout
+
 \begin_layout Standard
 The Efficient and Dynamic Atmospheric Scattering paper uses the following
  texture dimensions where optional optimizations discussed for 
@@ -2802,6 +2792,231 @@ The Efficient and Dynamic Atmospheric Scattering paper uses the following
 \end_inset
 
 
+\end_layout
+
+\begin_layout Subsection
+Transmittance Parameterization
+\end_layout
+
+\begin_layout Subsubsection
+Canonical Form
+\end_layout
+
+\begin_layout Standard
+To precompute the transmittance 
+\begin_inset Formula $T\left(P,Q\right)$
+\end_inset
+
+ between all points 
+\begin_inset Formula $P$
+\end_inset
+
+ and 
+\begin_inset Formula $Q$
+\end_inset
+
+ we need to store a lookup texture for the transmittance.
+ By taking advantage of symetry of transmittance around the zenith of 
+\begin_inset Formula $P$
+\end_inset
+
+ and restricting 
+\begin_inset Formula $Q$
+\end_inset
+
+ to the nearest point on the atmospheric boundary (either the TOA or the
+ planet surface) then we can reduce the parameter count to 2 scalar parameters.
+\end_layout
+
+\begin_layout Itemize
+Altitude: 
+\begin_inset Formula $h\in\left[0,H_{a}\right]$
+\end_inset
+
+ where 
+\begin_inset Formula $H_{a}=R_{a}-R_{p}$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+Direction-Zenith Angle: 
+\begin_inset Formula $\mu\in\left[0,\pi\right]$
+\end_inset
+
+ where 
+\begin_inset Formula $\cos\left(\mu\right)=dot\left(Zenith,Direction\right)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Where the parameters are defined:
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $Zenith=normalize\left(P\right)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $Direction=normalize\left(Q-P\right)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The transmittance texture will be used when surface rendering to calculate
+ aerial perspective and the diffuse surface color 
+\begin_inset Formula $D\left(P_{p},L\right)$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Ambient Parameterization
+\end_layout
+
+\begin_layout Subsubsection
+Canonical Form
+\end_layout
+
+\begin_layout Standard
+To precompute the ambient lighting 
+\begin_inset Formula $A\left(P_{p},L\right)$
+\end_inset
+
+ for all points 
+\begin_inset Formula $P_{p}$
+\end_inset
+
+ where 
+\begin_inset Formula $h=0$
+\end_inset
+
+, we may take advantage of the symmetry around the zenith resulting in a
+ single scalar parameter.
+\end_layout
+
+\begin_layout Itemize
+Sun-Zenith Angle: 
+\begin_inset Formula $\mu\in\left[0,\pi\right]$
+\end_inset
+
+ where 
+\begin_inset Formula $\cos\left(\mu\right)=dot\left(Zenith,-L\right)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Where the parameters are defined:
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $Zenith=normalize\left(P_{p}\right)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+Note: 
+\series default
+We require 
+\begin_inset Formula $h=0$
+\end_inset
+
+ for ambient lighting due to the complexity of calculation with multiple-scatter
+ing.
+\end_layout
+
+\begin_layout Section
+Rendering
+\end_layout
+
+\begin_layout Subsection
+Surface Shader
+\end_layout
+
+\begin_layout Standard
+The surface color may be computed at runtime by performing an ambient texture
+ lookup and two transmittance texture lookups.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+C\left(P_{0},V,L\right)=\left(A\left(P_{p},L\right)+D\left(P_{p},L\right)\right)\cdot T\left(P_{0},P_{p}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Where the first texture lookup 
+\begin_inset Formula $T\left(P_{0},P_{p}\right)$
+\end_inset
+
+ applies aerial perspective and the second texture lookup 
+\begin_inset Formula $T\left(P_{p},P_{c}\right)$
+\end_inset
+
+ is required to compute diffuse lighting.
+\end_layout
+
+\begin_layout Standard
+Additionaly, the surface shader:
+\end_layout
+
+\begin_layout Itemize
+Must apply exposure, tone mapping and gamma correction operations.
+\end_layout
+
+\begin_layout Itemize
+Should incorporate the actual terrain parameters (
+\begin_inset Formula $P_{p}$
+\end_inset
+
+, 
+\begin_inset Formula $N$
+\end_inset
+
+ and shadow occlusion) for diffuse lighting.
+\end_layout
+
+\begin_layout Itemize
+May incorporate an ambient occlusion map to account for local terrain effects
+ on ambient lighting.
+\end_layout
+
+\begin_layout Subsection
+Sky Shader
+\end_layout
+
+\begin_layout Standard
+The sky color may be sampled at runtime using the multiple-scattering texture
+ 
+\begin_inset Formula $S\left(P_{0},V,L\right)$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Additionally, the sky shader must apply exposure, tone mapping and gamma
+ correction operations.
 \end_layout
 
 \begin_layout Section
