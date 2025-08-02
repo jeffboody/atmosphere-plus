@@ -1443,7 +1443,7 @@ atmo_solver_exportData(atmo_solver_t* self,
 
 // https://64.github.io/tonemapping/
 static void
-atmo_uncharted2TonemapPartial(cc_vec4d_t* x, cc_vec4d_t* y)
+atmo_uncharted2TonemapPartial(cc_vec3d_t* x, cc_vec3d_t* y)
 {
 	ASSERT(x);
 	ASSERT(y);
@@ -1460,38 +1460,38 @@ atmo_uncharted2TonemapPartial(cc_vec4d_t* x, cc_vec4d_t* y)
 }
 
 // https://64.github.io/tonemapping/
-static void atmo_uncharted2Filmic(cc_vec4d_t* v)
+static void atmo_uncharted2Filmic(cc_vec3d_t* v)
 {
 	ASSERT(v);
 
 	float exposure_bias = 2.0;
 
-	cc_vec4d_t x;
-	cc_vec4d_muls_copy(v, exposure_bias, &x);
+	cc_vec3d_t x;
+	cc_vec3d_muls_copy(v, exposure_bias, &x);
 
-	cc_vec4d_t xp = { 0 };
+	cc_vec3d_t xp = { 0 };
 	atmo_uncharted2TonemapPartial(&x, &xp);
 
-	cc_vec4d_t W =
+	cc_vec3d_t W =
 	{
 		.r = 11.2,
 		.g = 11.2,
 		.b = 11.2,
 	};
-	cc_vec4d_t Wp = { 0 };
+	cc_vec3d_t Wp = { 0 };
 	atmo_uncharted2TonemapPartial(&W, &Wp);
 
-	cc_vec4d_t white_scale =
+	cc_vec3d_t white_scale =
 	{
 		.r = 1.0/Wp.r,
 		.g = 1.0/Wp.g,
 		.b = 1.0/Wp.b,
 	};
 
-	cc_vec4d_mulv_copy(&xp, &white_scale, v);
+	cc_vec3d_mulv_copy(&xp, &white_scale, v);
 }
 
-static void atmo_gamma(cc_vec4d_t* color)
+static void atmo_gamma(cc_vec3d_t* color)
 {
 	ASSERT(color);
 
@@ -1707,7 +1707,7 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4d_t* data)
 
 	// spectral intensity of incident light from the Sun
 	double exposure = -2.5;
-	cc_vec4d_t II =
+	cc_vec3d_t II =
 	{
 		.r = pow(2.0, exposure)*param->II_r,
 		.g = pow(2.0, exposure)*param->II_g,
@@ -1734,8 +1734,8 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4d_t* data)
 	char fname[256];
 	unsigned char pixel[4] = { 0, 0, 0, 255 };
 	cc_vec4d_t fis;
-	cc_vec4d_t is;
-	cc_vec4d_t color;
+	cc_vec3d_t is;
+	cc_vec3d_t color;
 	for(k = 1; k <= param->k; ++k)
 	{
 		for(x = 0; x < param->texture_width; ++x)
@@ -1766,7 +1766,7 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4d_t* data)
 					is.b = II.b*(FR*fis.b + FM*fis.a);
 
 					// tone mapping and gamma correction
-					cc_vec4d_copy(&is, &color);
+					cc_vec3d_copy(&is, &color);
 					atmo_uncharted2Filmic(&color);
 					atmo_gamma(&color);
 
