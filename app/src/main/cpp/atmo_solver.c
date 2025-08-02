@@ -122,6 +122,10 @@
 #define ATMO_TEXTURE_FIS_HEIGHT 256
 #define ATMO_TEXTURE_FIS_DEPTH  32
 
+// transmittance texture size
+#define ATMO_TEXTURE_T_WIDTH  512
+#define ATMO_TEXTURE_T_HEIGHT 512
+
 // height parameterization
 #define ATMO_PARAM_HEIGHT_LINEAR 0
 #define ATMO_PARAM_HEIGHT_POWER  1
@@ -587,6 +591,42 @@ setDataFis(atmo_solverParam_t* param,
 	data[idx].a = val->a;
 }
 
+#ifdef ATMO_LOOKUP_TRANSMITTANCE
+static void
+getDataT(atmo_solverParam_t* param,
+         uint32_t x, uint32_t y,
+         cc_vec3d_t* data, cc_vec3d_t* val)
+{
+	ASSERT(param);
+	ASSERT(data);
+	ASSERT(val);
+
+	uint32_t w   = param->texture_T_width;
+	uint32_t idx = y*w + x;
+
+	val->r = data[idx].r;
+	val->g = data[idx].g;
+	val->b = data[idx].b;
+}
+#endif
+
+static void
+setDataT(atmo_solverParam_t* param,
+         uint32_t x, uint32_t y,
+         cc_vec3d_t* data, cc_vec3d_t* val)
+{
+	ASSERT(param);
+	ASSERT(data);
+	ASSERT(val);
+
+	uint32_t w   = param->texture_T_width;
+	uint32_t idx = y*w + x;
+
+	data[idx].r = val->r;
+	data[idx].g = val->g;
+	data[idx].b = val->b;
+}
+
 // Rayleigh density function
 static double densityR(atmo_solverParam_t* param, double h)
 {
@@ -771,6 +811,157 @@ computePc(atmo_solverParam_t* param, cc_vec3d_t* P,
 	return computePaPb(param, P, &Sun, Ro, &Pa, Pc);
 }
 
+static void
+computeT(atmo_solverParam_t* param, uint32_t x, uint32_t y,
+         cc_vec3d_t* data_T)
+{
+	ASSERT(param);
+	ASSERT(x);
+	ASSERT(y);
+	ASSERT(data_T);
+
+	double xd     = (double) x;
+	double yd     = (double) y;
+	double tw1d   = (double) (param->texture_T_width  - 1);
+	double th1d   = (double) (param->texture_T_height - 1);
+	double u      = xd/tw1d;
+	double v      = yd/th1d;
+	double h      = getHeightU(param, u);
+	double cos_mu = getCosPhiV(param, h, u, v);
+	cc_vec3d_t P0 =
+	{
+		.z = ATMO_RP + h,
+	};
+	cc_vec3d_t V =
+	{
+		.x = sin(acos(cos_mu)),
+		.z = cos_mu,
+	};
+
+	cc_vec3d_t P1;
+	cc_vec3d_t P2;
+	double Ro = 10.0;
+	computePaPb(param, &P0, &V, Ro, &P1, &P2);
+
+	cc_vec3d_t t;
+	opticalDepth(param, &P0, &P2, &t);
+
+	cc_vec3d_t T =
+	{
+		.r = exp(-t.r),
+		.g = exp(-t.g),
+		.b = exp(-t.b),
+	};
+	setDataT(param, x, y, data_T, &T);
+}
+
+static void
+transmittance(atmo_solverParam_t* param,
+              cc_vec3d_t* P1, cc_vec3d_t* P2,
+              cc_vec3d_t* data_T, cc_vec3d_t* T)
+{
+	ASSERT(param);
+	ASSERT(P1);
+	ASSERT(P2);
+	ASSERT(data_T);
+	ASSERT(T);
+
+	#ifdef ATMO_LOOKUP_TRANSMITTANCE
+		cc_vec3d_t Zenith;
+		cc_vec3d_t V;
+		cc_vec3d_normalize_copy(P1, &Zenith);
+		cc_vec3d_subv_copy(P2, P1, &V);
+		cc_vec3d_normalize(&V);
+
+		double Ha     = ATMO_RA - ATMO_RP;
+		double h      = atmo_clampd(cc_vec3d_mag(P1) - ATMO_RP, 0.0, Ha);
+		double cos_mu = cc_vec3d_dot(&Zenith, &V);
+		double u      = getUHeight(param, h);
+		double v      = getVCosPhi(param, h, cos_mu, u);
+
+		// compute x0,y0
+		uint32_t tw1  = (param->texture_T_width - 1);
+		uint32_t th1  = (param->texture_T_height - 1);
+		double   tw1d = (double) tw1;
+		double   th1d = (double) th1;
+		uint32_t x0   = atmo_clampu((uint32_t) (u*tw1d), 0, tw1);
+		uint32_t y0   = atmo_clampu((uint32_t) (v*th1d), 0, th1);
+
+		// compute x1,y1
+		uint32_t x1;
+		uint32_t y1;
+		x1 = atmo_clampu(x0 + 1, 0, tw1);
+		y1 = atmo_clampu(y0 + 1, 0, th1);
+
+		// sampling coordinates
+		double uu = u*tw1d - ((double) x0);
+		double vv = v*th1d - ((double) y0);
+
+		// sample corners
+		cc_vec3d_t T00;
+		cc_vec3d_t T01;
+		cc_vec3d_t T10;
+		cc_vec3d_t T11;
+		getDataT(param, x0, y0, data_T, &T00);
+		getDataT(param, x0, y1, data_T, &T01);
+		getDataT(param, x1, y0, data_T, &T10);
+		getDataT(param, x1, y1, data_T, &T11);
+
+		// interpolate x
+		cc_vec3d_t Tx0;
+		cc_vec3d_t Tx1;
+		cc_vec3d_lerp(&T00, &T10, uu, &Tx0);
+		cc_vec3d_lerp(&T01, &T11, uu, &Tx1);
+
+		// interpolate y
+		cc_vec3d_lerp(&Tx0, &Tx1, vv, T);
+
+		#ifdef ATMO_DEBUG_TRANSMITTANCE
+		// compute with optical depth
+		cc_vec3d_t t;
+		opticalDepth(param, P1, P2, &t);
+
+		cc_vec3d_t T2 =
+		{
+			.r = exp(-t.r),
+			.g = exp(-t.g),
+			.b = exp(-t.b),
+		};
+
+		// compare texture lookup with computed transmittance
+		cc_vec3d_t Delta;
+		cc_vec3d_subv_copy(&T2, T, &Delta);
+		double delta = cc_vec3d_mag(&Delta);
+		if(delta > 0.01)
+		{
+			LOGI("P1: %lf %lf %lf, P2: %lf %lf %lf",
+			     P1->x, P1->y, P1->z, P2->x, P2->y, P2->z);
+			LOGI("Zenith: %lf %lf %lf, V: %lf %lf %lf",
+			     Zenith.x, Zenith.y, Zenith.z, V.x, V.y, V.z);
+			LOGI("h=%lf, cos_mu=%lf, u=%lf, v=%lf, tw1=%lf, th1=%lf, uu=%lf, vv=%lf",
+			     h, cos_mu, u, v, tw1d, th1d, uu, vv);
+			LOGI("T00: %lf %lf %lf, x=%u, y=%u",
+			     T00.r, T00.g, T00.b, x0, y0);
+			LOGI("T01: %lf %lf %lf, x=%u, y=%u",
+			     T01.r, T01.g, T01.b, x0, y1);
+			LOGI("T10: %lf %lf %lf, x=%u, y=%u",
+			     T10.r, T10.g, T10.b, x1, y0);
+			LOGI("T11: %lf %lf %lf, x=%u, y=%u",
+			     T11.r, T11.g, T11.b, x1, y1);
+			LOGI("T1: %lf %lf %lf, T2: %lf %lf %lf, delta=%lf",
+			     T->r, T->g, T->b, T2.r, T2.g, T2.b, delta);
+		}
+		#endif
+	#else
+		cc_vec3d_t t;
+		opticalDepth(param, P1, P2, &t);
+
+		T->r = exp(-t.r);
+		T->g = exp(-t.g);
+		T->b = exp(-t.b);
+	#endif
+}
+
 #ifdef ATMO_USE_MODIFIED_RAYLEIGH_PHASE_FUNCTION
 // modified Rayleigh phase function
 static double
@@ -809,9 +1000,10 @@ atmo_phaseM(atmo_solverParam_t* param, double cos_theta)
 // factored single-scattered intensity
 static void
 fIS1(atmo_solverParam_t* param, double h, double phi,
-     double delta, cc_vec4d_t* fis1)
+     double delta, cc_vec3d_t* data_T, cc_vec4d_t* fis1)
 {
 	ASSERT(param);
+	ASSERT(data_T);
 	ASSERT(fis1);
 
 	// initialize fis1
@@ -856,21 +1048,21 @@ fIS1(atmo_solverParam_t* param, double h, double phi,
 	cc_vec3d_t step;
 	cc_vec4d_t fx0;
 	cc_vec4d_t fx1;
-	cc_vec3d_t tPPc;
-	cc_vec3d_t tPaP;
+	cc_vec3d_t TPPc;
+	cc_vec3d_t TPaP;
 	cc_vec3d_copy(&Pa, &P);
 	cc_vec3d_subv_copy(&Pb, &Pa, &step);
 	cc_vec3d_muls(&step, 1.0/param->transmittance_steps);
 	double ds = cc_vec3d_mag(&step);
 	double pR = densityR(param, h);
 	double pM = densityM(param, h);
-	opticalDepth(param, &P, &Pc, &tPPc);
-	opticalDepth(param, &Pa, &P, &tPaP);
-	fx0.r = pR*exp(-tPPc.x -tPaP.x);
-	fx0.g = pR*exp(-tPPc.y -tPaP.y);
-	fx0.b = pR*exp(-tPPc.z -tPaP.z);
-	fx0.a = pM*exp(-(tPPc.x + tPPc.y + tPPc.z)/3.0
-	               -(tPaP.y + tPaP.y + tPaP.z)/3.0);
+	transmittance(param, &P, &Pc, data_T, &TPPc);
+	transmittance(param, &Pa, &P, data_T, &TPaP);
+	fx0.r = pR*TPPc.x*TPaP.x;
+	fx0.g = pR*TPPc.y*TPaP.y;
+	fx0.b = pR*TPPc.z*TPaP.z;
+	fx0.a = pM*((TPPc.x + TPPc.y + TPPc.z)/3.0 *
+	            (TPaP.y + TPaP.y + TPaP.z)/3.0);
 
 	if(ds < ATMO_STEP_THRESH)
 	{
@@ -896,13 +1088,13 @@ fIS1(atmo_solverParam_t* param, double h, double phi,
 		h  = getHeightP(param, &P);
 		pR = densityR(param, h);
 		pM = densityM(param, h);
-		opticalDepth(param, &P, &Pc, &tPPc);
-		opticalDepth(param, &Pa, &P, &tPaP);
-		fx1.r = pR*exp(-tPPc.x -tPaP.x);
-		fx1.g = pR*exp(-tPPc.y -tPaP.y);
-		fx1.b = pR*exp(-tPPc.z -tPaP.z);
-		fx1.a = pM*exp(-(tPPc.x + tPPc.y + tPPc.z)/3.0
-		               -(tPaP.x + tPaP.y + tPaP.z)/3.0);
+		transmittance(param, &P, &Pc, data_T, &TPPc);
+		transmittance(param, &Pa, &P, data_T, &TPaP);
+		fx1.r = pR*TPPc.x*TPaP.x;
+		fx1.g = pR*TPPc.y*TPaP.y;
+		fx1.b = pR*TPPc.z*TPaP.z;
+		fx1.a = pM*((TPPc.x + TPPc.y + TPPc.z)/3.0 *
+		            (TPaP.x + TPaP.y + TPaP.z)/3.0);
 
 		// apply trapesoidal rule
 		fis1->r += 0.5*(fx1.r + fx0.r)*ds;
@@ -1149,10 +1341,11 @@ fGk(atmo_solverParam_t* param, uint32_t k, cc_vec3d_t* P,
 static void
 fISk(atmo_solverParam_t* param, uint32_t k,
      double h, double phi, double delta, cc_vec4d_t* data_fis,
-     cc_vec4d_t* fisk)
+     cc_vec3d_t* data_T, cc_vec4d_t* fisk)
 {
 	ASSERT(param);
 	ASSERT(data_fis);
+	ASSERT(data_T);
 	ASSERT(fisk);
 
 	// initialize fisk
@@ -1191,7 +1384,7 @@ fISk(atmo_solverParam_t* param, uint32_t k,
 	cc_vec3d_t step;
 	cc_vec4d_t fx0;
 	cc_vec4d_t fx1;
-	cc_vec3d_t tPaP;
+	cc_vec3d_t TPaP;
 	cc_vec4d_t fgk;
 	cc_vec3d_copy(&Pa, &P);
 	cc_vec3d_subv_copy(&Pb, &Pa, &step);
@@ -1200,11 +1393,11 @@ fISk(atmo_solverParam_t* param, uint32_t k,
 	double pR = densityR(param, h);
 	double pM = densityM(param, h);
 	fGk(param, k - 1, &P0, &V, &L, data_fis, &fgk);
-	opticalDepth(param, &Pa, &P, &tPaP);
-	fx0.r = fgk.r*pR*exp(-tPaP.x);
-	fx0.g = fgk.g*pR*exp(-tPaP.y);
-	fx0.b = fgk.b*pR*exp(-tPaP.z);
-	fx0.a = fgk.a*pM*exp(-(tPaP.x + tPaP.y + tPaP.z)/3.0);
+	transmittance(param, &Pa, &P, data_T, &TPaP);
+	fx0.r = fgk.r*pR*TPaP.x;
+	fx0.g = fgk.g*pR*TPaP.y;
+	fx0.b = fgk.b*pR*TPaP.z;
+	fx0.a = fgk.a*pM*(TPaP.x + TPaP.y + TPaP.z)/3.0;
 
 	if(ds < ATMO_STEP_THRESH)
 	{
@@ -1221,11 +1414,11 @@ fISk(atmo_solverParam_t* param, uint32_t k,
 		pR = densityR(param, h);
 		pM = densityM(param, h);
 		fGk(param, k - 1, &P, &V, &L, data_fis, &fgk);
-		opticalDepth(param, &Pa, &P, &tPaP);
-		fx1.r = fgk.r*pR*exp(-tPaP.x);
-		fx1.g = fgk.g*pR*exp(-tPaP.y);
-		fx1.b = fgk.b*pR*exp(-tPaP.z);
-		fx1.a = fgk.a*pM*exp(-(tPaP.x + tPaP.y + tPaP.z)/3.0);
+		transmittance(param, &Pa, &P, data_T, &TPaP);
+		fx1.r = fgk.r*pR*TPaP.x;
+		fx1.g = fgk.g*pR*TPaP.y;
+		fx1.b = fgk.b*pR*TPaP.z;
+		fx1.a = fgk.a*pM*(TPaP.x + TPaP.y + TPaP.z)/3.0;
 
 		// apply trapesoidal rule
 		fisk->r += 0.5*(fx1.r + fx0.r)*ds;
@@ -1409,6 +1602,10 @@ atmo_solver_exportData(atmo_solver_t* self,
 	cc_jsmnStream_int(jsmn, param->texture_fis_height);
 	cc_jsmnStream_key(jsmn, "%s", "texture_fis_depth");
 	cc_jsmnStream_int(jsmn, param->texture_fis_depth);
+	cc_jsmnStream_key(jsmn, "%s", "texture_T_width");
+	cc_jsmnStream_int(jsmn, param->texture_T_width);
+	cc_jsmnStream_key(jsmn, "%s", "texture_T_height");
+	cc_jsmnStream_int(jsmn, param->texture_T_height);
 	cc_jsmnStream_end(jsmn);
 	cc_jsmnStream_export(jsmn, "atmo-param.json");
 	cc_jsmnStream_delete(&jsmn);
@@ -1924,16 +2121,28 @@ atmo_solver_paramValidate(atmo_solverParam_t* param)
 		return 0;
 	}
 
+	if((param->texture_T_width  < 8) ||
+	   (param->texture_T_height < 8) ||
+	   (cc_find_pow2n(param->texture_T_width)  < 0) ||
+	   (cc_find_pow2n(param->texture_T_height) < 0))
+	{
+		LOGE("invalid texture_T_width=%u, texture_T_height=%u",
+		     param->texture_fis_width,
+		     param->texture_fis_height);
+		return 0;
+	}
+
 	return 1;
 }
 
 static void
 atmo_solver_step(atmo_solver_t* self, uint32_t k,
                  uint32_t x, uint32_t y, uint32_t z,
-                 cc_vec4d_t* data_fis)
+                 cc_vec4d_t* data_fis, cc_vec3d_t* data_T)
 {
 	ASSERT(self);
 	ASSERT(data_fis);
+	ASSERT(data_T);
 
 	atmo_solverParam_t* param = &self->param;
 
@@ -1954,11 +2163,11 @@ atmo_solver_step(atmo_solver_t* self, uint32_t k,
 	cc_vec4d_t fis;
 	if(k == 1)
 	{
-		fIS1(param, h, phi, delta, &fis);
+		fIS1(param, h, phi, delta, data_T, &fis);
 	}
 	else
 	{
-		fISk(param, k, h, phi, delta, data_fis, &fis);
+		fISk(param, k, h, phi, delta, data_fis, data_T, &fis);
 	}
 
 	setDataFis(param, k, x, y, z, data_fis, &fis);
@@ -2060,23 +2269,45 @@ static void atmo_solver_run(int tid, void* owner, void* task)
 	atmo_solver_t*      self  = (atmo_solver_t*) task;
 	atmo_solverParam_t* param = &self->param;
 
-	size_t count = param->k*
-	               param->texture_fis_width*
-	               param->texture_fis_height*
-	               param->texture_fis_depth;
+	size_t count_fis = param->k*
+	                   param->texture_fis_width*
+	                   param->texture_fis_height*
+	                   param->texture_fis_depth;
 
 	cc_vec4d_t* data_fis;
 	data_fis = (cc_vec4d_t*)
-	           CALLOC(count, sizeof(cc_vec4d_t));
+	           CALLOC(count_fis, sizeof(cc_vec4d_t));
 	if(data_fis == NULL)
 	{
 		LOGE("CALLOC failed");
 		return;
 	}
 
-	uint32_t k; // k is base-1
+	size_t count_T = param->texture_T_width*
+	                 param->texture_T_height;
+
+	cc_vec3d_t* data_T;
+	data_T = (cc_vec3d_t*)
+	          CALLOC(count_T, sizeof(cc_vec3d_t));
+	if(data_T == NULL)
+	{
+		LOGE("CALLOC failed");
+		goto finish;
+	}
+
+	// compute T
 	uint32_t x;
 	uint32_t y;
+	for(y = 0; y < param->texture_T_height; ++y)
+	{
+		for(x = 0; x < param->texture_T_width; ++x)
+		{
+			computeT(param, x, y, data_T);
+		}
+	}
+
+	// compute fis
+	uint32_t k; // k is base-1
 	uint32_t z;
 	uint32_t step  = 1;
 	uint32_t steps = param->k*param->texture_fis_depth;
@@ -2088,7 +2319,7 @@ static void atmo_solver_run(int tid, void* owner, void* task)
 			{
 				for(x = 0; x < param->texture_fis_width; ++x)
 				{
-					atmo_solver_step(self, k, x, y, z, data_fis);
+					atmo_solver_step(self, k, x, y, z, data_fis, data_T);
 				}
 			}
 
@@ -2098,8 +2329,7 @@ static void atmo_solver_run(int tid, void* owner, void* task)
 			LOGI("progress=%f", self->progress);
 			if(self->status == ATMO_SOLVER_STATUS_STOPPING)
 			{
-				FREE(data_fis);
-				return;
+				goto finish;
 			}
 			pthread_mutex_unlock(&self->mutex);
 
@@ -2112,7 +2342,11 @@ static void atmo_solver_run(int tid, void* owner, void* task)
 	atmo_solver_exportData(self, data_fis);
 	atmo_solver_debugData(self, data_fis);
 
-	FREE(data_fis);
+	finish:
+	{
+		FREE(data_T);
+		FREE(data_fis);
+	}
 }
 
 /***********************************************************
@@ -2217,6 +2451,9 @@ void atmo_solver_defaultParam(atmo_solver_t* self,
 		.texture_fis_width  = ATMO_TEXTURE_FIS_WIDTH,
 		.texture_fis_height = ATMO_TEXTURE_FIS_HEIGHT,
 		.texture_fis_depth  = ATMO_TEXTURE_FIS_DEPTH,
+
+		.texture_T_width  = ATMO_TEXTURE_T_WIDTH,
+		.texture_T_height = ATMO_TEXTURE_T_HEIGHT,
 	};
 
 	atmo_solver_computeII(&default_param);
