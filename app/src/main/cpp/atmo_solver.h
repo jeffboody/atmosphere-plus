@@ -66,9 +66,9 @@ typedef struct atmo_solverParam_s
 
 	uint32_t k; // base-1
 
-	uint32_t texture_width;
-	uint32_t texture_height;
-	uint32_t texture_depth;
+	uint32_t texture_fis_width;
+	uint32_t texture_fis_height;
+	uint32_t texture_fis_depth;
 } atmo_solverParam_t;
 
 typedef struct atmo_solver_s

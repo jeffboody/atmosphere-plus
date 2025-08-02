@@ -118,9 +118,9 @@
 #define ATMO_K 5
 
 // scattering texture size
-#define ATMO_TEXTURE_WIDTH  32
-#define ATMO_TEXTURE_HEIGHT 256
-#define ATMO_TEXTURE_DEPTH  32
+#define ATMO_TEXTURE_FIS_WIDTH  32
+#define ATMO_TEXTURE_FIS_HEIGHT 256
+#define ATMO_TEXTURE_FIS_DEPTH  32
 
 // height parameterization
 #define ATMO_PARAM_HEIGHT_LINEAR 0
@@ -508,44 +508,44 @@ static double getWCosDelta(double cos_delta)
 }
 
 static cc_vec4d_t*
-getDataK(atmo_solverParam_t* param,
-         uint32_t k, cc_vec4d_t* data)
+getDataFisK(atmo_solverParam_t* param,
+            uint32_t k, cc_vec4d_t* data)
 {
 	ASSERT(param);
 	ASSERT(data);
 
 	// k is base-1
 	uint32_t i   = k - 1;
-	uint32_t w   = param->texture_width;
-	uint32_t h   = param->texture_height;
-	uint32_t d   = param->texture_depth;
+	uint32_t w   = param->texture_fis_width;
+	uint32_t h   = param->texture_fis_height;
+	uint32_t d   = param->texture_fis_depth;
 	uint32_t idx = i*w*h*d;
 
 	return &data[idx];
 }
 
 static cc_vec4f_t*
-getDataKf(atmo_solverParam_t* param,
-          uint32_t k, cc_vec4f_t* data)
+getDataFisKf(atmo_solverParam_t* param,
+             uint32_t k, cc_vec4f_t* data)
 {
 	ASSERT(param);
 	ASSERT(data);
 
 	// k is base-1
 	uint32_t i   = k - 1;
-	uint32_t w   = param->texture_width;
-	uint32_t h   = param->texture_height;
-	uint32_t d   = param->texture_depth;
+	uint32_t w   = param->texture_fis_width;
+	uint32_t h   = param->texture_fis_height;
+	uint32_t d   = param->texture_fis_depth;
 	uint32_t idx = i*w*h*d;
 
 	return &data[idx];
 }
 
 static void
-getData(atmo_solverParam_t* param,
-        uint32_t k, uint32_t x,
-        uint32_t y, uint32_t z,
-        cc_vec4d_t* data, cc_vec4d_t* val)
+getDataFis(atmo_solverParam_t* param,
+           uint32_t k, uint32_t x,
+           uint32_t y, uint32_t z,
+           cc_vec4d_t* data, cc_vec4d_t* val)
 {
 	ASSERT(param);
 	ASSERT(data);
@@ -553,9 +553,9 @@ getData(atmo_solverParam_t* param,
 
 	// k is base-1
 	uint32_t i   = k - 1;
-	uint32_t w   = param->texture_width;
-	uint32_t h   = param->texture_height;
-	uint32_t d   = param->texture_depth;
+	uint32_t w   = param->texture_fis_width;
+	uint32_t h   = param->texture_fis_height;
+	uint32_t d   = param->texture_fis_depth;
 	uint32_t idx = x + y*w + z*w*h + i*w*h*d;
 
 	val->r = data[idx].r;
@@ -565,10 +565,10 @@ getData(atmo_solverParam_t* param,
 }
 
 static void
-setData(atmo_solverParam_t* param,
-        uint32_t k, uint32_t x,
-        uint32_t y, uint32_t z,
-        cc_vec4d_t* data, cc_vec4d_t* val)
+setDataFis(atmo_solverParam_t* param,
+           uint32_t k, uint32_t x,
+           uint32_t y, uint32_t z,
+           cc_vec4d_t* data, cc_vec4d_t* val)
 {
 	ASSERT(param);
 	ASSERT(data);
@@ -576,9 +576,9 @@ setData(atmo_solverParam_t* param,
 
 	// k is base-1
 	uint32_t i   = k - 1;
-	uint32_t w   = param->texture_width;
-	uint32_t h   = param->texture_height;
-	uint32_t d   = param->texture_depth;
+	uint32_t w   = param->texture_fis_width;
+	uint32_t h   = param->texture_fis_height;
+	uint32_t d   = param->texture_fis_depth;
 	uint32_t idx = x + y*w + z*w*h + i*w*h*d;
 
 	data[idx].r = val->r;
@@ -923,13 +923,13 @@ fIS1(atmo_solverParam_t* param, double h, double phi,
 static void
 fISk_sample(atmo_solverParam_t* param, uint32_t k,
             cc_vec3d_t* P, cc_vec3d_t* V, cc_vec3d_t* L,
-            cc_vec4d_t* data, cc_vec4d_t* fisk)
+            cc_vec4d_t* data_fis, cc_vec4d_t* fisk)
 {
 	ASSERT(param);
 	ASSERT(P);
 	ASSERT(V);
 	ASSERT(L);
-	ASSERT(data);
+	ASSERT(data_fis);
 	ASSERT(fisk);
 
 	// initialize fisk
@@ -951,29 +951,29 @@ fISk_sample(atmo_solverParam_t* param, uint32_t k,
 	double u         = getUHeight(param, h);
 	double v         = getVCosPhi(param, h, cos_phi, u);
 	double w         = getWCosDelta(cos_delta);
-	double width1    = (double) (param->texture_width  - 1);
-	double height1   = (double) (param->texture_height - 1);
-	double depth1    = (double) (param->texture_depth  - 1);
+	double width1    = (double) (param->texture_fis_width  - 1);
+	double height1   = (double) (param->texture_fis_height - 1);
+	double depth1    = (double) (param->texture_fis_depth  - 1);
 
 	// compute x0,y0,z0
 	uint32_t x0;
 	uint32_t y0;
 	uint32_t z0;
 	x0 = atmo_clampu((uint32_t) (u*width1),
-	                 0, param->texture_width  - 1);
+	                 0, param->texture_fis_width  - 1);
 	y0 = atmo_clampu((uint32_t) (v*height1),
-	                 0, param->texture_height - 1);
+	                 0, param->texture_fis_height - 1);
 	z0 = atmo_clampu((uint32_t) (w*depth1),
-	                 0, param->texture_depth  - 1);
+	                 0, param->texture_fis_depth  - 1);
 
 	#if ATMO_SAMPLE_MODE == ATMO_SAMPLE_MODE_LINEAR
 	// compute x1,y1,z1
 	uint32_t x1;
 	uint32_t y1;
 	uint32_t z1;
-	x1 = atmo_clampu(x0 + 1, 0, param->texture_width  - 1);
-	y1 = atmo_clampu(y0 + 1, 0, param->texture_height - 1);
-	z1 = atmo_clampu(z0 + 1, 0, param->texture_depth  - 1);
+	x1 = atmo_clampu(x0 + 1, 0, param->texture_fis_width  - 1);
+	y1 = atmo_clampu(y0 + 1, 0, param->texture_fis_height - 1);
+	z1 = atmo_clampu(z0 + 1, 0, param->texture_fis_depth  - 1);
 
 	// sampling coordinates
 	double uu = u*width1  - ((double) x0);
@@ -989,14 +989,14 @@ fISk_sample(atmo_solverParam_t* param, uint32_t k,
 	cc_vec4d_t fisk101;
 	cc_vec4d_t fisk110;
 	cc_vec4d_t fisk111;
-	getData(param, k, x0, y0, z0, data, &fisk000);
-	getData(param, k, x0, y0, z1, data, &fisk001);
-	getData(param, k, x0, y1, z0, data, &fisk010);
-	getData(param, k, x0, y1, z1, data, &fisk011);
-	getData(param, k, x1, y0, z0, data, &fisk100);
-	getData(param, k, x1, y0, z1, data, &fisk101);
-	getData(param, k, x1, y1, z0, data, &fisk110);
-	getData(param, k, x1, y1, z1, data, &fisk111);
+	getDataFis(param, k, x0, y0, z0, data_fis, &fisk000);
+	getDataFis(param, k, x0, y0, z1, data_fis, &fisk001);
+	getDataFis(param, k, x0, y1, z0, data_fis, &fisk010);
+	getDataFis(param, k, x0, y1, z1, data_fis, &fisk011);
+	getDataFis(param, k, x1, y0, z0, data_fis, &fisk100);
+	getDataFis(param, k, x1, y0, z1, data_fis, &fisk101);
+	getDataFis(param, k, x1, y1, z0, data_fis, &fisk110);
+	getDataFis(param, k, x1, y1, z1, data_fis, &fisk111);
 
 	// interpolate x
 	cc_vec4d_t fiskx00;
@@ -1018,7 +1018,7 @@ fISk_sample(atmo_solverParam_t* param, uint32_t k,
 	cc_vec4d_lerp(&fiskxy0, &fiskxy1, ww, fisk);
 
 	#else
-	getData(param, k, x0, y0, z0, data, fisk);
+	getDataFis(param, k, x0, y0, z0, data_fis, fisk);
 	#endif
 }
 
@@ -1026,14 +1026,14 @@ fISk_sample(atmo_solverParam_t* param, uint32_t k,
 static void
 fGk_step(atmo_solverParam_t* param, uint32_t k,
          cc_vec3d_t* P, cc_vec3d_t* V, cc_vec3d_t* L,
-         cc_vec4d_t* data, double s, double xj, double yi,
-         cc_vec4d_t* fgk)
+         cc_vec4d_t* data_fis, double s,
+         double xj, double yi, cc_vec4d_t* fgk)
 {
 	ASSERT(param);
 	ASSERT(P);
 	ASSERT(V);
 	ASSERT(L);
-	ASSERT(data);
+	ASSERT(data_fis);
 	ASSERT(fgk);
 
 	// compute omega
@@ -1060,7 +1060,7 @@ fGk_step(atmo_solverParam_t* param, uint32_t k,
 
 	// sample fisk
 	cc_vec4d_t fisk;
-	fISk_sample(param, k, P, &omega, L, data, &fisk);
+	fISk_sample(param, k, P, &omega, L, data_fis, &fisk);
 
 	// compute sin_theta for domega
 	// xj => omega spherical angle theta in (0, pi)
@@ -1076,14 +1076,14 @@ fGk_step(atmo_solverParam_t* param, uint32_t k,
 // factored multiple-scattered gathered intensity
 static void
 fGk(atmo_solverParam_t* param, uint32_t k, cc_vec3d_t* P,
-    cc_vec3d_t* V, cc_vec3d_t* L, cc_vec4d_t* data,
+    cc_vec3d_t* V, cc_vec3d_t* L, cc_vec4d_t* data_fis,
     cc_vec4d_t* fgk)
 {
 	ASSERT(param);
 	ASSERT(P);
 	ASSERT(V);
 	ASSERT(L);
-	ASSERT(data);
+	ASSERT(data_fis);
 	ASSERT(fgk);
 
 	// initalize 2D trapezoidal rule edges
@@ -1107,10 +1107,10 @@ fGk(atmo_solverParam_t* param, uint32_t k, cc_vec3d_t* P,
 	fgk->a = 0.0;
 
 	// apply 2D trapezoidal rule for corners
-	fGk_step(param, k, P, V, L, data, 1.0, x0, y0, fgk);
-	fGk_step(param, k, P, V, L, data, 1.0, xn, y0, fgk);
-	fGk_step(param, k, P, V, L, data, 1.0, x0, ym, fgk);
-	fGk_step(param, k, P, V, L, data, 1.0, xn, ym, fgk);
+	fGk_step(param, k, P, V, L, data_fis, 1.0, x0, y0, fgk);
+	fGk_step(param, k, P, V, L, data_fis, 1.0, xn, y0, fgk);
+	fGk_step(param, k, P, V, L, data_fis, 1.0, x0, ym, fgk);
+	fGk_step(param, k, P, V, L, data_fis, 1.0, xn, ym, fgk);
 
 	// apply 2D trapezoidal rule for edges
 	int    i;
@@ -1120,14 +1120,14 @@ fGk(atmo_solverParam_t* param, uint32_t k, cc_vec3d_t* P,
 	for(j = 1; j < n; ++j)
 	{
 		xj = ((double) j)*dx;
-		fGk_step(param, k, P, V, L, data, 2.0, xj, y0, fgk);
-		fGk_step(param, k, P, V, L, data, 2.0, xj, ym, fgk);
+		fGk_step(param, k, P, V, L, data_fis, 2.0, xj, y0, fgk);
+		fGk_step(param, k, P, V, L, data_fis, 2.0, xj, ym, fgk);
 	}
 	for(i = 1; i < m; ++i)
 	{
 		yi = ((double) i)*dy;
-		fGk_step(param, k, P, V, L, data, 2.0, x0, yi, fgk);
-		fGk_step(param, k, P, V, L, data, 2.0, xn, yi, fgk);
+		fGk_step(param, k, P, V, L, data_fis, 2.0, x0, yi, fgk);
+		fGk_step(param, k, P, V, L, data_fis, 2.0, xn, yi, fgk);
 	}
 
 	// apply 2D trapezoidal rule for center
@@ -1137,7 +1137,7 @@ fGk(atmo_solverParam_t* param, uint32_t k, cc_vec3d_t* P,
 		for(j = 1; j < n; ++j)
 		{
 			xj = ((double) j)*dx;
-			fGk_step(param, k, P, V, L, data, 4.0, xj, yi, fgk);
+			fGk_step(param, k, P, V, L, data_fis, 4.0, xj, yi, fgk);
 		}
 	}
 
@@ -1148,11 +1148,11 @@ fGk(atmo_solverParam_t* param, uint32_t k, cc_vec3d_t* P,
 // factored multiple-scattered intensity
 static void
 fISk(atmo_solverParam_t* param, uint32_t k,
-     double h, double phi, double delta, cc_vec4d_t* data,
+     double h, double phi, double delta, cc_vec4d_t* data_fis,
      cc_vec4d_t* fisk)
 {
 	ASSERT(param);
-	ASSERT(data);
+	ASSERT(data_fis);
 	ASSERT(fisk);
 
 	// initialize fisk
@@ -1199,7 +1199,7 @@ fISk(atmo_solverParam_t* param, uint32_t k,
 	double ds = cc_vec3d_mag(&step);
 	double pR = densityR(param, h);
 	double pM = densityM(param, h);
-	fGk(param, k - 1, &P0, &V, &L, data, &fgk);
+	fGk(param, k - 1, &P0, &V, &L, data_fis, &fgk);
 	opticalDepth(param, &Pa, &P, &tPaP);
 	fx0.r = fgk.r*pR*exp(-tPaP.x);
 	fx0.g = fgk.g*pR*exp(-tPaP.y);
@@ -1220,7 +1220,7 @@ fISk(atmo_solverParam_t* param, uint32_t k,
 		h  = getHeightP(param, &P);
 		pR = densityR(param, h);
 		pM = densityM(param, h);
-		fGk(param, k - 1, &P, &V, &L, data, &fgk);
+		fGk(param, k - 1, &P, &V, &L, data_fis, &fgk);
 		opticalDepth(param, &Pa, &P, &tPaP);
 		fx1.r = fgk.r*pR*exp(-tPaP.x);
 		fx1.g = fgk.g*pR*exp(-tPaP.y);
@@ -1265,10 +1265,10 @@ static void atmo_solver_deleteImages(atmo_solver_t* self)
 
 static int
 atmo_solver_newImages(atmo_solver_t* self,
-                      cc_vec4d_t* data)
+                      cc_vec4d_t* data_fis)
 {
 	ASSERT(self);
-	ASSERT(data);
+	ASSERT(data_fis);
 
 	vkk_image_t* img;
 	cc_vec4f_t*  datak;
@@ -1276,9 +1276,9 @@ atmo_solver_newImages(atmo_solver_t* self,
 	atmo_solverParam_t* param = &self->param;
 
 	size_t count = param->k*
-	               param->texture_width*
-	               param->texture_height*
-	               param->texture_depth;
+	               param->texture_fis_width*
+	               param->texture_fis_height*
+	               param->texture_fis_depth;
 
 	cc_vec4f_t*  dataf;
 	dataf = (cc_vec4f_t*)
@@ -1289,14 +1289,14 @@ atmo_solver_newImages(atmo_solver_t* self,
 		return 0;
 	}
 
-	// copy data
+	// copy data_fis
 	int i;
 	for(i = 0; i < count; ++i)
 	{
-		dataf[i].x = (float) data[i].x;
-		dataf[i].y = (float) data[i].y;
-		dataf[i].z = (float) data[i].z;
-		dataf[i].w = (float) data[i].w;
+		dataf[i].x = (float) data_fis[i].x;
+		dataf[i].y = (float) data_fis[i].y;
+		dataf[i].z = (float) data_fis[i].z;
+		dataf[i].w = (float) data_fis[i].w;
 	}
 
 	self->image_array = (vkk_image_t**)
@@ -1311,12 +1311,12 @@ atmo_solver_newImages(atmo_solver_t* self,
 	for(i = 0; i < param->k; ++i)
 	{
 		// k is base-1
-		datak = getDataKf(&self->param, i + 1, dataf);
+		datak = getDataFisKf(&self->param, i + 1, dataf);
 
 		img = vkk_image_new(self->engine,
-		                    param->texture_width,
-		                    param->texture_height,
-		                    param->texture_depth,
+		                    param->texture_fis_width,
+		                    param->texture_fis_height,
+		                    param->texture_fis_depth,
 		                    VKK_IMAGE_FORMAT_RGBAF16,
 		                    0, VKK_STAGE_FS,
 		                    (const void*) datak);
@@ -1350,10 +1350,10 @@ atmo_solver_newImages(atmo_solver_t* self,
 
 static int
 atmo_solver_exportData(atmo_solver_t* self,
-                       cc_vec4d_t* data)
+                       cc_vec4d_t* data_fis)
 {
 	ASSERT(self);
-	ASSERT(data);
+	ASSERT(data_fis);
 
 	atmo_solverParam_t* param = &self->param;
 
@@ -1403,12 +1403,12 @@ atmo_solver_exportData(atmo_solver_t* self,
 	cc_jsmnStream_int(jsmn, param->gather_n_steps);
 	cc_jsmnStream_key(jsmn, "%s", "k");
 	cc_jsmnStream_int(jsmn, param->k);
-	cc_jsmnStream_key(jsmn, "%s", "texture_width");
-	cc_jsmnStream_int(jsmn, param->texture_width);
-	cc_jsmnStream_key(jsmn, "%s", "texture_height");
-	cc_jsmnStream_int(jsmn, param->texture_height);
-	cc_jsmnStream_key(jsmn, "%s", "texture_depth");
-	cc_jsmnStream_int(jsmn, param->texture_depth);
+	cc_jsmnStream_key(jsmn, "%s", "texture_fis_width");
+	cc_jsmnStream_int(jsmn, param->texture_fis_width);
+	cc_jsmnStream_key(jsmn, "%s", "texture_fis_height");
+	cc_jsmnStream_int(jsmn, param->texture_fis_height);
+	cc_jsmnStream_key(jsmn, "%s", "texture_fis_depth");
+	cc_jsmnStream_int(jsmn, param->texture_fis_depth);
 	cc_jsmnStream_end(jsmn);
 	cc_jsmnStream_export(jsmn, "atmo-param.json");
 	cc_jsmnStream_delete(&jsmn);
@@ -1417,12 +1417,14 @@ atmo_solver_exportData(atmo_solver_t* self,
 	cc_vec4d_t* datak;
 	char fname[256];
 	FILE* f;
-	size_t size = sizeof(cc_vec4d_t)*param->texture_width*
-	              param->texture_height*param->texture_depth;
+	size_t size = sizeof(cc_vec4d_t)*
+	              param->texture_fis_width*
+	              param->texture_fis_height*
+	              param->texture_fis_depth;
 	for(k = 1; k <= param->k; ++k)
 	{
-		snprintf(fname, 256, "atmo-data-k%u.dat", k);
-		datak = getDataK(param, k, data);
+		snprintf(fname, 256, "atmo-data_fis-k%u.dat", k);
+		datak = getDataFisK(param, k, data_fis);
 		f = fopen(fname, "w");
 		if(f)
 		{
@@ -1685,16 +1687,17 @@ static int atmo_solver_plotSpectralToRGB(void)
 }
 
 static int
-atmo_solver_debugData(atmo_solver_t* self, cc_vec4d_t* data)
+atmo_solver_debugData(atmo_solver_t* self, cc_vec4d_t* data_fis)
 {
 	ASSERT(self);
-	ASSERT(data);
+	ASSERT(data_fis);
 
 	atmo_solverParam_t* param = &self->param;
 
 	// debug slices by height
-	int texw = param->texture_width*param->texture_depth;
-	int texh = 2*param->texture_height;
+	int texw = param->texture_fis_width*
+	           param->texture_fis_depth;
+	int texh = 2*param->texture_fis_height;
 
 	texgz_tex_t* tex;
 	tex = texgz_tex_new(texw, texh, texw, texh,
@@ -1738,24 +1741,26 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4d_t* data)
 	cc_vec3d_t color;
 	for(k = 1; k <= param->k; ++k)
 	{
-		for(x = 0; x < param->texture_width; ++x)
+		for(x = 0; x < param->texture_fis_width; ++x)
 		{
-			u = ((double) x)/((double) (param->texture_width - 1));
+			u = ((double) x)/((double) (param->texture_fis_width - 1));
 			h = getHeightU(param, u);
 
-			for(z = 0; z < param->texture_depth; ++z)
+			for(z = 0; z < param->texture_fis_depth; ++z)
 			{
-				w = ((double) z)/((double) (param->texture_depth - 1));
+				w = ((double) z)/
+				    ((double) (param->texture_fis_depth - 1));
 				cos_delta = getCosDeltaW(w);
 				delta = acos(cos_delta);
 
-				for(y = 0; y < param->texture_height; ++y)
+				for(y = 0; y < param->texture_fis_height; ++y)
 				{
-					v = ((double) y)/((double) (param->texture_height - 1));
+					v = ((double) y)/
+					    ((double) (param->texture_fis_height - 1));
 					cos_phi = getCosPhiV(param, h, u, v);
 					phi = acos(cos_phi);
 
-					getData(param, k, x, y, z, data, &fis);
+					getDataFis(param, k, x, y, z, data_fis, &fis);
 
 					cos_theta = cos(delta - phi);
 					FR = atmo_phaseR(param, cos_theta);
@@ -1779,15 +1784,16 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4d_t* data)
 					pixel[0] = (unsigned char) (255.0*color.r);
 					pixel[1] = (unsigned char) (255.0*color.g);
 					pixel[2] = (unsigned char) (255.0*color.b);
-					texgz_tex_setPixel(tex, x*param->texture_depth + z,
+					texgz_tex_setPixel(tex, x*param->texture_fis_depth + z,
 					                   y, pixel);
 
 					// set u,v,w
 					pixel[0] = (unsigned char) (255.0*u);
 					pixel[1] = (unsigned char) (255.0*v);
 					pixel[2] = (unsigned char) (255.0*w);
-					texgz_tex_setPixel(tex, x*param->texture_depth + z,
-					                   param->texture_height + y, pixel);
+					texgz_tex_setPixel(tex, x*param->texture_fis_depth + z,
+					                   param->texture_fis_height + y,
+					                   pixel);
 				}
 			}
 		}
@@ -1805,7 +1811,7 @@ atmo_solver_debugData(atmo_solver_t* self, cc_vec4d_t* data)
 }
 #else
 static int
-atmo_solver_debugData(atmo_solver_t* self, cc_vec4d_t* data)
+atmo_solver_debugData(atmo_solver_t* self, cc_vec4d_t* data_fis)
 {
 	return 1;
 }
@@ -1904,17 +1910,17 @@ atmo_solver_paramValidate(atmo_solverParam_t* param)
 		return 0;
 	}
 
-	if((param->texture_width  < 8) ||
-	   (param->texture_height < 8) ||
-	   (param->texture_depth  < 8) ||
-	   (cc_find_pow2n(param->texture_width)  < 0) ||
-	   (cc_find_pow2n(param->texture_height) < 0) ||
-	   (cc_find_pow2n(param->texture_depth)  < 0))
+	if((param->texture_fis_width  < 8) ||
+	   (param->texture_fis_height < 8) ||
+	   (param->texture_fis_depth  < 8) ||
+	   (cc_find_pow2n(param->texture_fis_width)  < 0) ||
+	   (cc_find_pow2n(param->texture_fis_height) < 0) ||
+	   (cc_find_pow2n(param->texture_fis_depth)  < 0))
 	{
-		LOGE("invalid texture_width=%u, texture_height=%u, texture_depth=%u",
-		     param->texture_width,
-		     param->texture_height,
-		     param->texture_depth);
+		LOGE("invalid texture_fis_width=%u, texture_fis_height=%u, texture_fis_depth=%u",
+		     param->texture_fis_width,
+		     param->texture_fis_height,
+		     param->texture_fis_depth);
 		return 0;
 	}
 
@@ -1924,16 +1930,16 @@ atmo_solver_paramValidate(atmo_solverParam_t* param)
 static void
 atmo_solver_step(atmo_solver_t* self, uint32_t k,
                  uint32_t x, uint32_t y, uint32_t z,
-                 cc_vec4d_t* data)
+                 cc_vec4d_t* data_fis)
 {
 	ASSERT(self);
-	ASSERT(data);
+	ASSERT(data_fis);
 
 	atmo_solverParam_t* param = &self->param;
 
-	double width  = (double) param->texture_width;
-	double height = (double) param->texture_height;
-	double depth  = (double) param->texture_depth;
+	double width  = (double) param->texture_fis_width;
+	double height = (double) param->texture_fis_height;
+	double depth  = (double) param->texture_fis_depth;
 
 	double u = ((double) x)/(width - 1.0);
 	double v = ((double) y)/(height - 1.0);
@@ -1952,17 +1958,17 @@ atmo_solver_step(atmo_solver_t* self, uint32_t k,
 	}
 	else
 	{
-		fISk(param, k, h, phi, delta, data, &fis);
+		fISk(param, k, h, phi, delta, data_fis, &fis);
 	}
 
-	setData(param, k, x, y, z, data, &fis);
+	setDataFis(param, k, x, y, z, data_fis, &fis);
 }
 
 static void
-atmo_solver_finish(atmo_solver_t* self, cc_vec4d_t* data)
+atmo_solver_finish(atmo_solver_t* self, cc_vec4d_t* data_fis)
 {
 	ASSERT(self);
-	ASSERT(data);
+	ASSERT(data_fis);
 
 	atmo_solverParam_t* param = &self->param;
 
@@ -1972,13 +1978,13 @@ atmo_solver_finish(atmo_solver_t* self, cc_vec4d_t* data)
 	double     mag0_r = 0.0;
 	double     mag0_m = 0.0;
 	cc_vec4d_t fis0;
-	for(z = 0; z < param->texture_depth; ++z)
+	for(z = 0; z < param->texture_fis_depth; ++z)
 	{
-		for(y = 0; y < param->texture_height; ++y)
+		for(y = 0; y < param->texture_fis_height; ++y)
 		{
-			for(x = 0; x < param->texture_width; ++x)
+			for(x = 0; x < param->texture_fis_width; ++x)
 			{
-				getData(param, 1, x, y, z, data, &fis0);
+				getDataFis(param, 1, x, y, z, data_fis, &fis0);
 				mag0_r += cc_vec3d_mag((cc_vec3d_t*) &fis0);
 				mag0_m += fis0.a;
 			}
@@ -1997,13 +2003,13 @@ atmo_solver_finish(atmo_solver_t* self, cc_vec4d_t* data)
 	cc_vec4d_t fis1;
 	for(k = 2; k <= param->k; ++k)
 	{
-		for(z = 0; z < param->texture_depth; ++z)
+		for(z = 0; z < param->texture_fis_depth; ++z)
 		{
-			for(y = 0; y < param->texture_height; ++y)
+			for(y = 0; y < param->texture_fis_height; ++y)
 			{
-				for(x = 0; x < param->texture_width; ++x)
+				for(x = 0; x < param->texture_fis_width; ++x)
 				{
-					getData(param, k, x, y, z, data, &fis1);
+					getDataFis(param, k, x, y, z, data_fis, &fis1);
 					mag1_r += cc_vec3d_mag((cc_vec3d_t*) &fis1);
 					mag1_m += fis1.a;
 				}
@@ -2013,14 +2019,14 @@ atmo_solver_finish(atmo_solver_t* self, cc_vec4d_t* data)
 		     k, mag1_r, mag1_m, mag1_r/mag0_r, atten_r, mag1_m/mag0_m, atten_m);
 
 		cc_vec4d_t fis;
-		for(z = 0; z < param->texture_depth; ++z)
+		for(z = 0; z < param->texture_fis_depth; ++z)
 		{
-			for(y = 0; y < param->texture_height; ++y)
+			for(y = 0; y < param->texture_fis_height; ++y)
 			{
-				for(x = 0; x < param->texture_width; ++x)
+				for(x = 0; x < param->texture_fis_width; ++x)
 				{
-					getData(param, k - 1, x, y, z, data, &fis0);
-					getData(param, k,     x, y, z, data, &fis1);
+					getDataFis(param, k - 1, x, y, z, data_fis, &fis0);
+					getDataFis(param, k,     x, y, z, data_fis, &fis1);
 
 					// optionally adjust the attenuation for each k
 					#ifdef ATMO_ADJUST_ATTENUATION
@@ -2031,7 +2037,7 @@ atmo_solver_finish(atmo_solver_t* self, cc_vec4d_t* data)
 					#endif
 
 					cc_vec4d_addv_copy(&fis0, &fis1, &fis);
-					setData(param, k, x, y, z, data, &fis);
+					setDataFis(param, k, x, y, z, data_fis, &fis);
 				}
 			}
 		}
@@ -2055,14 +2061,14 @@ static void atmo_solver_run(int tid, void* owner, void* task)
 	atmo_solverParam_t* param = &self->param;
 
 	size_t count = param->k*
-	               param->texture_width*
-	               param->texture_height*
-	               param->texture_depth;
+	               param->texture_fis_width*
+	               param->texture_fis_height*
+	               param->texture_fis_depth;
 
-	cc_vec4d_t* data;
-	data = (cc_vec4d_t*)
-	       CALLOC(count, sizeof(cc_vec4d_t));
-	if(data == NULL)
+	cc_vec4d_t* data_fis;
+	data_fis = (cc_vec4d_t*)
+	           CALLOC(count, sizeof(cc_vec4d_t));
+	if(data_fis == NULL)
 	{
 		LOGE("CALLOC failed");
 		return;
@@ -2073,16 +2079,16 @@ static void atmo_solver_run(int tid, void* owner, void* task)
 	uint32_t y;
 	uint32_t z;
 	uint32_t step  = 1;
-	uint32_t steps = param->k*param->texture_depth;
+	uint32_t steps = param->k*param->texture_fis_depth;
 	for(k = 1; k <= param->k; ++k)
 	{
-		for(z = 0; z < param->texture_depth; ++z)
+		for(z = 0; z < param->texture_fis_depth; ++z)
 		{
-			for(y = 0; y < param->texture_height; ++y)
+			for(y = 0; y < param->texture_fis_height; ++y)
 			{
-				for(x = 0; x < param->texture_width; ++x)
+				for(x = 0; x < param->texture_fis_width; ++x)
 				{
-					atmo_solver_step(self, k, x, y, z, data);
+					atmo_solver_step(self, k, x, y, z, data_fis);
 				}
 			}
 
@@ -2092,7 +2098,7 @@ static void atmo_solver_run(int tid, void* owner, void* task)
 			LOGI("progress=%f", self->progress);
 			if(self->status == ATMO_SOLVER_STATUS_STOPPING)
 			{
-				FREE(data);
+				FREE(data_fis);
 				return;
 			}
 			pthread_mutex_unlock(&self->mutex);
@@ -2101,12 +2107,12 @@ static void atmo_solver_run(int tid, void* owner, void* task)
 		}
 	}
 
-	atmo_solver_finish(self, data);
-	atmo_solver_newImages(self, data);
-	atmo_solver_exportData(self, data);
-	atmo_solver_debugData(self, data);
+	atmo_solver_finish(self, data_fis);
+	atmo_solver_newImages(self, data_fis);
+	atmo_solver_exportData(self, data_fis);
+	atmo_solver_debugData(self, data_fis);
 
-	FREE(data);
+	FREE(data_fis);
 }
 
 /***********************************************************
@@ -2208,9 +2214,9 @@ void atmo_solver_defaultParam(atmo_solver_t* self,
 
 		.k = ATMO_K,
 
-		.texture_width  = ATMO_TEXTURE_WIDTH,
-		.texture_height = ATMO_TEXTURE_HEIGHT,
-		.texture_depth  = ATMO_TEXTURE_DEPTH,
+		.texture_fis_width  = ATMO_TEXTURE_FIS_WIDTH,
+		.texture_fis_height = ATMO_TEXTURE_FIS_HEIGHT,
+		.texture_fis_depth  = ATMO_TEXTURE_FIS_DEPTH,
 	};
 
 	atmo_solver_computeII(&default_param);
