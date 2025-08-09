@@ -252,9 +252,9 @@ atmo_solver_computeII(atmo_solverParam_t* param)
 	cc_vec3d_t II;
 	cc_mat3d_mulv_copy(&Minv, &xyz, &II);
 
-	param->II_r = II.x;
-	param->II_g = II.y;
-	param->II_b = II.z;
+	param->II_r = II.r;
+	param->II_g = II.g;
+	param->II_b = II.b;
 
 	LOGI("II: r=%f, g=%f, b=%f",
 	     param->II_r, param->II_g, param->II_b);
@@ -681,9 +681,9 @@ opticalDepth(atmo_solverParam_t* param, cc_vec3d_t* P1,
 
 	if(ds < ATMO_STEP_THRESH)
 	{
-		out->x = 0.0;
-		out->y = 0.0;
-		out->z = 0.0;
+		out->r = 0.0;
+		out->g = 0.0;
+		out->b = 0.0;
 		return;
 	}
 
@@ -717,24 +717,24 @@ opticalDepth(atmo_solverParam_t* param, cc_vec3d_t* P1,
 	// extinction coefficients (scattering + absorption)
 	cc_vec3d_t bR =
 	{
-		.x = param->beta_s_r_rayleigh,
-		.y = param->beta_s_g_rayleigh,
-		.z = param->beta_s_b_rayleigh,
+		.r = param->beta_s_r_rayleigh,
+		.g = param->beta_s_g_rayleigh,
+		.b = param->beta_s_b_rayleigh,
 	};
 
 	double bM = param->beta_s_mie + param->beta_a_mie;
 
 	cc_vec3d_t bO =
 	{
-		.x = param->beta_a_r_ozone,
-		.y = param->beta_a_g_ozone,
-		.z = param->beta_a_b_ozone,
+		.r = param->beta_a_r_ozone,
+		.g = param->beta_a_g_ozone,
+		.b = param->beta_a_b_ozone,
 	};
 
 	// apply Rayleigh/Mie scattering coefficient
-	out->x = bR.x*tR + bM*tM + bO.x*tO;
-	out->y = bR.y*tR + bM*tM + bO.y*tO;
-	out->z = bR.z*tR + bM*tM + bO.z*tO;
+	out->r = bR.r*tR + bM*tM + bO.r*tO;
+	out->g = bR.g*tR + bM*tM + bO.g*tO;
+	out->b = bR.b*tR + bM*tM + bO.b*tO;
 }
 
 // compute the points Pa and Pb on the viewing vector
@@ -1058,11 +1058,11 @@ fIS1(atmo_solverParam_t* param, double h, double phi,
 	double pM = densityM(param, h);
 	transmittance(param, &P, &Pc, data_T, &TPPc);
 	transmittance(param, &Pa, &P, data_T, &TPaP);
-	fx0.r = pR*TPPc.x*TPaP.x;
-	fx0.g = pR*TPPc.y*TPaP.y;
-	fx0.b = pR*TPPc.z*TPaP.z;
-	fx0.a = pM*((TPPc.x + TPPc.y + TPPc.z)/3.0 *
-	            (TPaP.y + TPaP.y + TPaP.z)/3.0);
+	fx0.r = pR*TPPc.r*TPaP.r;
+	fx0.g = pR*TPPc.g*TPaP.g;
+	fx0.b = pR*TPPc.b*TPaP.b;
+	fx0.a = pM*((TPPc.r + TPPc.g + TPPc.b)/3.0 *
+	            (TPaP.r + TPaP.g + TPaP.b)/3.0);
 
 	if(ds < ATMO_STEP_THRESH)
 	{
@@ -1090,11 +1090,11 @@ fIS1(atmo_solverParam_t* param, double h, double phi,
 		pM = densityM(param, h);
 		transmittance(param, &P, &Pc, data_T, &TPPc);
 		transmittance(param, &Pa, &P, data_T, &TPaP);
-		fx1.r = pR*TPPc.x*TPaP.x;
-		fx1.g = pR*TPPc.y*TPaP.y;
-		fx1.b = pR*TPPc.z*TPaP.z;
-		fx1.a = pM*((TPPc.x + TPPc.y + TPPc.z)/3.0 *
-		            (TPaP.x + TPaP.y + TPaP.z)/3.0);
+		fx1.r = pR*TPPc.r*TPaP.r;
+		fx1.g = pR*TPPc.g*TPaP.g;
+		fx1.b = pR*TPPc.b*TPaP.b;
+		fx1.a = pM*((TPPc.r + TPPc.g + TPPc.b)/3.0 *
+		            (TPaP.r + TPaP.g + TPaP.b)/3.0);
 
 		// apply trapesoidal rule
 		fis1->r += 0.5*(fx1.r + fx0.r)*ds;
@@ -1394,10 +1394,10 @@ fISk(atmo_solverParam_t* param, uint32_t k,
 	double pM = densityM(param, h);
 	fGk(param, k - 1, &P0, &V, &L, data_fis, &fgk);
 	transmittance(param, &Pa, &P, data_T, &TPaP);
-	fx0.r = fgk.r*pR*TPaP.x;
-	fx0.g = fgk.g*pR*TPaP.y;
-	fx0.b = fgk.b*pR*TPaP.z;
-	fx0.a = fgk.a*pM*(TPaP.x + TPaP.y + TPaP.z)/3.0;
+	fx0.r = fgk.r*pR*TPaP.r;
+	fx0.g = fgk.g*pR*TPaP.g;
+	fx0.b = fgk.b*pR*TPaP.b;
+	fx0.a = fgk.a*pM*(TPaP.r + TPaP.g + TPaP.b)/3.0;
 
 	if(ds < ATMO_STEP_THRESH)
 	{
@@ -1415,10 +1415,10 @@ fISk(atmo_solverParam_t* param, uint32_t k,
 		pM = densityM(param, h);
 		fGk(param, k - 1, &P, &V, &L, data_fis, &fgk);
 		transmittance(param, &Pa, &P, data_T, &TPaP);
-		fx1.r = fgk.r*pR*TPaP.x;
-		fx1.g = fgk.g*pR*TPaP.y;
-		fx1.b = fgk.b*pR*TPaP.z;
-		fx1.a = fgk.a*pM*(TPaP.x + TPaP.y + TPaP.z)/3.0;
+		fx1.r = fgk.r*pR*TPaP.r;
+		fx1.g = fgk.g*pR*TPaP.g;
+		fx1.b = fgk.b*pR*TPaP.b;
+		fx1.a = fgk.a*pM*(TPaP.r + TPaP.g + TPaP.b)/3.0;
 
 		// apply trapesoidal rule
 		fisk->r += 0.5*(fx1.r + fx0.r)*ds;
@@ -1486,10 +1486,10 @@ atmo_solver_newImages(atmo_solver_t* self,
 	int i;
 	for(i = 0; i < count; ++i)
 	{
-		dataf[i].x = (float) data_fis[i].x;
-		dataf[i].y = (float) data_fis[i].y;
-		dataf[i].z = (float) data_fis[i].z;
-		dataf[i].w = (float) data_fis[i].w;
+		dataf[i].r = (float) data_fis[i].r;
+		dataf[i].g = (float) data_fis[i].g;
+		dataf[i].b = (float) data_fis[i].b;
+		dataf[i].a = (float) data_fis[i].a;
 	}
 
 	self->image_array = (vkk_image_t**)
@@ -1797,15 +1797,15 @@ atmo_solver_plotAvgT(atmo_solverParam_t* param)
 			opticalDepth(param, &P0, &Pb, &t);
 
 			cc_vec3d_t T;
-			T.x = exp(-t.x);
-			T.y = exp(-t.y);
-			T.z = exp(-t.z);
+			T.r = exp(-t.r);
+			T.g = exp(-t.g);
+			T.b = exp(-t.b);
 
-			double avgT = (T.x + T.y + T.z)/3.0;
+			double avgT = (T.r + T.g + T.b)/3.0;
 
 			LOGI("h=%lf, phi=%lf, avgT=%lf, dist=%lf, T=%lf,%lf,%lf",
 			     h, phi_deg, avgT, dist,
-			     T.x, T.y, T.z);
+			     T.r, T.g, T.b);
 
 			if(j == 0)
 			{
@@ -1873,9 +1873,9 @@ static int atmo_solver_plotSpectralToRGB(void)
 		                          i, &rgb_peak);
 		fprintf(f, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf\n",
 		        (double) i,
-		        rgb_none.x, rgb_none.y, rgb_none.z,
-		        rgb_sum.x,  rgb_sum.y,  rgb_sum.z,
-		        rgb_peak.x, rgb_peak.y, rgb_peak.z);
+		        rgb_none.r, rgb_none.g, rgb_none.b,
+		        rgb_sum.r,  rgb_sum.g,  rgb_sum.b,
+		        rgb_peak.r, rgb_peak.g, rgb_peak.b);
 	}
 
 	fclose(f);
