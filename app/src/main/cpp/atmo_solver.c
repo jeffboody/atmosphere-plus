@@ -414,7 +414,7 @@ getCosPhiV(atmo_solverParam_t* param, double h, double u,
 	return atmo_clampd(cos_phi, -1.0, 1.0);
 }
 
-static float
+static double
 getVCosPhi(atmo_solverParam_t* param, double h,
            double cos_phi, double u)
 {
@@ -1448,12 +1448,12 @@ atmo_uncharted2TonemapPartial(cc_vec3d_t* x, cc_vec3d_t* y)
 	ASSERT(x);
 	ASSERT(y);
 
-	float A = 0.15;
-	float B = 0.50;
-	float C = 0.10;
-	float D = 0.20;
-	float E = 0.02;
-	float F = 0.30;
+	double A = 0.15;
+	double B = 0.50;
+	double C = 0.10;
+	double D = 0.20;
+	double E = 0.02;
+	double F = 0.30;
 	y->r = ((x->r*(A*x->r+C*B)+D*E)/(x->r*(A*x->r+B)+D*F))-E/F;
 	y->g = ((x->g*(A*x->g+C*B)+D*E)/(x->g*(A*x->g+B)+D*F))-E/F;
 	y->b = ((x->b*(A*x->b+C*B)+D*E)/(x->b*(A*x->b+B)+D*F))-E/F;
@@ -1464,7 +1464,7 @@ static void atmo_uncharted2Filmic(cc_vec3d_t* v)
 {
 	ASSERT(v);
 
-	float exposure_bias = 2.0;
+	double exposure_bias = 2.0;
 
 	cc_vec3d_t x;
 	cc_vec3d_muls_copy(v, exposure_bias, &x);
