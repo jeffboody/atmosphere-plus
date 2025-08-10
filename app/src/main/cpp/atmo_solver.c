@@ -1430,67 +1430,91 @@ static void atmo_solver_deleteImages(atmo_solver_t* self)
 {
 	ASSERT(self);
 
-	if(self->image_array)
+	vkk_image_delete(&self->image_T);
+
+	if(self->image_array_fis)
 	{
 		int i;
 		for(i = 0; i < self->param.k; ++i)
 		{
-			vkk_image_delete(&self->image_array[i]);
+			vkk_image_delete(&self->image_array_fis[i]);
 		}
-		FREE(self->image_array);
-		self->image_array = NULL;
+		FREE(self->image_array_fis);
+		self->image_array_fis = NULL;
 	}
 }
 
 static int
 atmo_solver_newImages(atmo_solver_t* self,
-                      cc_vec4d_t* data_fis)
+                      cc_vec4d_t* data_fis,
+                      cc_vec3d_t* data_T)
 {
 	ASSERT(self);
 	ASSERT(data_fis);
+	ASSERT(data_T);
 
 	vkk_image_t* img;
 	cc_vec4f_t*  datak;
 
 	atmo_solverParam_t* param = &self->param;
 
-	size_t count = param->k*
-	               param->texture_fis_width*
-	               param->texture_fis_height*
-	               param->texture_fis_depth;
+	size_t count_fis = param->k*
+	                   param->texture_fis_width*
+	                   param->texture_fis_height*
+	                   param->texture_fis_depth;
+	size_t count_T   = param->texture_T_width*
+	                   param->texture_T_height;
 
-	cc_vec4f_t*  dataf;
-	dataf = (cc_vec4f_t*)
-	        CALLOC(count, sizeof(cc_vec4f_t));
-	if(dataf == NULL)
+	cc_vec4f_t* data_fisf;
+	data_fisf = (cc_vec4f_t*)
+	            CALLOC(count_fis, sizeof(cc_vec4f_t));
+	if(data_fisf == NULL)
 	{
 		LOGE("CALLOC failed");
 		return 0;
 	}
 
-	// copy data_fis
-	int i;
-	for(i = 0; i < count; ++i)
-	{
-		dataf[i].r = (float) data_fis[i].r;
-		dataf[i].g = (float) data_fis[i].g;
-		dataf[i].b = (float) data_fis[i].b;
-		dataf[i].a = (float) data_fis[i].a;
-	}
-
-	self->image_array = (vkk_image_t**)
-	                    CALLOC(param->k,
-	                           sizeof(vkk_image_t*));
-	if(self->image_array == NULL)
+	cc_vec4f_t* data_Tf;
+	data_Tf = (cc_vec4f_t*)
+	          CALLOC(count_T, sizeof(cc_vec4f_t));
+	if(data_Tf == NULL)
 	{
 		LOGE("CALLOC failed");
-		goto fail_image_array;
+		goto fail_data_Tf;
+	}
+
+	// copy data_fis
+	int i;
+	for(i = 0; i < count_fis; ++i)
+	{
+		data_fisf[i].r = (float) data_fis[i].r;
+		data_fisf[i].g = (float) data_fis[i].g;
+		data_fisf[i].b = (float) data_fis[i].b;
+		data_fisf[i].a = (float) data_fis[i].a;
+	}
+
+	// copy data_T
+	for(i = 0; i < count_T; ++i)
+	{
+		data_Tf[i].r = (float) data_T[i].r;
+		data_Tf[i].g = (float) data_T[i].g;
+		data_Tf[i].b = (float) data_T[i].b;
+		data_Tf[i].a = 1.0f;
+	}
+
+	self->image_array_fis = (vkk_image_t**)
+	                        CALLOC(param->k,
+	                               sizeof(vkk_image_t*));
+	if(self->image_array_fis == NULL)
+	{
+		LOGE("CALLOC failed");
+		goto fail_image_array_fis;
 	}
 
 	for(i = 0; i < param->k; ++i)
 	{
 		// k is base-1
-		datak = getDataFisKf(&self->param, i + 1, dataf);
+		datak = getDataFisKf(&self->param, i + 1, data_fisf);
 
 		img = vkk_image_new(self->engine,
 		                    param->texture_fis_width,
@@ -1504,26 +1528,42 @@ atmo_solver_newImages(atmo_solver_t* self,
 			goto fail_image;
 		}
 
-		self->image_array[i] = img;
+		self->image_array_fis[i] = img;
 	}
 
-	FREE(dataf);
+	self->image_T = vkk_image_new(self->engine,
+	                              param->texture_T_width,
+	                              param->texture_T_height,
+	                              1,
+	                              VKK_IMAGE_FORMAT_RGBAF16,
+	                              0, VKK_STAGE_FS,
+	                              (const void*) data_Tf);
+	if(self->image_T == NULL)
+	{
+		goto fail_image_T;
+	}
+
+	FREE(data_Tf);
+	FREE(data_fisf);
 
 	// success
 	return 1;
 
 	// failure
+	fail_image_T:
 	fail_image:
 	{
 		for(i = 0; i < param->k; ++i)
 		{
-			vkk_image_delete(&self->image_array[i]);
+			vkk_image_delete(&self->image_array_fis[i]);
 		}
-		FREE(self->image_array);
-		self->image_array = NULL;
+		FREE(self->image_array_fis);
+		self->image_array_fis = NULL;
 	}
-	fail_image_array:
-		FREE(dataf);
+	fail_image_array_fis:
+		FREE(data_Tf);
+	fail_data_Tf:
+		FREE(data_fisf);
 	return 0;
 }
 
@@ -2324,7 +2364,7 @@ static void atmo_solver_run(int tid, void* owner, void* task)
 	}
 
 	atmo_solver_finish(self, data_fis);
-	atmo_solver_newImages(self, data_fis);
+	atmo_solver_newImages(self, data_fis, data_T);
 	atmo_solver_exportData(self, data_fis);
 	atmo_solver_debugData(self, data_fis);
 
@@ -2457,7 +2497,7 @@ void atmo_solver_currentParam(atmo_solver_t* self,
 }
 
 vkk_image_t*
-atmo_solver_image(atmo_solver_t* self, uint32_t k)
+atmo_solver_imageFis(atmo_solver_t* self, uint32_t k)
 {
 	ASSERT(self);
 
@@ -2467,11 +2507,27 @@ atmo_solver_image(atmo_solver_t* self, uint32_t k)
 
 	// synchronization not required when solver is stopped
 	if((status == ATMO_SOLVER_STATUS_STOPPED) &&
-	   (self->image_array) &&
+	   (self->image_array_fis) &&
 	   (k > 0) && (k <= self->param.k))
 	{
 		// k is base-1
-		return self->image_array[k - 1];
+		return self->image_array_fis[k - 1];
+	}
+	return NULL;
+}
+
+vkk_image_t* atmo_solver_imageT(atmo_solver_t* self)
+{
+	ASSERT(self);
+
+	float progress = 0.0f;
+	atmo_solverStatus_e status;
+	status = atmo_solver_status(self, &progress);
+
+	// synchronization not required when solver is stopped
+	if(status == ATMO_SOLVER_STATUS_STOPPED)
+	{
+		return self->image_T;
 	}
 	return NULL;
 }

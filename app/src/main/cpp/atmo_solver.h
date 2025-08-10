@@ -82,7 +82,8 @@ typedef struct atmo_solver_s
 
 	float progress;
 
-	vkk_image_t** image_array;
+	vkk_image_t** image_array_fis;
+	vkk_image_t*  image_T;
 
 	atmo_solverParam_t param;
 
@@ -96,8 +97,9 @@ void                atmo_solver_defaultParam(atmo_solver_t* self,
                                              atmo_solverParam_t* param);
 void                atmo_solver_currentParam(atmo_solver_t* self,
                                              atmo_solverParam_t* param);
-vkk_image_t*        atmo_solver_image(atmo_solver_t* self,
-                                      uint32_t k);
+vkk_image_t*        atmo_solver_imageFis(atmo_solver_t* self,
+                                         uint32_t k);
+vkk_image_t*        atmo_solver_imageT(atmo_solver_t* self);
 atmo_solverStatus_e atmo_solver_status(atmo_solver_t* self,
                                        float* _progress);
 int                 atmo_solver_solve(atmo_solver_t* self,

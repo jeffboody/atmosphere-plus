@@ -180,9 +180,23 @@ atmo_renderer_t* atmo_renderer_new(vkk_engine_t* engine)
 				.max_anisotropy = 0.0f,
 			},
 		},
+		// sampler105_T
+		{
+			.binding = 5,
+			.type    = VKK_UNIFORM_TYPE_IMAGE_REF,
+			.stage   = VKK_STAGE_FS,
+			.si      =
+			{
+				.min_filter     = VKK_SAMPLER_FILTER_LINEAR,
+				.mag_filter     = VKK_SAMPLER_FILTER_LINEAR,
+				.mipmap_mode    = VKK_SAMPLER_MIPMAP_MODE_NEAREST,
+				.anisotropy     = 0,
+				.max_anisotropy = 0.0f,
+			},
+		},
 	};
 
-	self->scene_usf1 = vkk_uniformSetFactory_new(engine, um, 5,
+	self->scene_usf1 = vkk_uniformSetFactory_new(engine, um, 6,
 	                                             scene_ub1_array);
 	if(self->scene_usf1 == NULL)
 	{
@@ -587,8 +601,9 @@ void atmo_renderer_draw(atmo_renderer_t* self,
 		self->scene_us1,
 	};
 
-	vkk_image_t* image = atmo_solver_image(solver, k);
-	if(image)
+	vkk_image_t* image_fis = atmo_solver_imageFis(solver, k);
+	vkk_image_t* image_T   = atmo_solver_imageT(solver);
+	if(image_fis && image_T)
 	{
 		cc_vec4f_t Unused = { 0 };
 		cc_vec4f_t Zenith4 =
@@ -614,11 +629,17 @@ void atmo_renderer_draw(atmo_renderer_t* self,
 			{
 				.binding = 4,
 				.type    = VKK_UNIFORM_TYPE_IMAGE_REF,
-				.image   = image,
+				.image   = image_fis,
+			},
+			// sampler105_T
+			{
+				.binding = 5,
+				.type    = VKK_UNIFORM_TYPE_IMAGE_REF,
+				.image   = image_T,
 			},
 		};
 		vkk_renderer_updateUniformSetRefs(rend, self->scene_us1,
-		                                  1, ua_array);
+		                                  2, ua_array);
 
 		vkk_renderer_bindGraphicsPipeline(rend,
 		                                  self->sky_atmo_gp);

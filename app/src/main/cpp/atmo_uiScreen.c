@@ -160,10 +160,9 @@ int atmo_uiScreen_event(atmo_uiScreen_t* self,
 		return atmo_renderer_event(renderer, event) ||
 		       vkk_uiScreen_eventKey(&self->base, &event->key);
 	}
-	else if(event->type == VKK_PLATFORM_EVENTTYPE_CONTENT_RECT)
+	else if(event->type == VKK_PLATFORM_EVENTTYPE_INSET)
 	{
-		vkk_uiScreen_eventContentRect(&self->base,
-		                              &event->content_rect);
+		vkk_uiScreen_eventInset(&self->base, &event->inset);
 	}
 
 	return 1;
