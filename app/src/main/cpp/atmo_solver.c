@@ -21,6 +21,7 @@
  *
  */
 
+#include <float.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -123,6 +124,7 @@
 #define ATMO_TEXTURE_FIS_DEPTH  32
 
 // transmittance texture size
+#define ATMO_LOOKUP_TRANSMITTANCE
 #define ATMO_TEXTURE_T_WIDTH  512
 #define ATMO_TEXTURE_T_HEIGHT 512
 
@@ -857,9 +859,10 @@ computeT(atmo_solverParam_t* param, uint32_t x, uint32_t y,
 
 static void
 transmittance(atmo_solverParam_t* param,
-              cc_vec3d_t* P1, cc_vec3d_t* P2,
+              cc_vec3d_t* P1, cc_vec3d_t* P2, cc_vec3d_t* P3,
               cc_vec3d_t* data_T, cc_vec3d_t* T)
 {
+	// P3 is optional
 	ASSERT(param);
 	ASSERT(P1);
 	ASSERT(P2);
@@ -870,7 +873,14 @@ transmittance(atmo_solverParam_t* param,
 		cc_vec3d_t Zenith;
 		cc_vec3d_t V;
 		cc_vec3d_normalize_copy(P1, &Zenith);
-		cc_vec3d_subv_copy(P2, P1, &V);
+		if(P3)
+		{
+			cc_vec3d_subv_copy(P3, P1, &V);
+		}
+		else
+		{
+			cc_vec3d_subv_copy(P2, P1, &V);
+		}
 		cc_vec3d_normalize(&V);
 
 		double Ha     = ATMO_RA - ATMO_RP;
@@ -916,42 +926,18 @@ transmittance(atmo_solverParam_t* param,
 		// interpolate y
 		cc_vec3d_lerp(&Tx0, &Tx1, vv, T);
 
-		#ifdef ATMO_DEBUG_TRANSMITTANCE
-		// compute with optical depth
-		cc_vec3d_t t;
-		opticalDepth(param, P1, P2, &t);
-
-		cc_vec3d_t T2 =
+		// optionally account for the transmittance texture lookup
+		// between T2 and T3 when T2 does not intersect with an
+		// atmospheric boundary
+		cc_vec3d_t T23 = { 0 };
+		if(P3)
 		{
-			.r = exp(-t.r),
-			.g = exp(-t.g),
-			.b = exp(-t.b),
-		};
-
-		// compare texture lookup with computed transmittance
-		cc_vec3d_t Delta;
-		cc_vec3d_subv_copy(&T2, T, &Delta);
-		double delta = cc_vec3d_mag(&Delta);
-		if(delta > 0.01)
-		{
-			LOGI("P1: %lf %lf %lf, P2: %lf %lf %lf",
-			     P1->x, P1->y, P1->z, P2->x, P2->y, P2->z);
-			LOGI("Zenith: %lf %lf %lf, V: %lf %lf %lf",
-			     Zenith.x, Zenith.y, Zenith.z, V.x, V.y, V.z);
-			LOGI("h=%lf, cos_mu=%lf, u=%lf, v=%lf, tw1=%lf, th1=%lf, uu=%lf, vv=%lf",
-			     h, cos_mu, u, v, tw1d, th1d, uu, vv);
-			LOGI("T00: %lf %lf %lf, x=%u, y=%u",
-			     T00.r, T00.g, T00.b, x0, y0);
-			LOGI("T01: %lf %lf %lf, x=%u, y=%u",
-			     T01.r, T01.g, T01.b, x0, y1);
-			LOGI("T10: %lf %lf %lf, x=%u, y=%u",
-			     T10.r, T10.g, T10.b, x1, y0);
-			LOGI("T11: %lf %lf %lf, x=%u, y=%u",
-			     T11.r, T11.g, T11.b, x1, y1);
-			LOGI("T1: %lf %lf %lf, T2: %lf %lf %lf, delta=%lf",
-			     T->r, T->g, T->b, T2.r, T2.g, T2.b, delta);
+			// T13 = T12*T23 => T12 = T13/T23
+			transmittance(param, P2, P3, NULL, data_T, &T23);
+			T->r /= (T23.r + DBL_EPSILON);
+			T->g /= (T23.g + DBL_EPSILON);
+			T->b /= (T23.b + DBL_EPSILON);
 		}
-		#endif
 	#else
 		cc_vec3d_t t;
 		opticalDepth(param, P1, P2, &t);
@@ -1056,8 +1042,8 @@ fIS1(atmo_solverParam_t* param, double h, double phi,
 	double ds = cc_vec3d_mag(&step);
 	double pR = densityR(param, h);
 	double pM = densityM(param, h);
-	transmittance(param, &P, &Pc, data_T, &TPPc);
-	transmittance(param, &Pa, &P, data_T, &TPaP);
+	transmittance(param, &P, &Pc, NULL, data_T, &TPPc);
+	transmittance(param, &Pa, &P, &Pb, data_T, &TPaP);
 	fx0.r = pR*TPPc.r*TPaP.r;
 	fx0.g = pR*TPPc.g*TPaP.g;
 	fx0.b = pR*TPPc.b*TPaP.b;
@@ -1088,8 +1074,8 @@ fIS1(atmo_solverParam_t* param, double h, double phi,
 		h  = getHeightP(param, &P);
 		pR = densityR(param, h);
 		pM = densityM(param, h);
-		transmittance(param, &P, &Pc, data_T, &TPPc);
-		transmittance(param, &Pa, &P, data_T, &TPaP);
+		transmittance(param, &P, &Pc, NULL, data_T, &TPPc);
+		transmittance(param, &Pa, &P, &Pb, data_T, &TPaP);
 		fx1.r = pR*TPPc.r*TPaP.r;
 		fx1.g = pR*TPPc.g*TPaP.g;
 		fx1.b = pR*TPPc.b*TPaP.b;
@@ -1393,7 +1379,7 @@ fISk(atmo_solverParam_t* param, uint32_t k,
 	double pR = densityR(param, h);
 	double pM = densityM(param, h);
 	fGk(param, k - 1, &P0, &V, &L, data_fis, &fgk);
-	transmittance(param, &Pa, &P, data_T, &TPaP);
+	transmittance(param, &Pa, &P, &Pb, data_T, &TPaP);
 	fx0.r = fgk.r*pR*TPaP.r;
 	fx0.g = fgk.g*pR*TPaP.g;
 	fx0.b = fgk.b*pR*TPaP.b;
@@ -1414,7 +1400,7 @@ fISk(atmo_solverParam_t* param, uint32_t k,
 		pR = densityR(param, h);
 		pM = densityM(param, h);
 		fGk(param, k - 1, &P, &V, &L, data_fis, &fgk);
-		transmittance(param, &Pa, &P, data_T, &TPaP);
+		transmittance(param, &Pa, &P, &Pb, data_T, &TPaP);
 		fx1.r = fgk.r*pR*TPaP.r;
 		fx1.g = fgk.g*pR*TPaP.g;
 		fx1.b = fgk.b*pR*TPaP.b;
