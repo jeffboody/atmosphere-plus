@@ -1145,6 +1145,8 @@ The Lambertian BRDF (bidirectional reflectance distribution function) describes
  a perfectly diffuse (matte) surface that reflects incident light equally
  in all directions, regardless of the viewing angle, resulting in an appearance
  that is consistently bright across its surface.
+ These equations form the basis of the diffuse and ambient lighting passes
+ of the atmospheric simulation.
 \end_layout
 
 \begin_layout Subsubsection
@@ -1292,9 +1294,13 @@ Atmospheric Simulation Passes
 The atmospheric simulation involves modeling interactions between light
  rays, atmospheric particles and the planet surface.
  An iterative procedure will be applied over multiple passes to compute
- the contribution of each light scattering interaction.
- The following sections describe the single-scattering, diffuse lighting,
- ambient lighting and multiple-scattering passes.
+ the contribution of each light ray interaction.
+ To simplify the calculation of diffuse and ambient light passes, we assume
+ an idealized planetary surface (e.g.
+ constant terrain height of zero and average surface color) to approximate
+ the color contribution.
+ This section describes the single-scattering, diffuse lighting, ambient
+ lighting and multiple-scattering passes.
 \end_layout
 
 \begin_layout Subsection
@@ -1397,7 +1403,11 @@ Where the parameters are defined:
 \begin_inset Formula $h$
 \end_inset
 
-: Height is parameterized by P, 
+: Height is parameterized by 
+\begin_inset Formula $P$
+\end_inset
+
+, 
 \begin_inset Formula $h\left(P\right)=\left|P\right|-R_{p}$
 \end_inset
 
@@ -1471,7 +1481,7 @@ on to the planet surface by the incident light that was attenuated by the
 \begin_layout Standard
 \begin_inset Formula 
 \[
-D\left(P_{p},L\right)=\frac{C}{\pi}\cdot I\cdot T\left(P_{p},P_{c}\right)\cdot\max\left(0,dot\left(N,L\right)\right)
+D\left(P_{p},L\right)=\frac{C_{avg}}{\pi}\cdot I\cdot T\left(P_{p},P_{c}\right)\cdot\max\left(0,dot\left(N,L\right)\right)
 \]
 
 \end_inset
@@ -1484,10 +1494,14 @@ Where the parameters are defined:
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $C$
+\begin_inset Formula $C_{avg}$
 \end_inset
 
-: The diffuse color of the surface
+: The average diffuse color of the planet surface, 
+\begin_inset Formula $C_{avg}=\left(0.3,0.3,0.3\right)$
+\end_inset
+
+
 \end_layout
 
 \begin_layout Itemize
@@ -1495,18 +1509,6 @@ Where the parameters are defined:
 \end_inset
 
 : A point on the planet surface
-\end_layout
-
-\begin_layout Itemize
-\begin_inset Formula $P_{c}$
-\end_inset
-
-: The nearest intersection point along the ray from 
-\begin_inset Formula $P_{p}$
-\end_inset
-
- in the direction of the Sun (e.g.
- the atmosphere boundary).
 \end_layout
 
 \begin_layout Itemize
@@ -1560,46 +1562,9 @@ A^{\left(1\right)}\left(P_{p},L\right)=0
 \begin_layout Standard
 \begin_inset Formula 
 \[
-A^{\left(k>1\right)}\left(P_{p},L\right)=\frac{C}{\pi}\cdot\int_{\varOmega}S^{\left(k-1\right)}\left(P_{p},\omega,L\right)\cdot dot\left(N,\omega\right)d\omega
+A^{\left(k>1\right)}\left(P_{p},L\right)=\frac{C_{avg}}{\pi}\cdot\int_{\varOmega}S^{\left(k-1\right)}\left(P_{p},\omega,L\right)\cdot dot\left(N,\omega\right)d\omega
 \]
 
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Where the parameters are defined:
-\end_layout
-
-\begin_layout Itemize
-\begin_inset Formula $C$
-\end_inset
-
-: The diffuse color of the surface
-\end_layout
-
-\begin_layout Itemize
-\begin_inset Formula $N$
-\end_inset
-
-: The surface normal at 
-\begin_inset Formula $P_{p}$
-\end_inset
-
-, 
-\begin_inset Formula $N=normalize\left(P_{p}\right)$
-\end_inset
-
-
-\end_layout
-
-\begin_layout Itemize
-\begin_inset Formula $\varOmega$
-\end_inset
-
-: A hemisphere around the planet surface at 
-\begin_inset Formula $P_{p}$
 \end_inset
 
 
@@ -1763,6 +1728,212 @@ S=\sum_{k=1}^{K}S^{\left(k\right)}
 \end_inset
 
 
+\end_layout
+
+\begin_layout Section
+Rendering
+\end_layout
+
+\begin_layout Standard
+The rendering algorithm uses the atmospheric simulation to produce a physically
+ based scene, replacing the idealized planetary surface with terrain and
+ sampled colors.
+\end_layout
+
+\begin_layout Subsection
+Surface Shader
+\end_layout
+
+\begin_layout Subsubsection
+Aerial Perspective
+\end_layout
+
+\begin_layout Standard
+Aerial perspective is an atmospheric effect which causes distant objects
+ to appear paler, less saturated and bluer than closer objects.
+\end_layout
+
+\begin_layout Standard
+Aerial perspective is caused by light rays which have been scattered towards
+ the observer at 
+\begin_inset Formula $P_{0}$
+\end_inset
+
+ along the viewing ray 
+\begin_inset Formula $V$
+\end_inset
+
+ which intersects the terrain (or an object) at 
+\begin_inset Formula $P_{t}$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+AP\left(P_{0},P_{t},V,L\right)=S\left(P_{0},V,L\right)-S\left(P_{t},V,L\right)\cdot T\left(P_{0},P_{t}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+If the viewing ray 
+\begin_inset Formula $V$
+\end_inset
+
+ intersects the idealized planet then the aerial perspective may be simplified.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+AP\left(P_{0},P_{t},V,L\right)=S\left(P_{0},V,L\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Surface Color
+\end_layout
+
+\begin_layout Standard
+The surface color from a particular viewpoint may be calculated by combining
+ aerial perspective with the ambient and diffuse lighting passes.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+C\left(P_{0},P_{t},V,L\right)=AP\left(P_{0},P_{t},V,L\right)+
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
++\frac{C_{p}}{C_{avg}}\cdot\left(A\left(P_{p},L\right)+D\left(P_{t},L\right)\right)\cdot T\left(P_{0},P_{t}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+After expansion, the following texture lookups are required to compute the
+ surface color.
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $S\left(P_{0},V,L\right)$
+\end_inset
+
+: Scattered light towards the viewpoint from the viewing ray
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $S\left(P_{t},V,L\right)$
+\end_inset
+
+: Scattered light towards the terrain from the viewing ray
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $C_{p}$
+\end_inset
+
+: Sampled diffuse surface color of the planet surface
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $A\left(P_{p},L\right)$
+\end_inset
+
+: Ambient surface color of the idealized planet
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $T\left(P_{0},P_{p}\right)$
+\end_inset
+
+: Transmittance from the viewpoint to the idealized planet
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $T\left(P_{t},P_{p}\right)$
+\end_inset
+
+: Transmittance from the terrain to the idealized planet
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $T\left(P_{t},P_{c}\right)$
+\end_inset
+
+: Transmittance from the terrain to the atmospheric boundary which may be
+ shadowed
+\end_layout
+
+\begin_layout Standard
+Additionaly, the surface shader:
+\end_layout
+
+\begin_layout Itemize
+Must apply exposure, tone mapping and gamma correction operations.
+\end_layout
+
+\begin_layout Itemize
+Should incorporate the terrain (
+\begin_inset Formula $P_{t}$
+\end_inset
+
+, 
+\begin_inset Formula $N$
+\end_inset
+
+ and shadow occlusion) for diffuse lighting.
+\end_layout
+
+\begin_layout Itemize
+May incorporate an ambient occlusion map to account for localized occlusion
+ effects on ambient lighting.
+\end_layout
+
+\begin_layout Subsection
+Sky Shader
+\end_layout
+
+\begin_layout Standard
+The sky color may be computed at runtime by sampling the multiple-scattering
+ texture.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+C\left(P_{0},V,L\right)=S\left(P_{0},V,L\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Additionally, the sky shader must apply exposure, tone mapping and gamma
+ correction operations.
 \end_layout
 
 \begin_layout Section
@@ -2864,12 +3035,77 @@ Where the parameters are defined:
 \end_layout
 
 \begin_layout Standard
-The transmittance texture will be used when surface rendering to calculate
- aerial perspective and the diffuse surface color 
-\begin_inset Formula $D\left(P_{p},L\right)$
+Use the power mapping for the 
+\begin_inset Formula $h$
+\end_inset
+
+ parameter and the weighted power mapping for the 
+\begin_inset Formula $\mu$
+\end_inset
+
+ parameter.
+\end_layout
+
+\begin_layout Subsubsection
+Transmittance to a Non-atmospheric Boundary
+\end_layout
+
+\begin_layout Standard
+The transmittance may also be calculated to a non-atmospheric boundary point
+ 
+\begin_inset Formula $Q$
+\end_inset
+
+ using the transmittance texture.
+\end_layout
+
+\begin_layout Standard
+For example, to calculate the transmittance between a viewing point 
+\begin_inset Formula $P_{0}$
+\end_inset
+
+ and a point on the terrain 
+\begin_inset Formula $P_{t}$
 \end_inset
 
 .
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+T\left(P_{0},P_{t}\right)=T\left(P_{0},P_{p}\right)-T\left(P_{t},P_{p}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Where the parameters are defined:
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $P_{t}$
+\end_inset
+
+: Intersection point along V with the terrain (
+\begin_inset Formula $h\left(P_{t}\right)\geq0$
+\end_inset
+
+)
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $P_{p}$
+\end_inset
+
+: Intersection point along V with the ideal planet surface (
+\begin_inset Formula $h\left(P_{p}\right)=0$
+\end_inset
+
+)
 \end_layout
 
 \begin_layout Subsection
@@ -2921,132 +3157,11 @@ Where the parameters are defined:
 \end_layout
 
 \begin_layout Standard
-
-\series bold
-Note: 
-\series default
-We require 
-\begin_inset Formula $h=0$
+Use the weighted power mapping the 
+\begin_inset Formula $\mu$
 \end_inset
 
- for ambient lighting due to the complexity of calculation with multiple-scatter
-ing.
-\end_layout
-
-\begin_layout Section
-Rendering
-\end_layout
-
-\begin_layout Subsection
-Surface Shader
-\end_layout
-
-\begin_layout Standard
-The surface color may be computed at runtime by performing an ambient texture
- lookup and three transmittance texture lookups.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-C\left(P_{0},V,L\right)=\left(A\left(P_{p},L\right)+D\left(P_{p},L\right)\right)\cdot T\left(P_{0},P_{t}\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Where the first two texture lookups 
-\begin_inset Formula $T\left(P_{0},P_{t}\right)$
-\end_inset
-
- apply the aerial perspective and the third texture lookup 
-\begin_inset Formula $T\left(P_{p},P_{c}\right)$
-\end_inset
-
- is required to compute diffuse lighting.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-T\left(P_{0},P_{t}\right)=T\left(P_{0},P_{p}\right)-T\left(P_{t},P_{p}\right)
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Where the parameters are defined:
-\end_layout
-
-\begin_layout Itemize
-\begin_inset Formula $P_{t}$
-\end_inset
-
-: Intersection point along V with the actual 3D terrain (
-\begin_inset Formula $h\left(P_{t}\right)\geq0$
-\end_inset
-
-)
-\end_layout
-
-\begin_layout Itemize
-\begin_inset Formula $P_{p}$
-\end_inset
-
-: Intersection point along V with the ideal planet surface (
-\begin_inset Formula $h\left(P_{p}\right)=0$
-\end_inset
-
-)
-\end_layout
-
-\begin_layout Standard
-Additionaly, the surface shader:
-\end_layout
-
-\begin_layout Itemize
-Must apply exposure, tone mapping and gamma correction operations.
-\end_layout
-
-\begin_layout Itemize
-Should incorporate the actual terrain parameters (
-\begin_inset Formula $P_{t}$
-\end_inset
-
-, 
-\begin_inset Formula $N$
-\end_inset
-
- and shadow occlusion) for diffuse lighting.
-\end_layout
-
-\begin_layout Itemize
-May incorporate an ambient occlusion map to account for localized occlusion
- effects on ambient lighting.
-\end_layout
-
-\begin_layout Subsection
-Sky Shader
-\end_layout
-
-\begin_layout Standard
-The sky color may be sampled at runtime using the multiple-scattering texture
- 
-\begin_inset Formula $S\left(P_{0},V,L\right)$
-\end_inset
-
-.
-\end_layout
-
-\begin_layout Standard
-Additionally, the sky shader must apply exposure, tone mapping and gamma
- correction operations.
+ parameter.
 \end_layout
 
 \begin_layout Section
