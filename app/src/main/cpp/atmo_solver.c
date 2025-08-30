@@ -133,10 +133,8 @@
 #define ATMO_PARAM_HEIGHT_POWER  1
 
 // view-zenith angle parameterization
-// WARNING: ATMO_PARAM_PHI_BODARE is buggy
 #define ATMO_PARAM_PHI_LINEAR         0
 #define ATMO_PARAM_PHI_POWER          1
-#define ATMO_PARAM_PHI_BODARE         2
 #define ATMO_PARAM_PHI_WEIGHTED_POWER 3
 
 // weighted power parameters
@@ -372,16 +370,6 @@ getCosPhiV(atmo_solverParam_t* param, double h, double u,
 	#if ATMO_PARAM_PHI == ATMO_PARAM_PHI_POWER
 	double vv = 2.0*v - 1.0;
 	cos_phi = atmo_signd(vv)*pow(fabs(vv), 3.0);
-	#elif ATMO_PARAM_PHI == ATMO_PARAM_PHI_BODARE
-	double ch = -sqrt(h*(2.0*Rp + h))/(Rp + h);
-	if(v > 0.5)
-	{
-		cos_phi = ch + pow(v - 0.5, 5.0)*(1.0 - ch);
-	}
-	else
-	{
-		cos_phi = ch - pow(v, 5.0)*(1.0 + ch);
-	}
 	#elif ATMO_PARAM_PHI == ATMO_PARAM_PHI_WEIGHTED_POWER
 	double hypH      = Rp + h;
 	double oppH      = Rp;
@@ -432,16 +420,6 @@ getVCosPhi(atmo_solverParam_t* param, double h,
 	#if ATMO_PARAM_PHI == ATMO_PARAM_PHI_POWER
 	v = 0.5*(1.0 + atmo_signd(cos_phi)*
 	               pow(fabs(cos_phi), 1.0/3.0));
-	#elif ATMO_PARAM_PHI == ATMO_PARAM_PHI_BODARE
-	double ch = -sqrt(h*(2.0*Rp + h))/(Rp + h);
-	if(cos_phi > ch)
-	{
-		v = 0.5*pow((cos_phi - ch)/(1.0 - ch), 0.2) + 0.5;
-	}
-	else
-	{
-		v = 0.5*pow((ch - cos_phi)/(1.0 + ch), 0.2);
-	}
 	#elif ATMO_PARAM_PHI == ATMO_PARAM_PHI_WEIGHTED_POWER
 	double hypH      = Rp + h;
 	double oppH      = Rp;
