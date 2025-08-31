@@ -1019,15 +1019,6 @@ Where the parameters are defined:
 \end_layout
 
 \begin_layout Standard
-The Rendering Parametrizable Planetary Atmospheres with Multiple Scattering
- in Real-Time paper uses numerical integration with 
-\begin_inset Formula $n=30$
-\end_inset
-
- steps to compute the transmittance.
-\end_layout
-
-\begin_layout Standard
 The light ray may change direction as it interacts with particles while
  passing through a medium (e.g.
  the atmosphere).
@@ -3412,6 +3403,67 @@ d\omega=\sin\left(\varTheta\right)d\varTheta\cdot d\varPhi
 \end_inset
 
 
+\end_layout
+
+\begin_layout Subsection
+Ray Integration Step Size
+\end_layout
+
+\begin_layout Standard
+A common practice to compute the step size when performing integration between
+ two points in the atmosphere is to subdivide rays by a fixed number of
+ steps.
+\end_layout
+
+\begin_layout Subsubsection
+Step Size Visualization
+\end_layout
+
+\begin_layout Standard
+The following diagrams show the distance from the observer to the atmospheric
+ boundary for various viewing angles.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Graphics
+	filename plot-distT-atmo.jpg
+	lyxscale 15
+	width 50page%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Graphics
+	filename plot-distT-planet.jpg
+	lyxscale 15
+	width 50page%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The left side corresponds to rays which intersect the TOA while the right
+ side corresponds to rays which intersect the planet surface.
+ The longest rays originate from the TOA that are directed towards the horizon.
+ The longest ray which glances the planet is roughly ~2200 km.
+ This is somewhat surprising given that the atmosphere is only 100 km thick.
+ Additionally, the length of rays which originate from the TOA which intersect
+ the planet are in the range of 100 km to ~1100 km.
+\end_layout
+
+\begin_layout Standard
+The very large variation in the ray length leads to widely varying step
+ sizes which may cause integration to skip over regions of the atmosphere
+ where the gradient of the density functions are highest.
+ This fact is especially noticible for rays which pass near the planet surface
+ due to the relatively thin Mie scattering layer.
+ When rendering, this problem leads to banding artifacts in the scattering
+ and transmittance textures.
 \end_layout
 
 \begin_layout Section*

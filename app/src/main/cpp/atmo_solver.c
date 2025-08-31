@@ -1745,11 +1745,18 @@ atmo_solver_plotAvgT(atmo_solverParam_t* param)
 {
 	ASSERT(param);
 
-	FILE* f = fopen("plot_avgT.dat", "w");
-	if(f == NULL)
+	FILE* fa = fopen("plot_avgT.dat", "w");
+	if(fa == NULL)
 	{
 		LOGE("fopen failed");
 		return 0;
+	}
+
+	FILE* fd = fopen("plot_distT.dat", "w");
+	if(fd == NULL)
+	{
+		LOGE("fopen failed");
+		goto fail_fd;
 	}
 
 	// output a 3D plot average transmittance
@@ -1813,19 +1820,29 @@ atmo_solver_plotAvgT(atmo_solverParam_t* param)
 
 			if(j == 0)
 			{
-				fprintf(f, "%lf", avgT);
+				fprintf(fa, "%lf", avgT);
+				fprintf(fd, "%lf", dist);
 			}
 			else
 			{
-				fprintf(f, " %lf", avgT);
+				fprintf(fa, " %lf", avgT);
+				fprintf(fd, " %lf", dist);
 			}
 		}
-		fprintf(f, "\n");
+		fprintf(fa, "\n");
+		fprintf(fd, "\n");
 	}
 
-	fclose(f);
+	fclose(fd);
+	fclose(fa);
 
+	// success
 	return 1;
+
+	// failure
+	fail_fd:
+		fclose(fa);
+	return 0;
 }
 
 static int atmo_solver_plotSpectralIrradiance(void)
