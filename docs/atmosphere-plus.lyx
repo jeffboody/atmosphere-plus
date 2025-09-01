@@ -3411,11 +3411,11 @@ Ray Integration Sampling
 \end_layout
 
 \begin_layout Subsubsection
-Ray Distance Visualization
+Ray Length Visualization
 \end_layout
 
 \begin_layout Standard
-The following diagrams show the distance from the observer to the atmospheric
+The following diagrams show the ray length from the observer to the atmospheric
  boundary for various heights and viewing angles.
 \end_layout
 
@@ -3452,17 +3452,16 @@ The left side corresponds to rays which intersect the TOA while the right
 \end_layout
 
 \begin_layout Subsubsection
-Even Sampling
+Fixed Step Count Sampling
 \end_layout
 
 \begin_layout Standard
-A common practice to compute the step size when performing integration between
- two points in the atmosphere is to subdivide rays by a fixed number of
- steps.
+A common practice when performing integration between two points in the
+ atmosphere is to subdivide rays by a fixed number of steps.
  However, the very large variation in the ray length leads to widely varying
  step sizes.
  This may cause integration to skip over regions of the atmosphere where
- the gradient of the density functions are highest.
+ the gradient of the density functions is the highest.
  This problem is especially noticible for rays which pass through the relatively
  thin Mie scattering layer.
  When rendering, this problem is manifested by banding artifacts in the
@@ -3490,15 +3489,7 @@ h=u^{p_{u}}\cdot H_{a}
 \end_layout
 
 \begin_layout Standard
-Where the values for 
-\begin_inset Formula $u$
-\end_inset
-
- and 
-\begin_inset Formula $x$
-\end_inset
-
- are defined:
+Where the parameters defined:
 \end_layout
 
 \begin_layout Standard
@@ -3530,6 +3521,11 @@ The algorithm for sampling a ray at heights defined by the power mapping
 
 \begin_layout Itemize
 Precompute the sample heights of the weight power mapping function
+\end_layout
+
+\begin_layout Itemize
+Discard zero length rays (e.g.
+ scattering is 0.0 and transmittance is 1.0)
 \end_layout
 
 \begin_layout Itemize
@@ -3605,7 +3601,7 @@ To compute the tangent point
 \begin_layout Standard
 \begin_inset Formula 
 \[
-t=\frac{P_{a}\cdot\left(P_{b}-P_{a}\right)}{\left(P_{b}-P_{a}\right)^{2}}\in\left(0,1\right)
+t=-\frac{dot\left(P_{a},\left(P_{b}-P_{a}\right)\right)}{dot\left(\left(P_{b}-P_{a}\right),\left(P_{b}-P_{a}\right)\right)}\in\left(0,1\right)
 \]
 
 \end_inset
@@ -3650,7 +3646,7 @@ s=\frac{\left(R_{p}+h\right)-z_{a}}{z_{b}-z_{a}}\in\left(0,1\right)
 \begin_layout Standard
 \begin_inset Formula 
 \[
-P=\left(s\cdot\left(x_{b}-x_{a}\right),s\cdot\left(y_{b}-y_{a}\right),R_{p}+h\right)
+P=\left(x_{a}+s\cdot\left(x_{b}-x_{a}\right),y_{a}+s\cdot\left(y_{b}-y_{a}\right),R_{p}+h\right)
 \]
 
 \end_inset
