@@ -1717,16 +1717,15 @@ atmo_solver_plotDensity(atmo_solverParam_t* param)
 
 	// output density
 	int   i;
-	int   nh = 100;
+	int   nh = ATMO_TEXTURE_FIS_WIDTH;
 	double Ha = param->Ra - param->Rp;
 	for(i = 0; i < nh; ++i)
 	{
 		double h;
-		h = Ha*((double) i)/((double) (nh - 1));
+		h = Ha*pow(((double) i)/((double) (nh - 1)), 2.0);
 
-		fprintf(f, "%lf, %lf, %lf\n",
-		        densityR(param, h),
-		        densityM(param, h),
+		fprintf(f, "%lf, %lf, %lf, %lf\n",
+		        h, densityR(param, h), densityM(param, h),
 		        densityO(param, h));
 	}
 

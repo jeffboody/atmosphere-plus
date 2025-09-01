@@ -744,12 +744,13 @@ Visualization of the Density Function
 \end_layout
 
 \begin_layout Standard
-The following plot show the Rayleigh, Mie and Ozone density functions.
+The following plot shows the Rayleigh, Mie and Ozone density functions using
+ height values determined by the power mapping function.
 \end_layout
 
 \begin_layout Standard
 \begin_inset Graphics
-	filename density.jpg
+	filename plot_density.jpg
 	lyxscale 15
 	width 50page%
 
@@ -3406,22 +3407,16 @@ d\omega=\sin\left(\varTheta\right)d\varTheta\cdot d\varPhi
 \end_layout
 
 \begin_layout Subsection
-Ray Integration Step Size
-\end_layout
-
-\begin_layout Standard
-A common practice to compute the step size when performing integration between
- two points in the atmosphere is to subdivide rays by a fixed number of
- steps.
+Ray Integration Sampling
 \end_layout
 
 \begin_layout Subsubsection
-Step Size Visualization
+Ray Distance Visualization
 \end_layout
 
 \begin_layout Standard
 The following diagrams show the distance from the observer to the atmospheric
- boundary for various viewing angles.
+ boundary for various heights and viewing angles.
 \end_layout
 
 \begin_layout Standard
@@ -3450,20 +3445,222 @@ The following diagrams show the distance from the observer to the atmospheric
 The left side corresponds to rays which intersect the TOA while the right
  side corresponds to rays which intersect the planet surface.
  The longest rays originate from the TOA that are directed towards the horizon.
- The longest ray which glances the planet is roughly ~2200 km.
- This is somewhat surprising given that the atmosphere is only 100 km thick.
+ The longest ray which glances the planet is roughly 2200 km which is somewhat
+ surprising given that the atmosphere is only 100 km thick.
  Additionally, the length of rays which originate from the TOA which intersect
- the planet are in the range of 100 km to ~1100 km.
+ the planet are in the range of 100 km to 1100 km.
+\end_layout
+
+\begin_layout Subsubsection
+Even Sampling
 \end_layout
 
 \begin_layout Standard
-The very large variation in the ray length leads to widely varying step
- sizes which may cause integration to skip over regions of the atmosphere
- where the gradient of the density functions are highest.
- This fact is especially noticible for rays which pass near the planet surface
- due to the relatively thin Mie scattering layer.
- When rendering, this problem leads to banding artifacts in the scattering
- and transmittance textures.
+A common practice to compute the step size when performing integration between
+ two points in the atmosphere is to subdivide rays by a fixed number of
+ steps.
+ However, the very large variation in the ray length leads to widely varying
+ step sizes.
+ This may cause integration to skip over regions of the atmosphere where
+ the gradient of the density functions are highest.
+ This problem is especially noticible for rays which pass through the relatively
+ thin Mie scattering layer.
+ When rendering, this problem is manifested by banding artifacts in the
+ scattering and transmittance textures.
+\end_layout
+
+\begin_layout Subsubsection
+Power Mapping Sampling
+\end_layout
+
+\begin_layout Standard
+In order to address the banding artifacts, we will instead sample the ray
+ at heights defined by the power mapping function.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+h=u^{p_{u}}\cdot H_{a}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Where the values for 
+\begin_inset Formula $u$
+\end_inset
+
+ and 
+\begin_inset Formula $x$
+\end_inset
+
+ are defined:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+u=\frac{x}{width-1}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+x\in\left(0,width-1\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The algorithm for sampling a ray at heights defined by the power mapping
+ function is as follows.
+\end_layout
+
+\begin_layout Itemize
+Precompute the sample heights of the weight power mapping function
+\end_layout
+
+\begin_layout Itemize
+Always sample the ray at the endpoints
+\end_layout
+
+\begin_layout Itemize
+If the ray intersects the planet then
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+Sample the range 
+\begin_inset Formula $\left(P_{a},P_{b}\right)$
+\end_inset
+
+ with decreasing heights
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Else if 
+\begin_inset Formula $\cos\left(\phi\right)\geq0$
+\end_inset
+
+ then
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+Sample the range 
+\begin_inset Formula $\left(P_{a},P_{b}\right)$
+\end_inset
+
+ with increasing heights
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Otherwise subdivide the ray at the tangent point 
+\begin_inset Formula $P_{T}$
+\end_inset
+
+ then
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+Sample the range 
+\begin_inset Formula $\left(P_{a},P_{T}\right)$
+\end_inset
+
+ with decreasing heights
+\end_layout
+
+\begin_layout Itemize
+Sample the range 
+\begin_inset Formula $\left(P_{T},P_{b}\right)$
+\end_inset
+
+ with increasing heights
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+To compute the tangent point 
+\begin_inset Formula $P_{T}$
+\end_inset
+
+:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+t=\frac{P_{a}\cdot\left(P_{b}-P_{a}\right)}{\left(P_{b}-P_{a}\right)^{2}}\in\left(0,1\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+P_{T}=P_{a}+t\cdot\left(P_{b}-P_{a}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+To determine the next sampling point 
+\begin_inset Formula $P$
+\end_inset
+
+ for a sample height 
+\begin_inset Formula $h$
+\end_inset
+
+:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+s=\frac{\left(R_{p}+h\right)-z_{a}}{z_{b}-z_{a}}\in\left(0,1\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+P=\left(s\cdot\left(x_{b}-x_{a}\right),s\cdot\left(y_{b}-y_{a}\right),R_{p}+h\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The power mapping sampling procedure should be applied to ray integration
+ for transmittance and atmospheric scattering computations.
 \end_layout
 
 \begin_layout Section*

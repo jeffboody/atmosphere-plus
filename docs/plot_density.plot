@@ -8,6 +8,6 @@ set style line 3 lt rgb "#FF0000" lw 3 pt 6
 set xlabel "h (0-100000 meters)"
 set ylabel "density"
 
-plot "plot_density.dat" using 0:1 with linespoints ls 1 title 'pR',  \
-     "plot_density.dat" using 0:2 with linespoints ls 2 title 'pM',  \
-     "plot_density.dat" using 0:3 with linespoints ls 3 title 'pO'
+plot "plot_density.dat" using 1:2 with linespoints ls 1 title 'pR',  \
+     "plot_density.dat" using 1:3 with linespoints ls 2 title 'pM',  \
+     "plot_density.dat" using 1:4 with linespoints ls 3 title 'pO'
