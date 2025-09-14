@@ -47,7 +47,7 @@
 // use doubles for radius for numerical stability
 #define ATMO_RP 6360000.0
 #define ATMO_RA 6460000.0
-#define ATMO_RO 10.0
+#define ATMO_RO 1.0
 
 // Rayleigh and Mie scale heights
 //
@@ -1016,18 +1016,25 @@ computePaPb(atmo_solverParam_t* param, cc_vec3d_t* P0,
 	                            &nearP, &farP);
 
 	// check if ray intersects atmosphere
+	// adjust intersection points for radius offset
 	if(countA)
 	{
 		cc_ray3d_getpoint(&ray, nearA, Pa);
+		if(nearA > 0.0)
+		{
+			cc_vec3d_muls(Pa, ATMO_RA/cc_vec3d_mag(Pa));
+		}
 
 		// check if ray intersects planet
 		if(countP)
 		{
 			cc_ray3d_getpoint(&ray, nearP, Pb);
+			cc_vec3d_muls(Pb, ATMO_RP/cc_vec3d_mag(Pb));
 			return 0;
 		}
 
 		cc_ray3d_getpoint(&ray, farA, Pb);
+		cc_vec3d_muls(Pb, ATMO_RA/cc_vec3d_mag(Pb));
 		return 1;
 	}
 
@@ -1368,7 +1375,7 @@ fIS12(atmo_solverParam_t* param, double* heights,
 	}
 
 	// compute step size
-	cc_vec3d_subv_copy(&P, &Pprev, &D);
+	cc_vec3d_subv_copy(Pb, &Pprev, &D);
 	d = cc_vec3d_mag(&D);
 
 	// apply trapesoidal rule
