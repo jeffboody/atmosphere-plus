@@ -745,7 +745,8 @@ Visualization of the Density Function
 
 \begin_layout Standard
 The following plot shows the Rayleigh, Mie and Ozone density functions using
- height values determined by the power mapping function.
+ height values determined by the power mapping function (see Texture Parameteriz
+ation).
 \end_layout
 
 \begin_layout Standard
@@ -3452,7 +3453,7 @@ The left side corresponds to rays which intersect the TOA while the right
 \end_layout
 
 \begin_layout Subsubsection
-Fixed Step Count Sampling
+Linear Sampling
 \end_layout
 
 \begin_layout Standard
@@ -3635,7 +3636,7 @@ To determine the next sampling point
 \begin_layout Standard
 \begin_inset Formula 
 \[
-s=\frac{\left(R_{p}+h\right)-z_{a}}{z_{b}-z_{a}}\in\left(0,1\right)
+s=\frac{h-h_{a}}{h_{b}-h_{a}}\in\left(0,1\right)
 \]
 
 \end_inset
@@ -3646,7 +3647,7 @@ s=\frac{\left(R_{p}+h\right)-z_{a}}{z_{b}-z_{a}}\in\left(0,1\right)
 \begin_layout Standard
 \begin_inset Formula 
 \[
-P=\left(x_{a}+s\cdot\left(x_{b}-x_{a}\right),y_{a}+s\cdot\left(y_{b}-y_{a}\right),R_{p}+h\right)
+P=\left(x_{a}+s\cdot\left(x_{b}-x_{a}\right),y_{a}+s\cdot\left(y_{b}-y_{a}\right),z_{a}+s\cdot\left(z_{b}-z_{a}\right)\right)
 \]
 
 \end_inset

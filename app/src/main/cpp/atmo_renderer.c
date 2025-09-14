@@ -673,13 +673,13 @@ int atmo_renderer_event(atmo_renderer_t* self,
 	{
 		if(e->keycode == 'i')
 		{
-			self->ctrl_h = cc_clamp(self->ctrl_h - 0.005f,
+			self->ctrl_h = cc_clamp(self->ctrl_h - 0.001f,
 			                        0.0f, 1.0f);
 			return 1;
 		}
 		else if(e->keycode == 'o')
 		{
-			self->ctrl_h = cc_clamp(self->ctrl_h + 0.005f,
+			self->ctrl_h = cc_clamp(self->ctrl_h + 0.001f,
 			                        0.0f, 1.0f);
 			return 1;
 		}

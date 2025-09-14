@@ -47,6 +47,7 @@
 // use doubles for radius for numerical stability
 #define ATMO_RP 6360000.0
 #define ATMO_RA 6460000.0
+#define ATMO_RO 10.0
 
 // Rayleigh and Mie scale heights
 //
@@ -110,6 +111,7 @@
 
 // optionally sample atmosphere with power sampling
 // #define ATMO_POWER_SAMPLING
+#define ATMO_POWER_SAMPLING_STEPS 64
 
 #define ATMO_STEP_THRESH 10.0
 
@@ -127,7 +129,7 @@
 #define ATMO_TEXTURE_FIS_DEPTH  32
 
 // transmittance texture size
-#define ATMO_LOOKUP_TRANSMITTANCE
+//#define ATMO_LOOKUP_TRANSMITTANCE
 #define ATMO_TEXTURE_T_WIDTH  512
 #define ATMO_TEXTURE_T_HEIGHT 512
 
@@ -649,15 +651,17 @@ stepInit(atmo_solverParam_t* param, double* heights,
 	ASSERT(param);
 	ASSERT(heights);
 
-	uint32_t count_heights = param->texture_fis_width;
+	// skip endpoints
+	int imin = 1;
+	int imax = ATMO_POWER_SAMPLING_STEPS - 2;
 
 	int i;
 	if(h1 < h2)
 	{
-		// upwards: find the first height greater than h1
-		for(i = 0; i < count_heights; ++i)
+		// upwards
+		for(i = imin; i <= imax; ++i)
 		{
-			if(heights[i] > h1)
+			if((heights[i] > h1) && (heights[i] < h2))
 			{
 				return i;
 			}
@@ -665,10 +669,10 @@ stepInit(atmo_solverParam_t* param, double* heights,
 	}
 	else
 	{
-		// downwards: find the first height less than h1
-		for(i = count_heights - 1; i >= 0; --i)
+		// downwards
+		for(i = imax; i >= imin; --i)
 		{
-			if(heights[i] < h1)
+			if((heights[i] < h1) && (heights[i] > h2))
 			{
 				return i;
 			}
@@ -685,22 +689,24 @@ stepNext(atmo_solverParam_t* param, double* heights,
 	ASSERT(param);
 	ASSERT(heights);
 
-	uint32_t count_heights = param->texture_fis_width;
+	// skip endpoints
+	int imin = 1;
+	int imax = ATMO_POWER_SAMPLING_STEPS - 2;
 
 	if(h1 < h2)
 	{
-		// upwards: find heights less than h2
+		// upwards
 		++idx;
-		if((idx >= count_heights) || (heights[idx] >= h2))
+		if((idx > imax) || (heights[idx] >= h2))
 		{
 			return -1;
 		}
 	}
 	else
 	{
-		// downwards: find heights greater than h2
+		// downwards
 		--idx;
-		if((idx < 0) || (heights[idx] <= h2))
+		if((idx < imin) || (heights[idx] <= h2))
 		{
 			return -1;
 		}
@@ -712,8 +718,8 @@ stepNext(atmo_solverParam_t* param, double* heights,
 // Rayleigh/Mie optical depth
 static void
 opticalDepth2(atmo_solverParam_t* param, double* heights,
-             cc_vec3d_t* P1, cc_vec3d_t* P2,
-             cc_vec3d_t* out)
+              cc_vec3d_t* P1, cc_vec3d_t* P2,
+              cc_vec3d_t* out)
 {
 	ASSERT(param);
 	ASSERT(heights);
@@ -755,10 +761,10 @@ opticalDepth2(atmo_solverParam_t* param, double* heights,
 	{
 		// compute P
 		h   = heights[idx];
-		P.z = param->Rp + h;
-		s   = (P.z - P1->z)/(P2->z - P1->z);
+		s   = (h - h1)/(h2 - h1);
 		P.x = P1->x + s*(P2->x - P1->x);
 		P.y = P1->y + s*(P2->y - P1->y);
+		P.z = P1->z + s*(P2->z - P1->z);
 
 		// compute step size
 		cc_vec3d_subv_copy(&P, &Pprev, &D);
@@ -823,8 +829,8 @@ opticalDepth2(atmo_solverParam_t* param, double* heights,
 // Rayleigh/Mie optical depth
 static void
 opticalDepth1(atmo_solverParam_t* param, double* heights,
-             cc_vec3d_t* P1, cc_vec3d_t* P2,
-             cc_vec3d_t* out)
+              cc_vec3d_t* P1, cc_vec3d_t* P2,
+              cc_vec3d_t* out)
 {
 	ASSERT(param);
 	ASSERT(heights);
@@ -856,12 +862,13 @@ opticalDepth1(atmo_solverParam_t* param, double* heights,
 	double nearP = 0.0;
 	double farP  = 0.0;
 	cc_sphere3d_t sphereP;
-	cc_sphere3d_load(&sphereP, 0.0, 0.0, 0.0, param->Rp);
+	cc_sphere3d_load(&sphereP, 0.0, 0.0, 0.0,
+	                 param->Rp - ATMO_RO);
 	if(cc_ray3d_intersect(&ray, &sphereP, &nearP, &farP))
 	{
 		opticalDepth2(param, heights, P1, P2, out);
 	}
-	else if(cos_phi > 0.0)
+	else if(cos_phi >= 0.0)
 	{
 		opticalDepth2(param, heights, P1, P2, out);
 	}
@@ -973,7 +980,7 @@ opticalDepth(atmo_solverParam_t* param, cc_vec3d_t* P1,
 // compute the points Pa and Pb on the viewing vector
 static int
 computePaPb(atmo_solverParam_t* param, cc_vec3d_t* P0,
-            cc_vec3d_t* V, double Ro, cc_vec3d_t* Pa,
+            cc_vec3d_t* V, cc_vec3d_t* Pa,
             cc_vec3d_t* Pb)
 {
 	ASSERT(param);
@@ -987,8 +994,10 @@ computePaPb(atmo_solverParam_t* param, cc_vec3d_t* P0,
 	// viewing vector does not intersect at P0
 	cc_sphere3d_t sphereP;
 	cc_sphere3d_t sphereA;
-	cc_sphere3d_load(&sphereP, 0.0, 0.0, 0.0, param->Rp - Ro);
-	cc_sphere3d_load(&sphereA, 0.0, 0.0, 0.0, param->Ra + Ro);
+	cc_sphere3d_load(&sphereP, 0.0, 0.0, 0.0,
+	                 param->Rp - ATMO_RO);
+	cc_sphere3d_load(&sphereA, 0.0, 0.0, 0.0,
+	                 param->Ra + ATMO_RO);
 
 	// initialize ray
 	cc_ray3d_t ray;
@@ -1040,8 +1049,7 @@ computePc(atmo_solverParam_t* param, cc_vec3d_t* P,
 	cc_vec3d_t Pa;
 	cc_vec3d_t Sun;
 	cc_vec3d_muls_copy(L, -1.0, &Sun);
-	double Ro = 10.0;
-	return computePaPb(param, P, &Sun, Ro, &Pa, Pc);
+	return computePaPb(param, P, &Sun, &Pa, Pc);
 }
 
 static void
@@ -1074,8 +1082,7 @@ computeT(atmo_solverParam_t* param, double* heights,
 
 	cc_vec3d_t P1;
 	cc_vec3d_t P2;
-	double Ro = 10.0;
-	computePaPb(param, &P0, &V, Ro, &P1, &P2);
+	computePaPb(param, &P0, &V, &P1, &P2);
 
 	cc_vec3d_t t = { 0 };
 	#ifdef ATMO_POWER_SAMPLING
@@ -1264,15 +1271,15 @@ fIS12(atmo_solverParam_t* param, double* heights,
 	double h  = getHeightP(param, Pa);
 	double pR = densityR(param, h);
 	double pM = densityM(param, h);
-	if(computePc(param, Pa, L, &Pc) == 0)
+	if(computePc(param, Pa, L, &Pc))
 	{
 		transmittance(param, heights, Pa, &Pc, NULL,
 		              data_T, &TPPc);
 		fx0.r = pR*TPPc.r*TPaP.r;
 		fx0.g = pR*TPPc.g*TPaP.g;
 		fx0.b = pR*TPPc.b*TPaP.b;
-		fx0.a = pM*((TPPc.r + TPPc.g + TPPc.b)/3.0 *
-		            (TPaP.r + TPaP.g + TPaP.b)/3.0);
+		fx0.a = pM*((TPPc.r + TPPc.g + TPPc.b)/3.0)*
+		           ((TPaP.r + TPaP.g + TPaP.b)/3.0);
 	}
 
 	cc_vec3d_t P;
@@ -1288,10 +1295,10 @@ fIS12(atmo_solverParam_t* param, double* heights,
 	{
 		// compute P
 		h   = heights[idx];
-		P.z = param->Rp + h;
-		s   = (P.z - Pa->z)/(Pb->z - Pa->z);
+		s   = (h - h1)/(h2 - h1);
 		P.x = Pa->x + s*(Pb->x - Pa->x);
 		P.y = Pa->y + s*(Pb->y - Pa->y);
+		P.z = Pa->z + s*(Pb->z - Pa->z);
 
 		if(computePc(param, &P, L, &Pc) == 0)
 		{
@@ -1317,8 +1324,8 @@ fIS12(atmo_solverParam_t* param, double* heights,
 		fx1.r = pR*TPPc.r*TPaP.r;
 		fx1.g = pR*TPPc.g*TPaP.g;
 		fx1.b = pR*TPPc.b*TPaP.b;
-		fx1.a = pM*((TPPc.r + TPPc.g + TPPc.b)/3.0 *
-		            (TPaP.r + TPaP.g + TPaP.b)/3.0);
+		fx1.a = pM*((TPPc.r + TPPc.g + TPPc.b)/3.0)*
+		           ((TPaP.r + TPaP.g + TPaP.b)/3.0);
 
 		// compute step size
 		cc_vec3d_subv_copy(&P, &Pprev, &D);
@@ -1356,8 +1363,8 @@ fIS12(atmo_solverParam_t* param, double* heights,
 		fx1.r = pR*TPPc.r*TPaP.r;
 		fx1.g = pR*TPPc.g*TPaP.g;
 		fx1.b = pR*TPPc.b*TPaP.b;
-		fx1.a = pM*((TPPc.r + TPPc.g + TPPc.b)/3.0 *
-		            (TPaP.r + TPaP.g + TPaP.b)/3.0);
+		fx1.a = pM*((TPPc.r + TPPc.g + TPPc.b)/3.0)*
+		           ((TPaP.r + TPaP.g + TPaP.b)/3.0);
 	}
 
 	// compute step size
@@ -1400,13 +1407,10 @@ fIS11(atmo_solverParam_t* param, double* heights,
 	};
 
 	// compute ray-sphere intersection
-	// include a ray offset for the viewing vector
-	// to ensure that the ray does not intersect at P0
-	double Ro = 10.0;
 	cc_vec3d_t Pa;
 	cc_vec3d_t Pb;
 	cc_vec3d_t Pc;
-	computePaPb(param, &P0, &V, Ro, &Pa, &Pb);
+	computePaPb(param, &P0, &V, &Pa, &Pb);
 	if(computePc(param, &Pa, &L, &Pc) == 0)
 	{
 		// light ray is shadowed
@@ -1434,12 +1438,13 @@ fIS11(atmo_solverParam_t* param, double* heights,
 	double nearP = 0.0;
 	double farP  = 0.0;
 	cc_sphere3d_t sphereP;
-	cc_sphere3d_load(&sphereP, 0.0, 0.0, 0.0, param->Rp);
+	cc_sphere3d_load(&sphereP, 0.0, 0.0, 0.0,
+	                 param->Rp - ATMO_RO);
 	if(cc_ray3d_intersect(&ray, &sphereP, &nearP, &farP))
 	{
 		fIS12(param, heights, &Pa, &Pb, &L, data_T, fis1);
 	}
-	else if(cos_phi > 0.0)
+	else if(cos_phi >= 0.0)
 	{
 		fIS12(param, heights, &Pa, &Pb, &L, data_T, fis1);
 	}
@@ -1473,12 +1478,6 @@ fIS1(atmo_solverParam_t* param, double* heights,
 	ASSERT(data_T);
 	ASSERT(fis1);
 
-	// initialize fis1
-	fis1->r = 0.0;
-	fis1->g = 0.0;
-	fis1->b = 0.0;
-	fis1->a = 0.0;
-
 	// canonical form of the scattering intensity
 	// parameterization for P0, V and L
 	cc_vec3d_t P0 =
@@ -1497,13 +1496,10 @@ fIS1(atmo_solverParam_t* param, double* heights,
 	};
 
 	// compute ray-sphere intersection
-	// include a ray offset for the viewing vector
-	// to ensure that the ray does not intersect at P0
-	double Ro = 10.0;
 	cc_vec3d_t Pa;
 	cc_vec3d_t Pb;
 	cc_vec3d_t Pc;
-	computePaPb(param, &P0, &V, Ro, &Pa, &Pb);
+	computePaPb(param, &P0, &V, &Pa, &Pb);
 	if(computePc(param, &Pa, &L, &Pc) == 0)
 	{
 		// ray intersects planet
@@ -1528,8 +1524,8 @@ fIS1(atmo_solverParam_t* param, double* heights,
 	fx0.r = pR*TPPc.r*TPaP.r;
 	fx0.g = pR*TPPc.g*TPaP.g;
 	fx0.b = pR*TPPc.b*TPaP.b;
-	fx0.a = pM*((TPPc.r + TPPc.g + TPPc.b)/3.0 *
-	            (TPaP.r + TPaP.g + TPaP.b)/3.0);
+	fx0.a = pM*((TPPc.r + TPPc.g + TPPc.b)/3.0)*
+	           ((TPaP.r + TPaP.g + TPaP.b)/3.0);
 
 	if(ds < ATMO_STEP_THRESH)
 	{
@@ -1560,8 +1556,8 @@ fIS1(atmo_solverParam_t* param, double* heights,
 		fx1.r = pR*TPPc.r*TPaP.r;
 		fx1.g = pR*TPPc.g*TPaP.g;
 		fx1.b = pR*TPPc.b*TPaP.b;
-		fx1.a = pM*((TPPc.r + TPPc.g + TPPc.b)/3.0 *
-		            (TPaP.r + TPaP.g + TPaP.b)/3.0);
+		fx1.a = pM*((TPPc.r + TPPc.g + TPPc.b)/3.0)*
+		           ((TPaP.r + TPaP.g + TPaP.b)/3.0);
 
 		// apply trapesoidal rule
 		fis1->r += 0.5*(fx1.r + fx0.r)*ds;
@@ -1836,12 +1832,9 @@ fISk(atmo_solverParam_t* param, double* heights, uint32_t k,
 	};
 
 	// compute ray-sphere intersection
-	// include a ray offset for the viewing vector
-	// to ensure that the ray does not intersect at P0
-	double Ro = 10.0;
 	cc_vec3d_t Pa;
 	cc_vec3d_t Pb;
-	computePaPb(param, &P0, &V, Ro, &Pa, &Pb);
+	computePaPb(param, &P0, &V, &Pa, &Pb);
 
 	// initialize integration
 	cc_vec3d_t P;
@@ -2290,12 +2283,9 @@ atmo_solver_plotAvgT(atmo_solverParam_t* param,
 			};
 
 			// compute ray-sphere intersection
-			// include a ray offset for the viewing vector
-			// to ensure that the ray does not intersect at P0
-			double Ro = 10.0;
 			cc_vec3d_t Pa;
 			cc_vec3d_t Pb;
-			computePaPb(param, &P0, &V, Ro, &Pa, &Pb);
+			computePaPb(param, &P0, &V, &Pa, &Pb);
 
 			cc_vec3d_t Vba;
 			cc_vec3d_subv_copy(&Pb, &Pa, &Vba);
@@ -2823,10 +2813,9 @@ static void atmo_solver_run(int tid, void* owner, void* task)
 		goto finish;
 	}
 
-	size_t count_heights = (size_t) param->texture_fis_width;
-
 	heights = (double*)
-	          CALLOC(count_heights, sizeof(double));
+	          CALLOC(ATMO_POWER_SAMPLING_STEPS,
+	                 sizeof(double));
 	if(heights == NULL)
 	{
 		LOGE("CALLOC failed");
@@ -2846,9 +2835,9 @@ static void atmo_solver_run(int tid, void* owner, void* task)
 
 	// compute heights
 	double   u;
-	double   hmax = (double) (count_heights - 1);
+	double   hmax = (double) (ATMO_POWER_SAMPLING_STEPS - 1);
 	uint32_t i;
-	for(i = 0; i < count_heights; ++i)
+	for(i = 0; i < ATMO_POWER_SAMPLING_STEPS; ++i)
 	{
 		u = ((double) i)/hmax;
 		heights[i] = getHeightU(param, u);
