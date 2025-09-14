@@ -354,42 +354,6 @@ void main()
 	float PI        = 3.14159265358979323846;
 	vec3  II        = vec3(IIE);
 
-	// check if ray intersects planet
-	vec3 color  = vec3(0.0, 0.0, 0.0);
-	vec3 normal = vec3(0.0, 0.0, 1.0);
-	if(intersect_planet(P0, V, normal) > 0)
-	{
-		float ndotsun = dot(normal, Sun);
-		vec3  ambient = vec3(0.0, 0.0, 0.0);
-		vec3  diffuse = vec3(0.0, 0.0, 0.0);
-		float upc     = getUHeight(Ra, Rp, 0.0);
-		float vpc     = getVCosPhiPlanet(Rp, 0.0, dot(normal, Sun), upc);
-		float uap     = getUHeight(Ra, Rp, h);
-		float vap     = getVCosPhiPlanet(Rp, h, cos_phi, uap);
-		vec3  Tap     = vec3(texture(sampler105_T, vec2(uap, vap)));
-		if(ndotsun > 0.0)
-		{
-			vec3 Tpc    = vec3(texture(sampler105_T, vec2(upc, vpc)));
-			vec3 albedo = vec3(0.3, 0.3, 0.3);
-			diffuse = (albedo/PI)*II*clamp(0.0, 1.0, ndotsun)*Tpc;
-		}
-		color = (ambient + diffuse)*Tap;
-
-		// apply exposure, tone mapping and gamma correction
-		color = exposure(color);
-		#if ATMO_TONE_MAPPING == ATMO_TONE_MAPPING_UNCHARTED2
-		color = uncharted2_filmic(color);
-		#elif ATMO_TONE_MAPPING == ATMO_TONE_MAPPING_REINHARD_EXTENDED
-		color = reinhard_extended_luminance(color, 150.0);
-		#else
-		color = reinhard_luminance(color);
-		#endif
-		color = gamma(color);
-
-		fragColor = vec4(color, 1.0);
-		return;
-	}
-
 	#ifdef DEBUG_COS_PHI_SKY
 	if(V.y > 0.0)
 	{
@@ -407,15 +371,42 @@ void main()
 	}
 	#endif
 
-	float u = getUHeight(Ra, Rp, h);
-	float v = getVCosPhiSky(Rp, h, cos_phi, u, V, color);
-	if(v < 0.0)
+	// check if ray intersects planet
+	vec3 color  = vec3(0.0, 0.0, 0.0);
+	vec3 normal = vec3(0.0, 0.0, 1.0);
+	vec3 debug  = vec3(0.0, 0.0, 0.0);
+	if(intersect_planet(P0, V, normal) > 0)
 	{
-		fragColor = vec4(color, 1.0);
-		return;
+		float ndotsun = dot(normal, Sun);
+		vec3  ambient = vec3(0.0, 0.0, 0.0);
+		vec3  diffuse = vec3(0.0, 0.0, 0.0);
+		float upc     = getUHeight(Ra, Rp, 0.0);
+		float vpc     = getVCosPhiPlanet(Rp, 0.0, dot(normal, Sun), upc);
+		float uap     = getUHeight(Ra, Rp, h);
+		float vap     = getVCosPhiPlanet(Rp, h, cos_phi, uap);
+		vec3  Tap     = vec3(texture(sampler105_T, vec2(uap, vap)));
+
+		// apply diffuse lighting contribution
+		if(ndotsun > 0.0)
+		{
+			vec3 Tpc    = vec3(texture(sampler105_T, vec2(upc, vpc)));
+			vec3 albedo = vec3(0.3, 0.3, 0.3);
+			diffuse = (albedo/PI)*clamp(0.0, 1.0, ndotsun)*Tpc;
+		}
+
+		// apply surface contribution
+		color = (ambient + diffuse)*Tap;
 	}
 
+	// scattering texture coordinates
+	float u = getUHeight(Ra, Rp, h);
+	float v = getVCosPhiSky(Rp, h, cos_phi, u, V, debug);
 	float w;
+	if(v < 0.0)
+	{
+		fragColor = vec4(debug, 1.0);
+		return;
+	}
 	#if ATMO_PARAM_DELTA == ATMO_PARAM_DELTA_POWER
 	w = 0.5*(1.0 + sign(cos_delta)*pow(abs(cos_delta), 1.0/3.0));
 	#elif ATMO_PARAM_DELTA == ATMO_PARAM_DELTA_BODARE
@@ -425,17 +416,19 @@ void main()
 	w = (cos_delta + 1.0)/2.0;
 	#endif
 
-	// sample fIS texture
+	// sample scattering texture
 	vec4 fIS = texture(sampler104_fIS, vec3(u, v, w));
 
-	// apply constant phase function and
-	// spectral intensity of incident light
-	vec3 IS = vec3(II.r*(FR*fIS.r + FM*fIS.a),
-	               II.g*(FR*fIS.g + FM*fIS.a),
-	               II.b*(FR*fIS.b + FM*fIS.a));
+	// apply sky and aerial perspective
+	color += vec3((FR*fIS.r + FM*fIS.a),
+	              (FR*fIS.g + FM*fIS.a),
+	              (FR*fIS.b + FM*fIS.a));
+
+	// apply spectral irradiance
+	color *= II;
 
 	// apply exposure, tone mapping and gamma correction
-	color = exposure(IS);
+	color = exposure(color);
 	#if ATMO_TONE_MAPPING == ATMO_TONE_MAPPING_UNCHARTED2
 	color = uncharted2_filmic(color);
 	#elif ATMO_TONE_MAPPING == ATMO_TONE_MAPPING_REINHARD_EXTENDED

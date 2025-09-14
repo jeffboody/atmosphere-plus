@@ -125,7 +125,7 @@
 
 // scattering texture size
 #define ATMO_TEXTURE_FIS_WIDTH  32
-#define ATMO_TEXTURE_FIS_HEIGHT 256
+#define ATMO_TEXTURE_FIS_HEIGHT 64
 #define ATMO_TEXTURE_FIS_DEPTH  32
 
 // transmittance texture size
