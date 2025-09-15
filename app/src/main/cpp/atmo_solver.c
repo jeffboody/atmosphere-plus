@@ -146,9 +146,10 @@
 #define ATMO_PARAM_PHI_WEIGHTED_POWER_PU  2.0
 #define ATMO_PARAM_PHI_WEIGHTED_POWER_PL  2.0
 #define ATMO_PARAM_PHI_WEIGHTED_POWER_PS  2.0
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_WL0 (0.0/32.0)
 #define ATMO_PARAM_PHI_WEIGHTED_POWER_WL1 (20.0/32.0)
 #define ATMO_PARAM_PHI_WEIGHTED_POWER_WS0 (4.0/32.0)
-#define ATMO_PARAM_PHI_WEIGHTED_POWER_WS1 (4.0/32.0)
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_WS1 (8.0/32.0)
 
 // sun-zenith angle parameterization
 #define ATMO_PARAM_DELTA_LINEAR 0
@@ -384,11 +385,12 @@ getCosPhiV(atmo_solverParam_t* param, double h, double u,
 	double PU  = ATMO_PARAM_PHI_WEIGHTED_POWER_PU;
 	double PL  = ATMO_PARAM_PHI_WEIGHTED_POWER_PL;
 	double PS  = ATMO_PARAM_PHI_WEIGHTED_POWER_PS;
+	double WL0 = ATMO_PARAM_PHI_WEIGHTED_POWER_WL0;
 	double WL1 = ATMO_PARAM_PHI_WEIGHTED_POWER_WL1;
 	double WS0 = ATMO_PARAM_PHI_WEIGHTED_POWER_WS0;
 	double WS1 = ATMO_PARAM_PHI_WEIGHTED_POWER_WS1;
-	double WS  = WS1*u + WS0;
-	double WL  = WL1*u;
+	double WS  = WS1*u + WS0*(1.0 - u);
+	double WL  = WL1*u + WL0*(1.0 - u);
 	double WU  = 1.0 - WL - WS;
 	double epsilon = 0.00001;
 	if(v >= WL + WS)
@@ -434,11 +436,12 @@ getVCosPhi(atmo_solverParam_t* param, double h,
 	double PU      = ATMO_PARAM_PHI_WEIGHTED_POWER_PU;
 	double PL      = ATMO_PARAM_PHI_WEIGHTED_POWER_PL;
 	double PS      = ATMO_PARAM_PHI_WEIGHTED_POWER_PS;
+	double WL0     = ATMO_PARAM_PHI_WEIGHTED_POWER_WL0;
 	double WL1     = ATMO_PARAM_PHI_WEIGHTED_POWER_WL1;
 	double WS0     = ATMO_PARAM_PHI_WEIGHTED_POWER_WS0;
 	double WS1     = ATMO_PARAM_PHI_WEIGHTED_POWER_WS1;
-	double WS      = WS1*u + WS0;
-	double WL      = WL1*u;
+	double WS      = WS1*u + WS0*(1.0 - u);
+	double WL      = WL1*u + WL0*(1.0 - u);
 	double WU      = 1.0 - WL - WS;
 	double epsilon = 0.00001;
 	if(cos_phi >= 0.0)

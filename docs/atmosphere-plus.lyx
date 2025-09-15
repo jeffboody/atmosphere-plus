@@ -2632,104 +2632,6 @@ v_{S}\left(\phi\right)=w_{S}\cdot\left(1-\left(\frac{\cos\left(\phi\right)-\cos\
 \end_layout
 
 \begin_layout Standard
-The weights define the amount of texture space allocated for each region.
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-w_{U}=1-w_{L}-w_{S}
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-w_{L}=w_{L}^{1}\cdot u
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Formula 
-\[
-w_{S}=w_{S}^{1}\cdot u+w_{S}^{0}
-\]
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The sum of the weights is 
-\begin_inset Formula $w_{U}+w_{L}+w_{S}=1$
-\end_inset
-
-.
- In order to optimize the texture space near ground level, the weights 
-\begin_inset Formula $w_{L}^{1}$
-\end_inset
-
- and 
-\begin_inset Formula $w_{S}^{1}$
-\end_inset
-
- are scaled by 
-\begin_inset Formula $u$
-\end_inset
-
-.
- This causes the weights 
-\begin_inset Formula $w_{L}$
-\end_inset
-
- and 
-\begin_inset Formula $w_{S}$
-\end_inset
-
- to grow from a minimum at 
-\begin_inset Formula $u=0$
-\end_inset
-
- to their maximum at 
-\begin_inset Formula $u=1$
-\end_inset
-
-.
- The weight 
-\begin_inset Formula $w_{U}$
-\end_inset
-
- is defined as the remainder of the other weights, causing it to shrink
- from the maximum at 
-\begin_inset Formula $u=0$
-\end_inset
-
- to its minimum at 
-\begin_inset Formula $u=1$
-\end_inset
-
-.
- The weight 
-\begin_inset Formula $w_{S}^{0}$
-\end_inset
-
- defines a minimal texture parameter space for the surface region at 
-\begin_inset Formula $u=0$
-\end_inset
-
-.
-\end_layout
-
-\begin_layout Standard
 The weighted power mappings may be converted from 3D texture coordinates
  as follows.
 \end_layout
@@ -2782,6 +2684,67 @@ Otherwise:
 \cos\left(\phi\right)=\left(-1-\cos\left(\phi_{H}\right)\right)\left(1-\frac{v}{w_{S}}\right)^{p_{S}}+\cos\left(\phi_{H}\right)
 \]
 
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The weights define the amount of texture space allocated for each region
+ and the superscript corresponds to the weight at a particular value of
+ 
+\begin_inset Formula $u$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+w_{U}=1-w_{L}-w_{S}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+w_{L}=w_{L}^{1}\cdot u+w_{L}^{0}\cdot\left(1.0-u\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+w_{S}=w_{S}^{1}\cdot u+w_{S}^{0}\cdot\left(1.0-u\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Where the parameters are defined:
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $p_{U},p_{L},p_{S}=2,2,2$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $w_{L}^{1},w_{L}^{0},w_{S}^{1},w_{S}^{0}=\frac{20}{32},\frac{0}{32},\frac{8}{32},\frac{4}{32}$
 \end_inset
 
 
@@ -2846,24 +2809,6 @@ The following diagram shows a comparision between the linear mapping and
 	lyxscale 50
 	width 50page%
 
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-The following parameters where used for the weighted power mapping.
-\end_layout
-
-\begin_layout Itemize
-\begin_inset Formula $p_{U},p_{L},p_{S}=2,2,2$
-\end_inset
-
-
-\end_layout
-
-\begin_layout Itemize
-\begin_inset Formula $w_{L}^{1},w_{S}^{1},w_{S}^{0}=\frac{20}{32},\frac{4}{32},\frac{4}{32}$
 \end_inset
 
 

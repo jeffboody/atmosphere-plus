@@ -13,9 +13,10 @@
 #define ATMO_PARAM_PHI_WEIGHTED_POWER_PU  2.0
 #define ATMO_PARAM_PHI_WEIGHTED_POWER_PL  2.0
 #define ATMO_PARAM_PHI_WEIGHTED_POWER_PS  2.0
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_WL0 (0.0/32.0)
 #define ATMO_PARAM_PHI_WEIGHTED_POWER_WL1 (20.0/32.0)
 #define ATMO_PARAM_PHI_WEIGHTED_POWER_WS0 (4.0/32.0)
-#define ATMO_PARAM_PHI_WEIGHTED_POWER_WS1 (4.0/32.0)
+#define ATMO_PARAM_PHI_WEIGHTED_POWER_WS1 (8.0/32.0)
 
 // sun-zenith angle parameterization
 #define ATMO_PARAM_DELTA_LINEAR 0
@@ -241,11 +242,12 @@ float getVCosPhiPlanet(float Rp, float h, float cos_phi, float u)
 	float PU      = ATMO_PARAM_PHI_WEIGHTED_POWER_PU;
 	float PL      = ATMO_PARAM_PHI_WEIGHTED_POWER_PL;
 	float PS      = ATMO_PARAM_PHI_WEIGHTED_POWER_PS;
+	float WL0     = ATMO_PARAM_PHI_WEIGHTED_POWER_WL0;
 	float WL1     = ATMO_PARAM_PHI_WEIGHTED_POWER_WL1;
 	float WS0     = ATMO_PARAM_PHI_WEIGHTED_POWER_WS0;
 	float WS1     = ATMO_PARAM_PHI_WEIGHTED_POWER_WS1;
-	float WS      = WS1*u + WS0;
-	float WL      = WL1*u;
+	float WS      = WS1*u + WS0*(1.0 - u);
+	float WL      = WL1*u + WL0*(1.0 - u);
 	float WU      = 1.0 - WL - WS;
 	float epsilon = 0.00001;
 	if(cos_phi >= 0.0)
@@ -284,11 +286,12 @@ float getVCosPhiSky(float Rp, float h, float cos_phi,
 	float PU      = ATMO_PARAM_PHI_WEIGHTED_POWER_PU;
 	float PL      = ATMO_PARAM_PHI_WEIGHTED_POWER_PL;
 	float PS      = ATMO_PARAM_PHI_WEIGHTED_POWER_PS;
+	float WL0     = ATMO_PARAM_PHI_WEIGHTED_POWER_WL0;
 	float WL1     = ATMO_PARAM_PHI_WEIGHTED_POWER_WL1;
 	float WS0     = ATMO_PARAM_PHI_WEIGHTED_POWER_WS0;
 	float WS1     = ATMO_PARAM_PHI_WEIGHTED_POWER_WS1;
-	float WS      = WS1*u + WS0;
-	float WL      = WL1*u;
+	float WS      = WS1*u + WS0*(1.0 - u);
+	float WL      = WL1*u + WL0*(1.0 - u);
 	float WU      = 1.0 - WL - WS;
 	float epsilon = 0.00001;
 	if(cos_phi >= 0.0)
