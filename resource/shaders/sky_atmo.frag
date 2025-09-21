@@ -66,31 +66,8 @@ layout(std140, set=1, binding=2) uniform ub102_IIE
 	vec4 IIE; // II, Exposure
 };
 
-layout(std140, set=1, binding=3) uniform ub103_phase_g_mie
-{
-	float phase_g_mie;
-};
-
 layout(set=1, binding=4) uniform sampler3D sampler104_fIS;
 layout(set=1, binding=5) uniform sampler2D sampler105_T;
-
-// modified Rayleigh phase function
-float phaseR(float cos_theta)
-{
-	return 0.8*(1.4 + 0.5*cos_theta);
-}
-
-// Mie phase function
-float phaseM(float cos_theta)
-{
-	float g  = phase_g_mie;
-	float g2 = g*g;
-	float n1 = 3.0*(1.0 - g2);
-	float n2 = 1.0 + cos_theta*cos_theta;
-	float d1 = 2.0*(2.0 + g2);
-	float d2 = pow(1.0 + g2 - 2.0*g*cos_theta, 1.5);
-	return (n1/d1)*(n2/d2);
-}
 
 int intersect_planet(vec3 P0, vec3 V, out vec3 normal)
 {
@@ -347,9 +324,6 @@ void main()
 	vec3  Zenith    = vec3(Zenith4);
 	float cos_phi   = dot(V, Zenith);
 	float cos_delta = dot(-L, Zenith);
-	float cos_theta = dot(L, -V);
-	float FR        = phaseR(cos_theta);
-	float FM        = phaseM(cos_theta);
 	float Ra        = RaRp[0];
 	float Rp        = RaRp[1];
 	vec3  P0        = vec3(P0H);
@@ -419,13 +393,8 @@ void main()
 	w = (cos_delta + 1.0)/2.0;
 	#endif
 
-	// sample scattering texture
-	vec4 fIS = texture(sampler104_fIS, vec3(u, v, w));
-
 	// apply sky and aerial perspective
-	color += vec3((FR*fIS.r + FM*fIS.a),
-	              (FR*fIS.g + FM*fIS.a),
-	              (FR*fIS.b + FM*fIS.a));
+	color += vec3(texture(sampler104_fIS, vec3(u, v, w)));
 
 	// apply spectral irradiance
 	color *= II;

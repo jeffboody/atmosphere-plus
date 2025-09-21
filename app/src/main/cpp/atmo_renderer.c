@@ -160,7 +160,7 @@ atmo_renderer_t* atmo_renderer_new(vkk_engine_t* engine)
 			.type    = VKK_UNIFORM_TYPE_BUFFER,
 			.stage   = VKK_STAGE_FS,
 		},
-		// ub103_phase_g_mie
+		// ub103_Unused
 		{
 			.binding = 3,
 			.type    = VKK_UNIFORM_TYPE_BUFFER,
@@ -278,11 +278,11 @@ atmo_renderer_t* atmo_renderer_new(vkk_engine_t* engine)
 		goto failure;
 	}
 
-	self->scene_ub103_phase_g_mie = vkk_buffer_new(engine, um,
-	                                               VKK_BUFFER_USAGE_UNIFORM,
-	                                               sizeof(float),
-	                                               NULL);
-	if(self->scene_ub103_phase_g_mie == NULL)
+	self->scene_ub103_Unused = vkk_buffer_new(engine, um,
+	                                          VKK_BUFFER_USAGE_UNIFORM,
+	                                          sizeof(cc_vec4f_t),
+	                                          NULL);
+	if(self->scene_ub103_Unused == NULL)
 	{
 		goto failure;
 	}
@@ -342,11 +342,11 @@ atmo_renderer_t* atmo_renderer_new(vkk_engine_t* engine)
 			.type    = VKK_UNIFORM_TYPE_BUFFER,
 			.buffer  = self->scene_ub102_IIE,
 		},
-		// ub103_phase_g_mie
+		// ub103_Unused
 		{
 			.binding = 3,
 			.type    = VKK_UNIFORM_TYPE_BUFFER,
-			.buffer  = self->scene_ub103_phase_g_mie,
+			.buffer  = self->scene_ub103_Unused,
 		},
 	};
 	self->scene_us1 = vkk_uniformSet_new(engine, 1, 4,
@@ -435,7 +435,7 @@ void atmo_renderer_delete(atmo_renderer_t** _self)
 		vkk_graphicsPipeline_delete(&self->sky_flat_gp);
 		vkk_uniformSet_delete(&self->scene_us1);
 		vkk_uniformSet_delete(&self->scene_us0);
-		vkk_buffer_delete(&self->scene_ub103_phase_g_mie);
+		vkk_buffer_delete(&self->scene_ub103_Unused);
 		vkk_buffer_delete(&self->scene_ub102_IIE);
 		vkk_buffer_delete(&self->scene_ub101_Zenith4);
 		vkk_buffer_delete(&self->scene_ub100_Unused);
@@ -610,7 +610,6 @@ void atmo_renderer_draw(atmo_renderer_t* self,
 		{
 			.z = 1.0f,
 		};
-		float phase_g_mie = (float) param->phase_g_mie;
 		vkk_renderer_updateBuffer(rend, self->scene_ub100_Unused,
 		                          sizeof(cc_vec4f_t),
 		                          (const void*) &Unused);
@@ -620,9 +619,9 @@ void atmo_renderer_draw(atmo_renderer_t* self,
 		vkk_renderer_updateBuffer(rend, self->scene_ub102_IIE,
 		                          sizeof(cc_vec4f_t),
 		                          (const void*) &IIE);
-		vkk_renderer_updateBuffer(rend, self->scene_ub103_phase_g_mie,
-		                          sizeof(float),
-		                          (const void*) &phase_g_mie);
+		vkk_renderer_updateBuffer(rend, self->scene_ub103_Unused,
+		                          sizeof(cc_vec4f_t),
+		                          (const void*) &Unused);
 		vkk_uniformAttachment_t ua_array[] =
 		{
 			// sampler104_fIS

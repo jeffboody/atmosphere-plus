@@ -54,7 +54,7 @@ typedef struct atmo_renderer_s
 	vkk_buffer_t*            scene_ub100_Unused;
 	vkk_buffer_t*            scene_ub101_Zenith4;
 	vkk_buffer_t*            scene_ub102_IIE; // II, Exposure
-	vkk_buffer_t*            scene_ub103_phase_g_mie;
+	vkk_buffer_t*            scene_ub103_Unused;
 	vkk_uniformSet_t*        scene_us0;
 	vkk_uniformSet_t*        scene_us1;
 
