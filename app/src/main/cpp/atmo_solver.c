@@ -579,7 +579,6 @@ setDataFis(atmo_solverParam_t* param,
 	data[idx].a = val->a;
 }
 
-#ifdef ATMO_LOOKUP_TRANSMITTANCE
 static void
 getDataT(atmo_solverParam_t* param,
          uint32_t x, uint32_t y,
@@ -596,7 +595,6 @@ getDataT(atmo_solverParam_t* param,
 	val->g = data[idx].g;
 	val->b = data[idx].b;
 }
-#endif
 
 static void
 setDataT(atmo_solverParam_t* param,
@@ -2045,8 +2043,8 @@ atmo_solver_newImages(atmo_solver_t* self,
 }
 
 static int
-atmo_solver_exportData(atmo_solver_t* self,
-                       cc_vec4d_t* data_fis)
+atmo_solver_exportFis(atmo_solver_t* self,
+                      cc_vec4d_t* data_fis)
 {
 	ASSERT(self);
 	ASSERT(data_fis);
@@ -2139,6 +2137,58 @@ atmo_solver_exportData(atmo_solver_t* self,
 	}
 
 	return 1;
+}
+
+static int
+atmo_solver_exportT(atmo_solverParam_t* param,
+                    cc_vec3d_t* data_T)
+{
+	ASSERT(param);
+	ASSERT(data_T);
+
+	int width  = param->texture_T_width;
+	int height = param->texture_T_height;
+
+	texgz_tex_t* tex;
+	tex = texgz_tex_new(width, height, width, height,
+	                    TEXGZ_UNSIGNED_BYTE, TEXGZ_RGB,
+	                    NULL);
+	if(tex == NULL)
+	{
+		return 0;
+	}
+
+	int i;
+	int j;
+	cc_vec3d_t data;
+	unsigned char pixel[] =
+	{
+		0, 0, 0, 0xFF,
+	};
+	for(i = 0; i < height; ++i)
+	{
+		for(j = 0; j < width; ++j)
+		{
+			getDataT(param, j, i, data_T, &data);
+			data.r   = atmo_clampd(255.0*data.r, 0.0, 255.0);
+			data.g   = atmo_clampd(255.0*data.g, 0.0, 255.0);
+			data.b   = atmo_clampd(255.0*data.b, 0.0, 255.0);
+			pixel[0] = (unsigned char) data.r;
+			pixel[1] = (unsigned char) data.g;
+			pixel[2] = (unsigned char) data.b;
+			texgz_tex_setPixel(tex, j, i, pixel);
+		}
+	}
+
+	int ret = 1;
+	if(texgz_png_export(tex, "T.png") == 0)
+	{
+		ret = 0;
+	}
+
+	texgz_tex_delete(&tex);
+
+	return ret;
 }
 
 #ifdef ATMO_SOLVER_DEBUG_DATA
@@ -2898,7 +2948,8 @@ static void atmo_solver_run(int tid, void* owner, void* task)
 
 	atmo_solver_finish(self, data_fis);
 	atmo_solver_newImages(self, data_fis, data_T);
-	atmo_solver_exportData(self, data_fis);
+	atmo_solver_exportFis(self, data_fis);
+	atmo_solver_exportT(param, data_T);
 	atmo_solver_debugData(self, heights, data_fis);
 
 	finish:
