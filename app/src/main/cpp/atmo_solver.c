@@ -121,7 +121,7 @@
 #define ATMO_GATHER_N_STEPS (360/30)
 
 // multiple scattering events
-#define ATMO_K 5
+#define ATMO_K 2
 
 // scattering texture size
 #define ATMO_TEXTURE_FIS_WIDTH  32
