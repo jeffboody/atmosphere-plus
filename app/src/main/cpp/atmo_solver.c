@@ -42,6 +42,7 @@
 #include "atmo_solver.h"
 #include "atmo_spectralIrradiance.h"
 #include "atmo_spectralToRGB.h"
+#include "atmo_util.h"
 
 // radius of the planet and atmospheric boundary
 // use doubles for radius for numerical stability
@@ -258,38 +259,6 @@ atmo_solver_computeII(atmo_solverParam_t* param)
 	     param->II_r, param->II_g, param->II_b);
 }
 
-static uint32_t
-atmo_clampu(uint32_t v, uint32_t min, uint32_t max)
-{
-	ASSERT(min < max);
-
-	if(v < min)
-	{
-		v = min;
-	}
-	else if(v > max)
-	{
-		v = max;
-	}
-	return v;
-}
-
-static double
-atmo_clampd(double v, double min, double max)
-{
-	ASSERT(min < max);
-
-	if(v < min)
-	{
-		v = min;
-	}
-	else if(v > max)
-	{
-		v = max;
-	}
-	return v;
-}
-
 static double getUHeight(atmo_solverParam_t* param, double h)
 {
 	ASSERT(param);
@@ -339,21 +308,6 @@ getZenithP(const cc_vec3d_t* P, cc_vec3d_t* Zenith)
 	ASSERT(Zenith);
 
 	cc_vec3d_normalize_copy(P, Zenith);
-}
-
-static double atmo_signd(double x)
-{
-	if(x < 0.0)
-	{
-		return -1.0;
-	}
-
-	return 1.0;
-}
-
-double atmo_maxd(double a, double b)
-{
-	return (a > b) ? a : b;
 }
 
 static double
@@ -2300,11 +2254,6 @@ atmo_solver_plotDensity(atmo_solverParam_t* param)
 	fclose(f);
 
 	return 1;
-}
-
-static double atmo_deg2rad(double x)
-{
-	return x*M_PI/180.0;
 }
 
 static int
