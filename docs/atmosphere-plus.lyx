@@ -1216,7 +1216,7 @@ The diffuse lighting equation calculates the light reflected from a surface
 \begin_layout Standard
 \begin_inset Formula 
 \[
-L_{o}=f_{r}\cdot L_{i}\cdot dot\left(N,L\right)=\frac{\rho}{\pi}\cdot L_{i}\cdot\max\left(0,dot\left(N,L\right)\right)
+L_{o}=f_{r}\cdot L_{i}\cdot dot\left(N,L\right)=\frac{\rho}{\pi}\cdot L_{i}\cdot\max\left(0,dot\left(N,Sun\right)\right)
 \]
 
 \end_inset
@@ -1474,7 +1474,7 @@ on to the planet surface by the incident light that was attenuated by the
 \begin_layout Standard
 \begin_inset Formula 
 \[
-D\left(P_{p},L\right)=\frac{C_{avg}}{\pi}\cdot I\cdot T\left(P_{p},P_{c}\right)\cdot\max\left(0,dot\left(N,L\right)\right)
+D\left(P_{p},L\right)=\frac{C_{avg}}{\pi}\cdot I\cdot T\left(P_{p},P_{c}\right)\cdot\max\left(0,dot\left(N,Sun\right)\right)
 \]
 
 \end_inset

@@ -1647,16 +1647,19 @@ fISk_sample(atmo_solverParam_t* param, uint32_t k,
 
 // factored multiple-scattered gathered intensity step
 static void
-fGk_step(atmo_solverParam_t* param, uint32_t k,
-         cc_vec3d_t* P, cc_vec3d_t* V, cc_vec3d_t* L,
-         cc_vec3d_t* data_fis, double s,
-         double xj, double yi, cc_vec4d_t* fgk)
+fGk_step(atmo_solverParam_t* param, double* heights,
+         uint32_t k, cc_vec3d_t* P,
+         cc_vec3d_t* V, cc_vec3d_t* L,
+         cc_vec3d_t* data_fis, cc_vec3d_t* data_T,
+         double s, double xj, double yi, cc_vec4d_t* fgk)
 {
 	ASSERT(param);
+	ASSERT(heights);
 	ASSERT(P);
 	ASSERT(V);
 	ASSERT(L);
 	ASSERT(data_fis);
+	ASSERT(data_T);
 	ASSERT(fgk);
 
 	// compute omega
@@ -1668,6 +1671,21 @@ fGk_step(atmo_solverParam_t* param, uint32_t k,
 		.y = sin(xj)*sin(yi),
 		.z = cos(xj),
 	};
+
+	// compute planet intersection when the gathering ray
+	// intersects the planet and the intersection point is not
+	// shadowed
+	cc_vec3d_t  Pa;
+	cc_vec3d_t  Pb;
+	cc_vec3d_t  Pc;
+	cc_vec3d_t* Pp = NULL;
+	if(computePaPb(param, P, &omega, &Pa, &Pb) == 0)
+	{
+		if(computePc(param, &Pb, L, &Pc))
+		{
+			Pp = &Pb;
+		}
+	}
 
 	// compute phase
 	double cos_theta;
@@ -1681,28 +1699,56 @@ fGk_step(atmo_solverParam_t* param, uint32_t k,
 	FR = atmo_phaseR(param, cos_theta);
 	FM = atmo_phaseM(param, cos_theta);
 
-	// sample fisk
-	cc_vec3d_t fisk;
-	fISk_sample(param, k, P, &omega, L, data_fis, &fisk);
+	// atmospheric scattering contribution
+	cc_vec3d_t H;
+	fISk_sample(param, k, P, &omega, L, data_fis, &H);
+
+	// diffuse lighting contribution
+	if(Pp)
+	{
+		cc_vec3d_t N;
+		cc_vec3d_t Sun;
+		cc_vec3d_normalize_copy(Pp, &N);
+		cc_vec3d_muls_copy(L, -1.0, &Sun);
+
+		double ndotsun;
+		ndotsun = atmo_clampd(cc_vec3d_dot(&N, &Sun), 0.0, 1.0);
+
+		cc_vec3d_t TPPp;
+		cc_vec3d_t TPpPc;
+		transmittance(param, heights, P, Pp, NULL, data_T, &TPPp);
+		transmittance(param, heights, &Pc, Pp, NULL, data_T, &TPpPc);
+		cc_vec3d_t D =
+		{
+			.r = (0.3/M_PI)*ndotsun,
+			.g = (0.3/M_PI)*ndotsun,
+			.b = (0.3/M_PI)*ndotsun,
+		};
+		cc_vec3d_mulv(&D, &TPpPc);
+		cc_vec3d_mulv(&D, &TPPp);
+		cc_vec3d_addv(&H, &D);
+	}
 
 	// compute sin_theta for domega
 	// xj => omega spherical angle theta in (0, pi)
 	double domega_sin_xj = sin(xj);
 
 	// add factored multiple-scattered gathered intensity
-	fgk->r += FR*fisk.r*domega_sin_xj;
-	fgk->g += FR*fisk.g*domega_sin_xj;
-	fgk->b += FR*fisk.b*domega_sin_xj;
-	fgk->a += FM*((fisk.r + fisk.g + fisk.b)/3.0)*domega_sin_xj;
+	fgk->r += FR*H.r*domega_sin_xj;
+	fgk->g += FR*H.g*domega_sin_xj;
+	fgk->b += FR*H.b*domega_sin_xj;
+	fgk->a += FM*((H.r + H.g + H.b)/3.0)*domega_sin_xj;
 }
 
 // factored multiple-scattered gathered intensity
 static void
-fGk(atmo_solverParam_t* param, uint32_t k, cc_vec3d_t* P,
-    cc_vec3d_t* V, cc_vec3d_t* L, cc_vec3d_t* data_fis,
+fGk(atmo_solverParam_t* param, double* heights, uint32_t k,
+    cc_vec3d_t* P, cc_vec3d_t* V, cc_vec3d_t* L,
+    cc_vec3d_t* data_fis, cc_vec3d_t* data_T,
     cc_vec4d_t* fgk)
 {
 	ASSERT(param);
+	ASSERT(heights);
 	ASSERT(P);
 	ASSERT(V);
 	ASSERT(L);
@@ -1730,10 +1776,14 @@ fGk(atmo_solverParam_t* param, uint32_t k, cc_vec3d_t* P,
 	fgk->a = 0.0;
 
 	// apply 2D trapezoidal rule for corners
-	fGk_step(param, k, P, V, L, data_fis, 1.0, x0, y0, fgk);
-	fGk_step(param, k, P, V, L, data_fis, 1.0, xn, y0, fgk);
-	fGk_step(param, k, P, V, L, data_fis, 1.0, x0, ym, fgk);
-	fGk_step(param, k, P, V, L, data_fis, 1.0, xn, ym, fgk);
+	fGk_step(param, heights, k, P, V, L, data_fis, data_T,
+	         1.0, x0, y0, fgk);
+	fGk_step(param, heights, k, P, V, L, data_fis, data_T,
+	         1.0, xn, y0, fgk);
+	fGk_step(param, heights, k, P, V, L, data_fis, data_T,
+	         1.0, x0, ym, fgk);
+	fGk_step(param, heights, k, P, V, L, data_fis, data_T,
+	         1.0, xn, ym, fgk);
 
 	// apply 2D trapezoidal rule for edges
 	int    i;
@@ -1743,14 +1793,18 @@ fGk(atmo_solverParam_t* param, uint32_t k, cc_vec3d_t* P,
 	for(j = 1; j < n; ++j)
 	{
 		xj = ((double) j)*dx;
-		fGk_step(param, k, P, V, L, data_fis, 2.0, xj, y0, fgk);
-		fGk_step(param, k, P, V, L, data_fis, 2.0, xj, ym, fgk);
+		fGk_step(param, heights, k, P, V, L, data_fis, data_T,
+		         2.0, xj, y0, fgk);
+		fGk_step(param, heights, k, P, V, L, data_fis, data_T,
+		         2.0, xj, ym, fgk);
 	}
 	for(i = 1; i < m; ++i)
 	{
 		yi = ((double) i)*dy;
-		fGk_step(param, k, P, V, L, data_fis, 2.0, x0, yi, fgk);
-		fGk_step(param, k, P, V, L, data_fis, 2.0, xn, yi, fgk);
+		fGk_step(param, heights, k, P, V, L, data_fis, data_T,
+		         2.0, x0, yi, fgk);
+		fGk_step(param, heights, k, P, V, L, data_fis, data_T,
+		         2.0, xn, yi, fgk);
 	}
 
 	// apply 2D trapezoidal rule for center
@@ -1760,7 +1814,8 @@ fGk(atmo_solverParam_t* param, uint32_t k, cc_vec3d_t* P,
 		for(j = 1; j < n; ++j)
 		{
 			xj = ((double) j)*dx;
-			fGk_step(param, k, P, V, L, data_fis, 4.0, xj, yi, fgk);
+			fGk_step(param, heights, k, P, V, L, data_fis, data_T,
+			         4.0, xj, yi, fgk);
 		}
 	}
 
@@ -1820,7 +1875,8 @@ fISk(atmo_solverParam_t* param, double* heights, uint32_t k,
 	double ds = cc_vec3d_mag(&step);
 	double pR = densityR(param, h);
 	double pM = densityM(param, h);
-	fGk(param, k - 1, &P0, &V, &L, data_fis, &fgk);
+	fGk(param, heights, k - 1, &P0, &V, &L,
+	    data_fis, data_T, &fgk);
 	transmittance(param, heights, &Pa, &P, &Pb,
 	              data_T, &TPaP);
 	fx0.r = fgk.r*pR*TPaP.r;
@@ -1844,7 +1900,8 @@ fISk(atmo_solverParam_t* param, double* heights, uint32_t k,
 		h  = getHeightP(param, &P);
 		pR = densityR(param, h);
 		pM = densityM(param, h);
-		fGk(param, k - 1, &P, &V, &L, data_fis, &fgk);
+		fGk(param, heights, k - 1, &P, &V, &L,
+		    data_fis, data_T, &fgk);
 		transmittance(param, heights, &Pa, &P, &Pb,
 		              data_T, &TPaP);
 		fx1.r = fgk.r*pR*TPaP.r;
