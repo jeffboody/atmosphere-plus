@@ -30,9 +30,25 @@
 typedef struct atmo_solver_s      atmo_solver_t;
 typedef struct atmo_solverParam_s atmo_solverParam_t;
 
+typedef enum
+{
+	ATMO_RENDERER_MODE_DEFAULT,
+	ATMO_RENDERER_MODE_LUMINANCE,
+} atmo_rendererMode_e;
+
 typedef struct atmo_renderer_s
 {
 	vkk_engine_t* engine;
+
+	// ATMO_RENDERER_MODE_DEFAULT
+	struct atmo_renderer_s* luminance_renderer;
+
+	// ATMO_RENDERER_MODE_LUMINANCE
+	int             luminance_dirty;
+	float           luminance_avg;
+	float*          luminance_pixels;
+	vkk_renderer_t* luminance_rend;
+	vkk_image_t*    luminance_image;
 
 	float    ctrl_h;
 	float    ctrl_phi;
@@ -40,6 +56,7 @@ typedef struct atmo_renderer_s
 	float    ctrl_omega;
 	uint32_t ctrl_k;
 	float    ctrl_exposure;
+	int      ctrl_autoexposure;
 
 	vkk_buffer_t* vb_vertex;
 	vkk_buffer_t* vb_V;
@@ -58,11 +75,12 @@ typedef struct atmo_renderer_s
 	vkk_uniformSet_t*        scene_us0;
 	vkk_uniformSet_t*        scene_us1;
 
-	vkk_graphicsPipeline_t*  sky_flat_gp;
-	vkk_graphicsPipeline_t*  sky_atmo_gp;
+	vkk_graphicsPipeline_t* sky_flat_gp;
+	vkk_graphicsPipeline_t* sky_atmo_gp;
 } atmo_renderer_t;
 
-atmo_renderer_t* atmo_renderer_new(vkk_engine_t* engine);
+atmo_renderer_t* atmo_renderer_new(vkk_engine_t* engine,
+                                   atmo_rendererMode_e mode);
 void             atmo_renderer_delete(atmo_renderer_t** _self);
 void             atmo_renderer_draw(atmo_renderer_t* self,
                                     atmo_solver_t* solver,

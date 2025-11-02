@@ -118,7 +118,8 @@ atmo_uiWindowHud_new(atmo_uiScreen_t* screen)
 		goto failure;
 	}
 
-	self->renderer = atmo_renderer_new(engine);
+	self->renderer = atmo_renderer_new(engine,
+	                                   ATMO_RENDERER_MODE_DEFAULT);
 	if(self->renderer == NULL)
 	{
 		goto failure;

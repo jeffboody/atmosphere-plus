@@ -44,6 +44,7 @@ typedef struct atmo_uiInfoPanel_s
 	float              last_ctrl_omega;
 	float              last_ctrl_k;
 	float              last_ctrl_exposure;
+	float              last_ctrl_autoexposure;
 } atmo_uiInfoPanel_t;
 
 atmo_uiInfoPanel_t* atmo_uiInfoPanel_new(atmo_uiScreen_t* screen);

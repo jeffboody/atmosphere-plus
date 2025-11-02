@@ -37,34 +37,92 @@
 #include "atmo_renderer.h"
 #include "atmo_solver.h"
 
+#define ATMO_LUMINANCE_SIZE 256
+
 /***********************************************************
 * private                                                  *
 ***********************************************************/
+
+static void
+atmo_renderer_updateLuminance(atmo_renderer_t* self)
+{
+	ASSERT(self);
+
+	if(vkk_image_readPixels(self->luminance_image,
+	                        self->luminance_pixels) == 0)
+	{
+		return;
+	}
+
+	double   sum = 0.0;
+	uint32_t sz  = ATMO_LUMINANCE_SIZE;
+	uint32_t i;
+	uint32_t j;
+	for(i = 0; i < sz; ++i)
+	{
+		for(j = 0; j < sz; ++j)
+		{
+			sum += (double) self->luminance_pixels[i*sz + j];
+		}
+	}
+
+	self->luminance_avg   = (float) (sum/((double) (sz*sz)));
+	self->luminance_dirty = 0;
+
+	LOGI("luminance_avg=%f", self->luminance_avg);
+}
+
+static void atmo_renderer_markDirty(atmo_renderer_t* self)
+{
+	ASSERT(self);
+
+	atmo_renderer_t* lr = self->luminance_renderer;
+	if((lr == NULL) || (self->ctrl_autoexposure == 0))
+	{
+		return;
+	}
+
+	// luminance_renderer does not use exposure
+	if((lr->ctrl_h     != self->ctrl_h)     ||
+	   (lr->ctrl_phi   != self->ctrl_phi)   ||
+	   (lr->ctrl_delta != self->ctrl_delta) ||
+	   (lr->ctrl_omega != self->ctrl_omega) ||
+	   (lr->ctrl_k     != self->ctrl_k))
+	{
+		lr->luminance_dirty = 1;
+		lr->ctrl_h          = self->ctrl_h;
+		lr->ctrl_phi        = self->ctrl_phi;
+		lr->ctrl_delta      = self->ctrl_delta;
+		lr->ctrl_omega      = self->ctrl_omega;
+		lr->ctrl_k          = self->ctrl_k;
+	}
+}
 
 static void atmo_renderer_resetCtrl(atmo_renderer_t* self)
 {
 	ASSERT(self);
 
-	self->ctrl_h        = 0.3f;
-	self->ctrl_phi      = 0.5f;
-	self->ctrl_delta    = 0.0f;
-	self->ctrl_omega    = 0.0f;
-	self->ctrl_k        = 5;
-	self->ctrl_exposure = -2.5f;
+	self->ctrl_h            = 0.3f;
+	self->ctrl_phi          = 0.5f;
+	self->ctrl_delta        = 0.0f;
+	self->ctrl_omega        = 0.0f;
+	self->ctrl_k            = 5;
+	self->ctrl_exposure     = -2.5f;
+	self->ctrl_autoexposure = 0;
 }
 
 /***********************************************************
 * public                                                   *
 ***********************************************************/
 
-atmo_renderer_t* atmo_renderer_new(vkk_engine_t* engine)
+atmo_renderer_t*
+atmo_renderer_new(vkk_engine_t* engine,
+                  atmo_rendererMode_e mode)
 {
 	ASSERT(engine);
 
 	vkk_renderer_t* rend;
 	rend = vkk_engine_defaultRenderer(engine);
-
-	vkk_updateMode_e um = vkk_renderer_updateMode(rend);
 
 	atmo_renderer_t* self;
 	self = (atmo_renderer_t*)
@@ -78,6 +136,49 @@ atmo_renderer_t* atmo_renderer_new(vkk_engine_t* engine)
 	self->engine = engine;
 
 	atmo_renderer_resetCtrl(self);
+
+	if(mode == ATMO_RENDERER_MODE_DEFAULT)
+	{
+		atmo_rendererMode_e lmode = ATMO_RENDERER_MODE_LUMINANCE;
+		self->luminance_renderer = atmo_renderer_new(engine,
+		                                             lmode);
+		if(self->luminance_renderer == NULL)
+		{
+			goto failure;
+		}
+	}
+	else
+	{
+		uint32_t sz = ATMO_LUMINANCE_SIZE;
+
+		self->luminance_dirty  = 1;
+		self->luminance_pixels = (float*)
+		                         CALLOC(sz*sz, sizeof(float));
+		if(self->luminance_pixels == NULL)
+		{
+			goto failure;
+		}
+
+		self->luminance_rend = vkk_renderer_newImage(engine,
+		                                             sz, sz,
+		                                             VKK_IMAGE_FORMAT_RF16,
+		                                             0);
+		if(self->luminance_rend == NULL)
+		{
+			goto failure;
+		}
+		rend = self->luminance_rend;
+
+		self->luminance_image = vkk_image_new(engine,
+		                                      sz, sz, 1,
+		                                      VKK_IMAGE_FORMAT_RF16,
+		                                      0, VKK_STAGE_FS,
+		                                      NULL);
+		if(self->luminance_image == NULL)
+		{
+			goto failure;
+		}
+	}
 
 	cc_vec3f_t vertices[] =
 	{
@@ -96,6 +197,7 @@ atmo_renderer_t* atmo_renderer_new(vkk_engine_t* engine)
 		goto failure;
 	}
 
+	vkk_updateMode_e um = vkk_renderer_updateMode(rend);
 	self->vb_V = vkk_buffer_new(self->engine, um,
 	                            VKK_BUFFER_USAGE_VERTEX,
 	                            sizeof(vertices),
@@ -399,7 +501,9 @@ atmo_renderer_t* atmo_renderer_new(vkk_engine_t* engine)
 		.renderer          = rend,
 		.pl                = self->scene_pl,
 		.vs                = "shaders/sky_vert.spv",
-		.fs                = "shaders/sky_atmo_frag.spv",
+		.fs                = (mode == ATMO_RENDERER_MODE_DEFAULT) ?
+		                     "shaders/sky_atmo_frag.spv" :
+		                     "shaders/sky_luminance_frag.spv",
 		.vb_count          = 2,
 		.vbi               = sky_vbi_array,
 		.primitive         = VKK_PRIMITIVE_TRIANGLE_STRIP,
@@ -448,6 +552,10 @@ void atmo_renderer_delete(atmo_renderer_t** _self)
 		vkk_uniformSetFactory_delete(&self->scene_usf0);
 		vkk_buffer_delete(&self->vb_V);
 		vkk_buffer_delete(&self->vb_vertex);
+		vkk_image_delete(&self->luminance_image);
+		vkk_renderer_delete(&self->luminance_rend);
+		FREE(self->luminance_pixels);
+		atmo_renderer_delete(&self->luminance_renderer);
 		FREE(self);
 		*_self = NULL;
 	}
@@ -460,10 +568,51 @@ void atmo_renderer_draw(atmo_renderer_t* self,
 	ASSERT(self);
 	ASSERT(solver);
 
-	vkk_renderer_t* rend;
-	rend = vkk_engine_defaultRenderer(self->engine);
-
 	atmo_solverParam_t* param = &solver->param;
+
+	uint32_t k = atmo_renderer_getK(self);
+
+	vkk_image_t* image_fis = atmo_solver_imageFis(solver, k);
+	vkk_image_t* image_T   = atmo_solver_imageT(solver);
+
+	float exposure = atmo_renderer_getExposure(self);
+
+	vkk_renderer_t* rend;
+	if(self->luminance_rend)
+	{
+		if((self->luminance_dirty == 0) ||
+		   (image_fis == NULL) || (image_T == NULL))
+		{
+			return;
+		}
+
+		float clear_color[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+		rend = self->luminance_rend;
+		if(vkk_renderer_beginImage(rend,
+		                           VKK_RENDERER_MODE_DRAW,
+		                           self->luminance_image,
+		                           clear_color) == 0)
+		{
+			return;
+		}
+		width  = ATMO_LUMINANCE_SIZE;
+		height = ATMO_LUMINANCE_SIZE;
+	}
+	else
+	{
+		rend = vkk_engine_defaultRenderer(self->engine);
+
+		if(self->ctrl_autoexposure)
+		{
+			float luminance_avg;
+			luminance_avg = self->luminance_renderer->luminance_avg;
+
+			atmo_renderer_draw(self->luminance_renderer,
+			                   solver, width, height);
+
+			exposure = 1.0f/(9.8f*luminance_avg);
+		}
+	}
 
 	float aspect = width/height;
 	float fovy   = 90.0f;
@@ -472,12 +621,10 @@ void atmo_renderer_draw(atmo_renderer_t* self,
 		fovy /= aspect;
 	}
 
-	float    h        = atmo_renderer_getH(self, param);
-	float    phi      = atmo_renderer_getPhi(self);
-	float    delta    = atmo_renderer_getDelta(self);
-	float    omega    = atmo_renderer_getOmega(self);
-	uint32_t k        = atmo_renderer_getK(self);
-	float    exposure = atmo_renderer_getExposure(self);
+	float    h     = atmo_renderer_getH(self, param);
+	float    phi   = atmo_renderer_getPhi(self);
+	float    delta = atmo_renderer_getDelta(self);
+	float    omega = atmo_renderer_getOmega(self);
 
 	cc_vec3f_t eye =
 	{
@@ -601,8 +748,6 @@ void atmo_renderer_draw(atmo_renderer_t* self,
 		self->scene_us1,
 	};
 
-	vkk_image_t* image_fis = atmo_solver_imageFis(solver, k);
-	vkk_image_t* image_T   = atmo_solver_imageT(solver);
 	if(image_fis && image_T)
 	{
 		cc_vec4f_t Unused = { 0 };
@@ -657,6 +802,12 @@ void atmo_renderer_draw(atmo_renderer_t* self,
 		self->vb_V,
 	};
 	vkk_renderer_draw(rend, 4, 2, vertex_buffers);
+
+	if(self->luminance_rend)
+	{
+		vkk_renderer_end(self->luminance_rend);
+		atmo_renderer_updateLuminance(self);
+	}
 }
 
 int atmo_renderer_event(atmo_renderer_t* self,
@@ -674,37 +825,31 @@ int atmo_renderer_event(atmo_renderer_t* self,
 		{
 			self->ctrl_h = cc_clamp(self->ctrl_h - 0.001f,
 			                        0.0f, 1.0f);
-			return 1;
 		}
 		else if(e->keycode == 'o')
 		{
 			self->ctrl_h = cc_clamp(self->ctrl_h + 0.001f,
 			                        0.0f, 1.0f);
-			return 1;
 		}
 		else if(e->keycode == 'j')
 		{
 			self->ctrl_phi = cc_clamp(self->ctrl_phi + 0.005f,
 			                          0.0f, 1.0f);
-			return 1;
 		}
 		else if(e->keycode == 'k')
 		{
 			self->ctrl_phi = cc_clamp(self->ctrl_phi - 0.005f,
 			                          0.0f, 1.0f);
-			return 1;
 		}
 		else if(e->keycode == 'w')
 		{
 			self->ctrl_delta = cc_clamp(self->ctrl_delta - 0.005f,
 			                            0.0f, 1.0f);
-			return 1;
 		}
 		else if(e->keycode == 's')
 		{
 			self->ctrl_delta = cc_clamp(self->ctrl_delta + 0.005f,
 			                            0.0f, 1.0f);
-			return 1;
 		}
 		else if(e->keycode == 'a')
 		{
@@ -713,7 +858,6 @@ int atmo_renderer_event(atmo_renderer_t* self,
 			{
 				self->ctrl_omega -= 1.0f;
 			}
-			return 1;
 		}
 		else if(e->keycode == 'd')
 		{
@@ -722,28 +866,34 @@ int atmo_renderer_event(atmo_renderer_t* self,
 			{
 				self->ctrl_omega += 1.0f;
 			}
-			return 1;
 		}
 		else if(e->keycode == 'r')
 		{
 			atmo_renderer_resetCtrl(self);
-			return 1;
+		}
+		else if(e->keycode == 'e')
+		{
+			self->ctrl_autoexposure = 1 - self->ctrl_autoexposure;
 		}
 		else if((e->keycode >= '0') && (e->keycode <= '9'))
 		{
 			self->ctrl_k = e->keycode - '0';
-			return 1;
 		}
 		else if(e->keycode == '-')
 		{
 			self->ctrl_exposure -= 0.25f;
-			return 1;
 		}
 		else if(e->keycode == '=')
 		{
 			self->ctrl_exposure += 0.25f;
-			return 1;
 		}
+		else
+		{
+			return 0;
+		}
+
+		atmo_renderer_markDirty(self);
+		return 1;
 	}
 
 	return 0;

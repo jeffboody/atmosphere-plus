@@ -87,11 +87,20 @@ atmo_uiInfoPanel_refresh(vkk_uiWidget_t* widget)
 		self->last_ctrl_k = renderer->ctrl_k;
 	}
 
-	if(self->last_ctrl_exposure != renderer->ctrl_exposure)
+	if((self->last_ctrl_exposure     != renderer->ctrl_exposure) ||
+	   (self->last_ctrl_autoexposure != renderer->ctrl_autoexposure))
 	{
-		vkk_uiText_label(self->text_ctrl_exposure, "-/=: exposure=%0.2f",
-		                 atmo_renderer_getExposure(renderer));
-		self->last_ctrl_exposure = renderer->ctrl_exposure;
+		if(renderer->ctrl_autoexposure)
+		{
+			vkk_uiText_label(self->text_ctrl_exposure, "-/=/e: exposure=auto");
+		}
+		else
+		{
+			vkk_uiText_label(self->text_ctrl_exposure, "-/=/e: exposure=%0.2f",
+			                 atmo_renderer_getExposure(renderer));
+		}
+		self->last_ctrl_exposure     = renderer->ctrl_exposure;
+		self->last_ctrl_autoexposure = renderer->ctrl_autoexposure;
 	}
 
 	return 0;

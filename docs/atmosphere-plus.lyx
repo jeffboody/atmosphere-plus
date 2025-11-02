@@ -1,16 +1,21 @@
-#LyX 2.3 created this file. For more info see http://www.lyx.org/
-\lyxformat 544
+#LyX 2.4 created this file. For more info see https://www.lyx.org/
+\lyxformat 620
 \begin_document
 \begin_header
 \save_transient_properties true
 \origin unavailable
 \textclass paper
+\begin_preamble
+% Added by lyx2lyx
+\setlength{\parskip}{\medskipamount}
+\setlength{\parindent}{0pt}
+\end_preamble
 \use_default_options true
-\maintain_unincluded_children false
+\maintain_unincluded_children no
 \language english
 \language_package default
-\inputencoding auto
-\fontencoding global
+\inputencoding auto-legacy
+\fontencoding auto
 \font_roman "default" "default"
 \font_sans "default" "default"
 \font_typewriter "default" "default"
@@ -18,7 +23,9 @@
 \font_default_family default
 \use_non_tex_fonts false
 \font_sc false
-\font_osf false
+\font_roman_osf false
+\font_sans_osf false
+\font_typewriter_osf false
 \font_sf_scale 100 100
 \font_tt_scale 100 100
 \use_microtype false
@@ -52,15 +59,17 @@
 \suppress_date false
 \justification true
 \use_refstyle 1
+\use_formatted_ref 0
 \use_minted 0
+\use_lineno 0
 \index Index
 \shortcut idx
 \color #008000
 \end_index
 \secnumdepth 3
 \tocdepth 3
-\paragraph_separation skip
-\defskip medskip
+\paragraph_separation indent
+\paragraph_indentation default
 \is_math_indent 0
 \math_numbering_side default
 \quotes_style english
@@ -68,11 +77,16 @@
 \papercolumns 1
 \papersides 1
 \paperpagestyle default
+\tablestyle default
 \tracking_changes false
 \output_changes false
+\change_bars false
+\postpone_fragile_content false
 \html_math_output 0
 \html_css_as_file 0
 \html_be_strict false
+\docbook_table_output 0
+\docbook_mathml_prefix 1
 \end_header
 
 \begin_body
@@ -90,13 +104,11 @@ About
 \end_layout
 
 \begin_layout Standard
-These notes describe the atmospheric rendering theory and implementation
- for the Atmosphere Plus demo.
+These notes describe the atmospheric rendering theory and implementation for the Atmosphere Plus demo.
 \end_layout
 
 \begin_layout Standard
-The following shows a side-by-side comparison between the rendered atmosphere
- and a picture of Felix Baumgartner (I Jumped From Space).
+The following shows a side-by-side comparison between the rendered atmosphere and a picture of Felix Baumgartner (I Jumped From Space).
 \end_layout
 
 \begin_layout Standard
@@ -123,8 +135,7 @@ Wavelength of Light
 \end_layout
 
 \begin_layout Standard
-The wavelength of light is a continuous value which represents the light
- color.
+The wavelength of light is a continuous value which represents the light color.
 \end_layout
 
 \begin_layout Standard
@@ -153,8 +164,8 @@ The typical range of wavelengths for each light color include.
 \end_layout
 
 \begin_layout Standard
-However, atmospheric simulations typically select a discrete set of wavelengths
- to represent the light color.
+However,
+ atmospheric simulations typically select a discrete set of wavelengths to represent the light color.
 \end_layout
 
 \begin_layout Itemize
@@ -183,14 +194,11 @@ Spectral Irradiance
 \end_layout
 
 \begin_layout Standard
-The spectral irradiance measures the power density of solar radiation at
- specific wavelengths at the top of atmosphere (TOA) and may be found in
- tables of measured values.
+The spectral irradiance measures the power density of solar radiation at specific wavelengths at the top of atmosphere (TOA) and may be found in tables of measured values.
 \end_layout
 
 \begin_layout Standard
-The following diagram shows the spectral irradiance over the visible spectrum
- from the ASTMG173 data set.
+The following diagram shows the spectral irradiance over the visible spectrum from the ASTMG173 data set.
 \end_layout
 
 \begin_layout Standard
@@ -213,13 +221,13 @@ To convert a spectral wavelength
 \begin_inset Formula $\lambda$
 \end_inset
 
- to an RGB color, we will follow a two step process.
- First, the wavelengths must be converted to a CIE XYZ (1931) color space
- by looking up the wavelength in a table.
- Next, the XYZ coordinates can be transformed into a color space via matrix
- multiplication followed by optional normalization.
- For our purposes we will select the sRGB color space since it has been
- designed to produce outputs that that are optimized for modern displays.
+ to an RGB color,
+ we will follow a two step process.
+ First,
+ the wavelengths must be converted to a CIE XYZ (1931) color space by looking up the wavelength in a table.
+ Next,
+ the XYZ coordinates can be transformed into a color space via matrix multiplication followed by optional normalization.
+ For our purposes we will select the sRGB color space since it has been designed to produce outputs that that are optimized for modern displays.
 \end_layout
 
 \begin_layout Standard
@@ -257,20 +265,22 @@ M^{-1}=\left[\begin{array}{ccc}
 \end_layout
 
 \begin_layout Standard
-The following plot shows the spectral to RGB conversion with various optional
- normalization techniques.
+The following plot shows the spectral to RGB conversion with various optional normalization techniques.
 \end_layout
 
 \begin_layout Itemize
-None: No normalization
+None:
+ No normalization
 \end_layout
 
 \begin_layout Itemize
-Sum: Scale XYZ by the sum of XYZ values
+Sum:
+ Scale XYZ by the sum of XYZ values
 \end_layout
 
 \begin_layout Itemize
-Peak: Scale RGB by the peak RGB value
+Peak:
+ Scale RGB by the peak RGB value
 \end_layout
 
 \begin_layout Standard
@@ -288,6 +298,7 @@ Peak: Scale RGB by the peak RGB value
 
 \series bold
 Note:
+
 \series default
  RGB colors should be clamped to 
 \begin_inset Formula $\left(0,1\right)$
@@ -310,9 +321,7 @@ The spectral intensity of incident light
 \begin_inset Formula $I$
 \end_inset
 
- involves computing the integral of the spectral intensity over all wavelengths
- while simultaneously converting wavelengths into RGB colors (do not apply
- clamping or normalization when computing 
+ involves computing the integral of the spectral intensity over all wavelengths while simultaneously converting wavelengths into RGB colors (do not apply clamping or normalization when computing 
 \begin_inset Formula $I$
 \end_inset
 
@@ -351,12 +360,12 @@ I=I\left(\lambda_{r},\lambda_{g},\lambda_{b}\right)=\left(213.865952,190.346115,
 \end_layout
 
 \begin_layout Subsection
-Exposure, Tone Mapping and Gamma Correction
+Exposure,
+ Tone Mapping and Gamma Correction
 \end_layout
 
 \begin_layout Standard
-The atmospheric simulation inherently outputs high dynamic range intensities
- that must be transformed for display on standard devices as the final step.
+The atmospheric simulation inherently outputs high dynamic range intensities that must be transformed for display on standard devices as the final step.
 \end_layout
 
 \begin_layout Subsubsection
@@ -364,8 +373,7 @@ Exposure
 \end_layout
 
 \begin_layout Standard
-Exposure scales the overall intensity of color values and mimics the behavior
- of camera f-stops (e.g.
+Exposure scales the overall intensity of color values and mimics the behavior of camera f-stops (e.g.
  one stop doubles or halves the intensity).
 \end_layout
 
@@ -400,17 +408,13 @@ Tone Mapping Operation (TMO)
 \end_layout
 
 \begin_layout Standard
-Tone mapping operations transform the high dynamic range intensities such
- that the colors are mapped to the displayable range 
+Tone mapping operations transform the high dynamic range intensities such that the colors are mapped to the displayable range 
 \begin_inset Formula $\left(0.0,1.0\right)$
 \end_inset
 
- while preserving contrast in low-intensity areas and compressing high-intensity
- values.
- The transformation from HDR-to-LDR (High Dynamic Range to Low Dynamic Range)
- is a lossy operation which produces subjective results.
- Experimental results suggest that the Hable (Uncharted 2) TMO is suitable
- for atmospheric simulations.
+ while preserving contrast in low-intensity areas and compressing high-intensity values.
+ The transformation from HDR-to-LDR (High Dynamic Range to Low Dynamic Range) is a lossy operation which produces subjective results.
+ Experimental results suggest that the Hable (Uncharted 2) TMO is suitable for atmospheric simulations.
 \end_layout
 
 \begin_layout Standard
@@ -452,8 +456,7 @@ The
 \begin_inset Formula $TMO_{H}$
 \end_inset
 
- operator is referred to as a filmic operation since it is designed to emulate
- real film.
+ operator is referred to as a filmic operation since it is designed to emulate real film.
 \end_layout
 
 \begin_layout Standard
@@ -494,8 +497,7 @@ Gamma Correction
 \end_layout
 
 \begin_layout Standard
-Gamma correction helps to distribute the compressed values more evenly across
- the perceptual range of human vision.
+Gamma correction helps to distribute the compressed values more evenly across the perceptual range of human vision.
 \end_layout
 
 \begin_layout Standard
@@ -514,8 +516,8 @@ HDR-to-LDR Transformation
 \end_layout
 
 \begin_layout Standard
-The HDR-to-LDR conversion may include exposure, tone mapping and gamma correctio
-n.
+The HDR-to-LDR conversion may include exposure,
+ tone mapping and gamma correction.
 \end_layout
 
 \begin_layout Standard
@@ -534,8 +536,7 @@ Atmospheric Boundary
 \end_layout
 
 \begin_layout Standard
-The atmosphere consists of 5 layers where the height of each layer is defined
- as follows.
+The atmosphere consists of 5 layers where the height of each layer is defined as follows.
 \end_layout
 
 \begin_layout Itemize
@@ -597,10 +598,9 @@ Exosphere
 
 \end_deeper
 \begin_layout Standard
-However, atmospheric simulations commonly model the atmosphere as the region
- where it's effects are non-negligible.
- This region extends from the Earth's surface to an atmospheric boundary
- referred to as the 
+However,
+ atmospheric simulations commonly model the atmosphere as the region where it's effects are non-negligible.
+ This region extends from the Earth's surface to an atmospheric boundary referred to as the 
 \begin_inset Quotes eld
 \end_inset
 
@@ -609,12 +609,12 @@ top of atmosphere
 \end_inset
 
  (TOA).
- The Scalable and Production Ready Sky and Atmosphere Rendering Technique
- paper uses the following constants for these radii.
+ The Scalable and Production Ready Sky and Atmosphere Rendering Technique paper uses the following constants for these radii.
 \end_layout
 
 \begin_layout Itemize
-Radius of the planet: 
+Radius of the planet:
+ 
 \begin_inset Formula $R_{p}=6360$
 \end_inset
 
@@ -622,7 +622,8 @@ Radius of the planet:
 \end_layout
 
 \begin_layout Itemize
-Radius of the atmospheric boundary: 
+Radius of the atmospheric boundary:
+ 
 \begin_inset Formula $R_{a}=6460$
 \end_inset
 
@@ -630,7 +631,8 @@ Radius of the atmospheric boundary:
 \end_layout
 
 \begin_layout Itemize
-TOA: 
+TOA:
+ 
 \begin_inset Formula $TOA=R_{a}-R_{p}=100$
 \end_inset
 
@@ -646,17 +648,21 @@ The atmospheric simulation models three types of particles.
 \end_layout
 
 \begin_layout Itemize
-Rayleigh Scattering: Smaller particles consisting of air molecules such
- as oxygen, nitrogen and carbon dioxide.
+Rayleigh Scattering:
+ Smaller particles consisting of air molecules such as oxygen,
+ nitrogen and carbon dioxide.
 \end_layout
 
 \begin_layout Itemize
-Mie Scattering and Absorption: Larger particles consisting of ice crystals,
- water droplets, dust and air polution.
+Mie Scattering and Absorption:
+ Larger particles consisting of ice crystals,
+ water droplets,
+ dust and air polution.
 \end_layout
 
 \begin_layout Itemize
-Ozone Absorption: Ozone particles consist of 
+Ozone Absorption:
+ Ozone particles consist of 
 \begin_inset Formula $O_{3}$
 \end_inset
 
@@ -672,12 +678,12 @@ Definition of the Density Function
 \end_layout
 
 \begin_layout Standard
-The density function expresses the decrease in atmospheric density in dependence
- on 
+The density function expresses the decrease in atmospheric density in dependence on 
 \begin_inset Formula $h$
 \end_inset
 
-, the altitude of a point 
+,
+ the altitude of a point 
 \begin_inset Formula $P$
 \end_inset
 
@@ -685,7 +691,8 @@ The density function expresses the decrease in atmospheric density in dependence
 \end_layout
 
 \begin_layout Standard
-Rayleigh/Mie density function, 
+Rayleigh/Mie density function,
+ 
 \begin_inset Formula $p_{R,M}\left(h\right)$
 \end_inset
 
@@ -721,7 +728,8 @@ Where
 \end_layout
 
 \begin_layout Standard
-Ozone density function, 
+Ozone density function,
+ 
 \begin_inset Formula $p_{O}\left(h\right)$
 \end_inset
 
@@ -744,9 +752,8 @@ Visualization of the Density Function
 \end_layout
 
 \begin_layout Standard
-The following plot shows the Rayleigh, Mie and Ozone density functions using
- height values determined by the power mapping function (see Texture Parameteriz
-ation).
+The following plot shows the Rayleigh,
+ Mie and Ozone density functions using height values determined by the power mapping function (see Texture Parameterization).
 \end_layout
 
 \begin_layout Standard
@@ -765,12 +772,12 @@ Phase Function
 \end_layout
 
 \begin_layout Standard
-The phase function expresses the relative amount of light that is scattered
- in a particular direction due to interactions with a particle.
+The phase function expresses the relative amount of light that is scattered in a particular direction due to interactions with a particle.
 \end_layout
 
 \begin_layout Standard
-Rayleigh scattering phase function, 
+Rayleigh scattering phase function,
+ 
 \begin_inset Formula $F_{R}$
 \end_inset
 
@@ -793,8 +800,7 @@ Where the scattering angle
 \begin_inset Formula $\theta$
 \end_inset
 
- represents the angle between the incoming light ray and the scattered light
- ray.
+ represents the angle between the incoming light ray and the scattered light ray.
 \end_layout
 
 \begin_layout Standard
@@ -809,7 +815,8 @@ Where the scattering angle
 \end_layout
 
 \begin_layout Standard
-Mie scattering phase function, 
+Mie scattering phase function,
+ 
 \begin_inset Formula $F_{M}$
 \end_inset
 
@@ -832,8 +839,7 @@ The parameter
 \begin_inset Formula $g$
 \end_inset
 
- is an asymmetry factor denoting the width of the forward lobe and is in
- the range 
+ is an asymmetry factor denoting the width of the forward lobe and is in the range 
 \begin_inset Formula $\left(-1,1\right)$
 \end_inset
 
@@ -841,8 +847,7 @@ The parameter
 \end_layout
 
 \begin_layout Standard
-The Scalable and Production Ready Sky and Atmosphere Rendering Technique
- paper uses a default value of 
+The Scalable and Production Ready Sky and Atmosphere Rendering Technique paper uses a default value of 
 \begin_inset Formula $g=0.8$
 \end_inset
 
@@ -850,18 +855,16 @@ The Scalable and Production Ready Sky and Atmosphere Rendering Technique
 \end_layout
 
 \begin_layout Subsection
-Scattering, Absorption and Extinction Coefficients
+Scattering,
+ Absorption and Extinction Coefficients
 \end_layout
 
 \begin_layout Standard
-The scattering/absorption/extinction coefficients represents the probability
- of light being scattered/absorbed/scattered+absorbed as it travels through
- a medium.
+The scattering/absorption/extinction coefficients represents the probability of light being scattered/absorbed/scattered+absorbed as it travels through a medium.
 \end_layout
 
 \begin_layout Standard
-The Scalable and Production Ready Sky and Atmosphere Rendering Technique
- paper uses the following coefficients.
+The Scalable and Production Ready Sky and Atmosphere Rendering Technique paper uses the following coefficients.
 \end_layout
 
 \begin_layout Standard
@@ -923,10 +926,9 @@ The Scalable and Production Ready Sky and Atmosphere Rendering Technique
 
 \series bold
 Note:
+
 \series default
- The Rayleigh/ozone coefficients are 3-component vectors (color / wavelength
- dependent) while the Mie coefficients is a scalar (grayscale / wavelength
- independent).
+ The Rayleigh/ozone coefficients are 3-component vectors (color / wavelength dependent) while the Mie coefficients is a scalar (grayscale / wavelength independent).
 \end_layout
 
 \begin_layout Subsection
@@ -942,8 +944,7 @@ The transmittance function
 \begin_inset Formula $T\left(P_{1},P_{2}\right)$
 \end_inset
 
- expresses the amount of attenuated light after it passes between two points
- through a medium.
+ expresses the amount of attenuated light after it passes between two points through a medium.
 \end_layout
 
 \begin_layout Standard
@@ -976,7 +977,9 @@ Where the parameters are defined:
 \begin_inset Formula $T$
 \end_inset
 
-: Transmittance, 
+:
+ Transmittance,
+ 
 \begin_inset Formula $T\in\left(0,1\right)$
 \end_inset
 
@@ -987,7 +990,9 @@ Where the parameters are defined:
 \begin_inset Formula $t$
 \end_inset
 
-: Optical depth, 
+:
+ Optical depth,
+ 
 \begin_inset Formula $t\in\left(0,\infty\right)$
 \end_inset
 
@@ -998,11 +1003,13 @@ Where the parameters are defined:
 \begin_inset Formula $P$
 \end_inset
 
-: Sample point parameterized by 
+:
+ Sample point parameterized by 
 \begin_inset Formula $s$
 \end_inset
 
-, 
+,
+ 
 \begin_inset Formula $P=P_{1}+s\left(P_{2}-P_{1}\right)$
 \end_inset
 
@@ -1013,7 +1020,9 @@ Where the parameters are defined:
 \begin_inset Formula $h$
 \end_inset
 
-: Height is parameterized by P, 
+:
+ Height is parameterized by P,
+ 
 \begin_inset Formula $h\left(P\right)=\left|P\right|-R_{p}$
 \end_inset
 
@@ -1021,8 +1030,7 @@ Where the parameters are defined:
 \end_layout
 
 \begin_layout Standard
-The light ray may change direction as it interacts with particles while
- passing through a medium (e.g.
+The light ray may change direction as it interacts with particles while passing through a medium (e.g.
  the atmosphere).
  Consider a light ray which passes between the points 
 \begin_inset Formula $P_{1},P_{2},P_{3}$
@@ -1052,8 +1060,7 @@ T\left(P_{1},P_{2}\right)\cdot T\left(P_{2},P_{3}\right)=\exp\left(-t\left(P_{1}
 \end_layout
 
 \begin_layout Standard
-The implementation may utilize the laws of exponents rule for product of
- powers to optimize the computation.
+The implementation may utilize the laws of exponents rule for product of powers to optimize the computation.
 \end_layout
 
 \begin_layout Standard
@@ -1091,8 +1098,7 @@ Visualization of Transmittance
 \end_layout
 
 \begin_layout Standard
-The following diagrams show the average transmittance as a function of altitude
- 
+The following diagrams show the average transmittance as a function of altitude 
 \begin_inset Formula $h$
 \end_inset
 
@@ -1102,8 +1108,7 @@ The following diagrams show the average transmittance as a function of altitude
 
 .
  Notice how the valley follows the horizon as the height increases.
- The transmittance is much lower at the horizon since the atmosphere is
- much thicker in the horizontal direction than the vertical direction.
+ The transmittance is much lower at the horizon since the atmosphere is much thicker in the horizontal direction than the vertical direction.
  See the Scattering Intensity Parameterization section for more details.
 \end_layout
 
@@ -1134,12 +1139,10 @@ Lambertian Model
 \end_layout
 
 \begin_layout Standard
-The Lambertian BRDF (bidirectional reflectance distribution function) describes
- a perfectly diffuse (matte) surface that reflects incident light equally
- in all directions, regardless of the viewing angle, resulting in an appearance
- that is consistently bright across its surface.
- These equations form the basis of the diffuse and ambient lighting passes
- of the atmospheric simulation.
+The Lambertian BRDF (bidirectional reflectance distribution function) describes a perfectly diffuse (matte) surface that reflects incident light equally in all directions,
+ regardless of the viewing angle,
+ resulting in an appearance that is consistently bright across its surface.
+ These equations form the basis of the diffuse and ambient lighting passes of the atmospheric simulation.
 \end_layout
 
 \begin_layout Subsubsection
@@ -1199,9 +1202,7 @@ Where the parameters are defined:
 \end_layout
 
 \begin_layout Standard
-An important property of the Lambertian model is that it conserves energy
- such that the reflected light intensity is less than or equal to the incident
- light intensity.
+An important property of the Lambertian model is that it conserves energy such that the reflected light intensity is less than or equal to the incident light intensity.
 \end_layout
 
 \begin_layout Subsubsection
@@ -1209,8 +1210,7 @@ Diffuse Lighting
 \end_layout
 
 \begin_layout Standard
-The diffuse lighting equation calculates the light reflected from a surface
- point for a directional light source.
+The diffuse lighting equation calculates the light reflected from a surface point for a directional light source.
 \end_layout
 
 \begin_layout Standard
@@ -1247,8 +1247,7 @@ Ambient Lighting
 \end_layout
 
 \begin_layout Standard
-The ambient lighting equation calculates the light reflected from a surface
- point when light arrives from all directions above it (e.g.
+The ambient lighting equation calculates the light reflected from a surface point when light arrives from all directions above it (e.g.
  light scattered through the atmosphere).
  
 \end_layout
@@ -1284,16 +1283,15 @@ Atmospheric Simulation Passes
 \end_layout
 
 \begin_layout Standard
-The atmospheric simulation involves modeling interactions between light
- rays, atmospheric particles and the planet surface.
- An iterative procedure will be applied over multiple passes to compute
- the contribution of each light ray interaction.
- To simplify the calculation of diffuse and ambient light passes, we assume
- an idealized planetary surface (e.g.
- constant terrain height of zero and average surface color) to approximate
- the color contribution.
- This section describes the single-scattering, diffuse lighting, ambient
- lighting and multiple-scattering passes.
+The atmospheric simulation involves modeling interactions between light rays,
+ atmospheric particles and the planet surface.
+ An iterative procedure will be applied over multiple passes to compute the contribution of each light ray interaction.
+ To simplify the calculation of diffuse and ambient light passes,
+ we assume an idealized planetary surface (e.g.
+ constant terrain height of zero and average surface color) to approximate the color contribution.
+ This section describes the single-scattering,
+ diffuse lighting,
+ ambient lighting and multiple-scattering passes.
 \end_layout
 
 \begin_layout Subsection
@@ -1346,14 +1344,16 @@ Where the parameters are defined:
 \begin_inset Formula $L$
 \end_inset
 
-: Direction of light from the Sun
+:
+ Direction of light from the Sun
 \end_layout
 
 \begin_layout Itemize
 \begin_inset Formula $P_{a}$
 \end_inset
 
-: First point along 
+:
+ First point along 
 \begin_inset Formula $V$
 \end_inset
 
@@ -1369,7 +1369,8 @@ Where the parameters are defined:
 \begin_inset Formula $P_{b}$
 \end_inset
 
-: Last point along 
+:
+ Last point along 
 \begin_inset Formula $V$
 \end_inset
 
@@ -1381,11 +1382,13 @@ Where the parameters are defined:
 \begin_inset Formula $P$
 \end_inset
 
-: Sample point parameterized by 
+:
+ Sample point parameterized by 
 \begin_inset Formula $s$
 \end_inset
 
-, 
+,
+ 
 \begin_inset Formula $P=P_{a}+s\left(P_{b}-P_{a}\right)$
 \end_inset
 
@@ -1396,11 +1399,13 @@ Where the parameters are defined:
 \begin_inset Formula $h$
 \end_inset
 
-: Height is parameterized by 
+:
+ Height is parameterized by 
 \begin_inset Formula $P$
 \end_inset
 
-, 
+,
+ 
 \begin_inset Formula $h\left(P\right)=\left|P\right|-R_{p}$
 \end_inset
 
@@ -1411,7 +1416,9 @@ Where the parameters are defined:
 \begin_inset Formula $\theta$
 \end_inset
 
-: Scattering angle, 
+:
+ Scattering angle,
+ 
 \begin_inset Formula $\cos\left(\theta\right)=dot\left(L,-V\right)$
 \end_inset
 
@@ -1422,7 +1429,8 @@ Where the parameters are defined:
 \begin_inset Formula $P_{c}$
 \end_inset
 
-: The nearest intersection point along the ray from 
+:
+ The nearest intersection point along the ray from 
 \begin_inset Formula $P$
 \end_inset
 
@@ -1434,7 +1442,8 @@ Where the parameters are defined:
 \begin_inset Formula $ds$
 \end_inset
 
-: Step delta for the sample points 
+:
+ Step delta for the sample points 
 \begin_inset Formula $P$
 \end_inset
 
@@ -1466,9 +1475,7 @@ Diffuse Lighting Pass
 \end_layout
 
 \begin_layout Standard
-The diffuse lighting equation describes the direct illumination color contributi
-on to the planet surface by the incident light that was attenuated by the
- atmosphere.
+The diffuse lighting equation describes the direct illumination color contribution to the planet surface by the incident light that was attenuated by the atmosphere.
 \end_layout
 
 \begin_layout Standard
@@ -1490,7 +1497,9 @@ Where the parameters are defined:
 \begin_inset Formula $C_{avg}$
 \end_inset
 
-: The average diffuse color of the planet surface, 
+:
+ The average diffuse color of the planet surface,
+ 
 \begin_inset Formula $C_{avg}=\left(0.3,0.3,0.3\right)$
 \end_inset
 
@@ -1501,18 +1510,21 @@ Where the parameters are defined:
 \begin_inset Formula $P_{p}$
 \end_inset
 
-: A point on the planet surface
+:
+ A point on the planet surface
 \end_layout
 
 \begin_layout Itemize
 \begin_inset Formula $N$
 \end_inset
 
-: The surface normal at 
+:
+ The surface normal at 
 \begin_inset Formula $P_{p}$
 \end_inset
 
-, 
+,
+ 
 \begin_inset Formula $N=normalize\left(P_{p}\right)$
 \end_inset
 
@@ -1536,9 +1548,7 @@ Ambient Lighting Passes
 \end_layout
 
 \begin_layout Standard
-The ambient lighting equation describes the indirect illumination color
- contribution to the planet surface by the light scattered through the atmospher
-e.
+The ambient lighting equation describes the indirect illumination color contribution to the planet surface by the light scattered through the atmosphere.
 \end_layout
 
 \begin_layout Standard
@@ -1638,7 +1648,8 @@ Where the gather-scattering equation
 \begin_inset Formula $G_{i}^{\left(k\right)}$
 \end_inset
 
- includes contributions from scattering, diffuse and ambient passes.
+ includes contributions from scattering,
+ diffuse and ambient passes.
 \end_layout
 
 \begin_layout Standard
@@ -1660,14 +1671,17 @@ Where the parameters are defined:
 \begin_inset Formula $\omega$
 \end_inset
 
-: Gathering direction for the kth order scattered light source
+:
+ Gathering direction for the kth order scattered light source
 \end_layout
 
 \begin_layout Itemize
 \begin_inset Formula $\theta$
 \end_inset
 
-: Scattering angle, 
+:
+ Scattering angle,
+ 
 \begin_inset Formula $\cos\left(\theta\right)=dot\left(-\omega,-V\right)$
 \end_inset
 
@@ -1678,7 +1692,8 @@ Where the parameters are defined:
 \begin_inset Formula $P_{p}$
 \end_inset
 
-: Intersection of the gathering direction 
+:
+ Intersection of the gathering direction 
 \begin_inset Formula $\omega$
 \end_inset
 
@@ -1708,8 +1723,7 @@ The diffuse and ambient contributions are zero if
 \end_layout
 
 \begin_layout Standard
-The total intensity of the multiple scattered light is the sum over all
- orders.
+The total intensity of the multiple scattered light is the sum over all orders.
 \end_layout
 
 \begin_layout Standard
@@ -1728,9 +1742,8 @@ Rendering
 \end_layout
 
 \begin_layout Standard
-The rendering algorithm uses the atmospheric simulation to produce a physically
- based scene, replacing the idealized planetary surface with terrain and
- sampled colors.
+The rendering algorithm uses the atmospheric simulation to produce a physically based scene,
+ replacing the idealized planetary surface with terrain and sampled colors.
 \end_layout
 
 \begin_layout Subsection
@@ -1742,13 +1755,12 @@ Aerial Perspective
 \end_layout
 
 \begin_layout Standard
-Aerial perspective is an atmospheric effect which causes distant objects
- to appear paler, less saturated and bluer than closer objects.
+Aerial perspective is an atmospheric effect which causes distant objects to appear paler,
+ less saturated and bluer than closer objects.
 \end_layout
 
 \begin_layout Standard
-Aerial perspective is caused by light rays which have been scattered towards
- the observer at 
+Aerial perspective is caused by light rays which have been scattered towards the observer at 
 \begin_inset Formula $P_{0}$
 \end_inset
 
@@ -1798,8 +1810,7 @@ Surface Color
 \end_layout
 
 \begin_layout Standard
-The surface color from a particular viewpoint may be calculated by combining
- aerial perspective with the ambient and diffuse lighting passes.
+The surface color from a particular viewpoint may be calculated by combining aerial perspective with the ambient and diffuse lighting passes.
 \end_layout
 
 \begin_layout Standard
@@ -1825,66 +1836,74 @@ C\left(P_{0},P_{t},V,L\right)=AP\left(P_{0},P_{t},V,L\right)+
 \end_layout
 
 \begin_layout Standard
-After expansion, the following texture lookups are required to compute the
- surface color.
+After expansion,
+ the following texture lookups are required to compute the surface color.
 \end_layout
 
 \begin_layout Itemize
 \begin_inset Formula $S\left(P_{0},V,L\right)$
 \end_inset
 
-: Scattered light towards the viewpoint from the viewing ray
+:
+ Scattered light towards the viewpoint from the viewing ray
 \end_layout
 
 \begin_layout Itemize
 \begin_inset Formula $S\left(P_{t},V,L\right)$
 \end_inset
 
-: Scattered light towards the terrain from the viewing ray
+:
+ Scattered light towards the terrain from the viewing ray
 \end_layout
 
 \begin_layout Itemize
 \begin_inset Formula $C_{p}$
 \end_inset
 
-: Sampled diffuse surface color of the planet surface
+:
+ Sampled diffuse surface color of the planet surface
 \end_layout
 
 \begin_layout Itemize
 \begin_inset Formula $A\left(P_{p},L\right)$
 \end_inset
 
-: Ambient surface color of the idealized planet
+:
+ Ambient surface color of the idealized planet
 \end_layout
 
 \begin_layout Itemize
 \begin_inset Formula $T\left(P_{0},P_{p}\right)$
 \end_inset
 
-: Transmittance from the viewpoint to the idealized planet
+:
+ Transmittance from the viewpoint to the idealized planet
 \end_layout
 
 \begin_layout Itemize
 \begin_inset Formula $T\left(P_{t},P_{p}\right)$
 \end_inset
 
-: Transmittance from the terrain to the idealized planet
+:
+ Transmittance from the terrain to the idealized planet
 \end_layout
 
 \begin_layout Itemize
 \begin_inset Formula $T\left(P_{t},P_{c}\right)$
 \end_inset
 
-: Transmittance from the terrain to the atmospheric boundary which may be
- shadowed
+:
+ Transmittance from the terrain to the atmospheric boundary which may be shadowed
 \end_layout
 
 \begin_layout Standard
-Additionaly, the surface shader:
+Additionaly,
+ the surface shader:
 \end_layout
 
 \begin_layout Itemize
-Must apply exposure, tone mapping and gamma correction operations.
+Must apply exposure,
+ tone mapping and gamma correction operations.
 \end_layout
 
 \begin_layout Itemize
@@ -1892,7 +1911,8 @@ Should incorporate the terrain (
 \begin_inset Formula $P_{t}$
 \end_inset
 
-, 
+,
+ 
 \begin_inset Formula $N$
 \end_inset
 
@@ -1900,8 +1920,7 @@ Should incorporate the terrain (
 \end_layout
 
 \begin_layout Itemize
-May incorporate an ambient occlusion map to account for localized occlusion
- effects on ambient lighting.
+May incorporate an ambient occlusion map to account for localized occlusion effects on ambient lighting.
 \end_layout
 
 \begin_layout Subsection
@@ -1909,8 +1928,7 @@ Sky Shader
 \end_layout
 
 \begin_layout Standard
-The sky color may be computed at runtime by sampling the multiple-scattering
- texture.
+The sky color may be computed at runtime by sampling the multiple-scattering texture.
 \end_layout
 
 \begin_layout Standard
@@ -1925,8 +1943,9 @@ C\left(P_{0},V,L\right)=S\left(P_{0},V,L\right)
 \end_layout
 
 \begin_layout Standard
-Additionally, the sky shader must apply exposure, tone mapping and gamma
- correction operations.
+Additionally,
+ the sky shader must apply exposure,
+ tone mapping and gamma correction operations.
 \end_layout
 
 \begin_layout Section
@@ -1946,7 +1965,8 @@ To precompute every scattering intensity from every position
 \begin_inset Formula $P_{0}\left(x,y,z\right)$
 \end_inset
 
-, in every viewing direction 
+,
+ in every viewing direction 
 \begin_inset Formula $V\left(x,y,z\right)$
 \end_inset
 
@@ -1955,12 +1975,13 @@ To precompute every scattering intensity from every position
 \end_inset
 
  would require 9 parameters.
- However, by taking advantage of symmetries and making a few assumptions
- the parameter count may be reduced to 4 scalar parameters.
+ However,
+ by taking advantage of symmetries and making a few assumptions the parameter count may be reduced to 4 scalar parameters.
 \end_layout
 
 \begin_layout Itemize
-Altitude: 
+Altitude:
+ 
 \begin_inset Formula $h\in\left[0,H_{a}\right]$
 \end_inset
 
@@ -1972,7 +1993,8 @@ Altitude:
 \end_layout
 
 \begin_layout Itemize
-View-Zenith Angle: 
+View-Zenith Angle:
+ 
 \begin_inset Formula $\phi\in\left[0,\pi\right]$
 \end_inset
 
@@ -2010,7 +2032,8 @@ Sun-View Azimuth
 \begin_layout Standard
 
 \series bold
-Note: 
+Note:
+ 
 \series default
 The the Sun-View Azimuth 
 \begin_inset Formula $\omega$
@@ -2066,10 +2089,8 @@ proj(X)=normalize(X-dot(X,Zenith)\cdot Zenith)
 \end_layout
 
 \begin_layout Standard
-The following diagram shows canonical form of the scattering intensity parameter
-ization.
- Observe that the atmosphere is much thinner in the vertical direction than
- the horizontal direction.
+The following diagram shows canonical form of the scattering intensity parameterization.
+ Observe that the atmosphere is much thinner in the vertical direction than the horizontal direction.
 \end_layout
 
 \begin_layout Standard
@@ -2160,7 +2181,8 @@ Therefore
 \begin_inset Formula $V$
 \end_inset
 
-, 
+,
+ 
 \begin_inset Formula $Sun$
 \end_inset
 
@@ -2172,11 +2194,13 @@ Therefore
 \begin_inset Formula $r=1$
 \end_inset
 
-, 
+,
+ 
 \begin_inset Formula $\varTheta=\phi$
 \end_inset
 
- for V, 
+ for V,
+ 
 \begin_inset Formula $\varTheta=\delta$
 \end_inset
 
@@ -2237,8 +2261,7 @@ The parameters
 \end_layout
 
 \begin_layout Standard
-The most straightforward mapping described by the Efficient and Dynamic
- Atmospheric Scattering paper is a linear mapping.
+The most straightforward mapping described by the Efficient and Dynamic Atmospheric Scattering paper is a linear mapping.
 \end_layout
 
 \begin_layout Standard
@@ -2316,12 +2339,9 @@ Power Mapping
 \end_layout
 
 \begin_layout Standard
-Linear mappings are typically replaced with nonlinear mappings in order
- to optimize the parameterization space.
- This is achieved by eliminating unused values and improving precision for
- critical values by compressing less critical values.
- The linear and nonlinear mappings may be generalized for an arbitrary power
- as follows.
+Linear mappings are typically replaced with nonlinear mappings in order to optimize the parameterization space.
+ This is achieved by eliminating unused values and improving precision for critical values by compressing less critical values.
+ The linear and nonlinear mappings may be generalized for an arbitrary power as follows.
 \end_layout
 
 \begin_layout Standard
@@ -2399,8 +2419,7 @@ Weighted Power Mapping
 \end_layout
 
 \begin_layout Standard
-The View-Zenith Angle is especially difficult to generalize due to the following
- conditions which lead to inefficient parameterization.
+The View-Zenith Angle is especially difficult to generalize due to the following conditions which lead to inefficient parameterization.
 \end_layout
 
 \begin_layout Itemize
@@ -2408,26 +2427,23 @@ The horizon
 \begin_inset Formula $\phi_{H}$
 \end_inset
 
- increases from 90 degrees at ground level towards 180 degrees as the height
- increases.
- However, the published approaches typically fix the horizon 
+ increases from 90 degrees at ground level towards 180 degrees as the height increases.
+ However,
+ the published approaches typically fix the horizon 
 \begin_inset Formula $\phi_{H}$
 \end_inset
 
- at 90 degrees for all heights which causes incorrect angles to be compressed
- as the height increases.
+ at 90 degrees for all heights which causes incorrect angles to be compressed as the height increases.
 \end_layout
 
 \begin_layout Itemize
-At ground level there is no atmosphere when looking downwards, whereas at
- the TOA there is no atmosphere when looking upwards.
- A large percentage of the texture space is dedicated to parameters which
- represent little or no atmosphere.
+At ground level there is no atmosphere when looking downwards,
+ whereas at the TOA there is no atmosphere when looking upwards.
+ A large percentage of the texture space is dedicated to parameters which represent little or no atmosphere.
 \end_layout
 
 \begin_layout Standard
-The weighted power mapping addresses these problems by incorporating the
- height 
+The weighted power mapping addresses these problems by incorporating the height 
 \begin_inset Formula $h$
 \end_inset
 
@@ -2453,7 +2469,8 @@ The horizon
 \begin_inset Formula $\cos\left(\theta\right)=\frac{adj}{hyp}$
 \end_inset
 
-, 
+,
+ 
 \begin_inset Formula $a^{2}+b^{2}=c^{2}$
 \end_inset
 
@@ -2493,23 +2510,30 @@ The cosine of the horizon angle
 \begin_inset Formula $U$
 \end_inset
 
-: upper atmosphere, 
+:
+ upper atmosphere,
+ 
 \begin_inset Formula $L$
 \end_inset
 
-: lower atmosphere, 
+:
+ lower atmosphere,
+ 
 \begin_inset Formula $S$
 \end_inset
 
-: surface) which may be parameterized independently.
+:
+ surface) which may be parameterized independently.
 \end_layout
 
 \begin_layout Standard
-In general, each region is defined by a weight 
+In general,
+ each region is defined by a weight 
 \begin_inset Formula $w_{i}\in\left(0,1\right)$
 \end_inset
 
-, a power mapping 
+,
+ a power mapping 
 \begin_inset Formula $f\left(\cos\left(\phi\right),p_{i}\right)\in\left(0,1\right)$
 \end_inset
 
@@ -2532,7 +2556,8 @@ v_{i}=w_{i}\cdot\left(\frac{\cos\left(\phi\right)-\cos\left(\phi_{min}\right)}{\
 \end_layout
 
 \begin_layout Standard
-The upper atmosphere region is defined by the angles, 
+The upper atmosphere region is defined by the angles,
+ 
 \begin_inset Formula $0\leq\cos\left(\phi\right)\leq1$
 \end_inset
 
@@ -2551,7 +2576,8 @@ v_{U}\left(\phi\right)=w_{U}\cdot\left(\cos\left(\phi\right)\right)^{\frac{1}{p_
 \end_layout
 
 \begin_layout Standard
-The lower atmosphere region is defined by the angles, 
+The lower atmosphere region is defined by the angles,
+ 
 \begin_inset Formula $\cos\left(\phi_{H}\right)\leq\cos\left(\phi\right)<0$
 \end_inset
 
@@ -2564,12 +2590,14 @@ The lower atmosphere region is defined by the angles,
 \begin_inset Formula $h=0$
 \end_inset
 
-, include 
+,
+ include 
 \begin_inset Formula $\epsilon=1e-5$
 \end_inset
 
  for numerical stability.
- Also, observe that 
+ Also,
+ observe that 
 \begin_inset Formula $w_{L}=0$
 \end_inset
 
@@ -2596,7 +2624,8 @@ v_{L}\left(\phi\right)=w_{L}\cdot\left(\frac{\cos\left(\phi\right)-\cos\left(\ph
 \end_layout
 
 \begin_layout Standard
-The surface region is defined by the angles, 
+The surface region is defined by the angles,
+ 
 \begin_inset Formula $-1\leq\cos\left(\phi\right)<\cos\left(\phi_{H}\right)$
 \end_inset
 
@@ -2632,8 +2661,7 @@ v_{S}\left(\phi\right)=w_{S}\cdot\left(1-\left(\frac{\cos\left(\phi\right)-\cos\
 \end_layout
 
 \begin_layout Standard
-The weighted power mappings may be converted from 3D texture coordinates
- as follows.
+The weighted power mappings may be converted from 3D texture coordinates as follows.
 \end_layout
 
 \begin_layout Standard
@@ -2690,9 +2718,7 @@ Otherwise:
 \end_layout
 
 \begin_layout Standard
-The weights define the amount of texture space allocated for each region
- and the superscript corresponds to the weight at a particular value of
- 
+The weights define the amount of texture space allocated for each region and the superscript corresponds to the weight at a particular value of 
 \begin_inset Formula $u$
 \end_inset
 
@@ -2755,20 +2781,24 @@ Weighted Power Mapping Visualization
 \end_layout
 
 \begin_layout Standard
-The following diagram shows a visualization of the weighted power mapping
- regions (
+The following diagram shows a visualization of the weighted power mapping regions (
 \begin_inset Formula $U$
 \end_inset
 
-: blue, 
+:
+ blue,
+ 
 \begin_inset Formula $L$
 \end_inset
 
-: red, 
+:
+ red,
+ 
 \begin_inset Formula $S$
 \end_inset
 
-: green) for 
+:
+ green) for 
 \begin_inset Formula $h=H_{a}$
 \end_inset
 
@@ -2795,8 +2825,7 @@ Linear vs Weighted Power Mapping Comparision
 \end_layout
 
 \begin_layout Standard
-The following diagram shows a comparision between the linear mapping and
- weighted power mapping of the scattering intensity 
+The following diagram shows a comparision between the linear mapping and weighted power mapping of the scattering intensity 
 \begin_inset Formula $I_{S}$
 \end_inset
 
@@ -2877,8 +2906,7 @@ Texture Dimensions
 \end_layout
 
 \begin_layout Standard
-The Efficient and Dynamic Atmospheric Scattering paper uses the following
- texture dimensions where optional optimizations discussed for 
+The Efficient and Dynamic Atmospheric Scattering paper uses the following texture dimensions where optional optimizations discussed for 
 \begin_inset Formula $v$
 \end_inset
 
@@ -2926,12 +2954,12 @@ To precompute the transmittance
 \begin_inset Formula $Q$
 \end_inset
 
- to the nearest point on the atmospheric boundary (either the TOA or the
- planet surface) then we can reduce the parameter count to 2 scalar parameters.
+ to the nearest point on the atmospheric boundary (either the TOA or the planet surface) then we can reduce the parameter count to 2 scalar parameters.
 \end_layout
 
 \begin_layout Itemize
-Altitude: 
+Altitude:
+ 
 \begin_inset Formula $h\in\left[0,H_{a}\right]$
 \end_inset
 
@@ -2943,7 +2971,8 @@ Altitude:
 \end_layout
 
 \begin_layout Itemize
-Direction-Zenith Angle: 
+Direction-Zenith Angle:
+ 
 \begin_inset Formula $\mu\in\left[0,\pi\right]$
 \end_inset
 
@@ -2989,8 +3018,7 @@ Transmittance to a Non-atmospheric Boundary
 \end_layout
 
 \begin_layout Standard
-The transmittance may also be calculated to a non-atmospheric boundary point
- 
+The transmittance may also be calculated to a non-atmospheric boundary point 
 \begin_inset Formula $Q$
 \end_inset
 
@@ -2998,7 +3026,8 @@ The transmittance may also be calculated to a non-atmospheric boundary point
 \end_layout
 
 \begin_layout Standard
-For example, to calculate the transmittance between a viewing point 
+For example,
+ to calculate the transmittance between a viewing point 
 \begin_inset Formula $P_{0}$
 \end_inset
 
@@ -3028,7 +3057,8 @@ Where the parameters are defined:
 \begin_inset Formula $P_{t}$
 \end_inset
 
-: Intersection point along V with the terrain (
+:
+ Intersection point along V with the terrain (
 \begin_inset Formula $h\left(P_{t}\right)\geq0$
 \end_inset
 
@@ -3039,7 +3069,8 @@ Where the parameters are defined:
 \begin_inset Formula $P_{p}$
 \end_inset
 
-: Intersection point along V with the ideal planet surface (
+:
+ Intersection point along V with the ideal planet surface (
 \begin_inset Formula $h\left(P_{p}\right)=0$
 \end_inset
 
@@ -3067,12 +3098,13 @@ To precompute the ambient lighting
 \begin_inset Formula $h=0$
 \end_inset
 
-, we may take advantage of the symmetry around the zenith resulting in a
- single scalar parameter.
+,
+ we may take advantage of the symmetry around the zenith resulting in a single scalar parameter.
 \end_layout
 
 \begin_layout Itemize
-Sun-Zenith Angle: 
+Sun-Zenith Angle:
+ 
 \begin_inset Formula $\mu\in\left[0,\pi\right]$
 \end_inset
 
@@ -3107,8 +3139,7 @@ Numerical Integration
 \end_layout
 
 \begin_layout Standard
-The atmospheric simulation requires the computation of integrals that must
- be approximated using numerical integration due to complexity of the equations.
+The atmospheric simulation requires the computation of integrals that must be approximated using numerical integration due to complexity of the equations.
 \end_layout
 
 \begin_layout Subsection
@@ -3116,8 +3147,7 @@ The atmospheric simulation requires the computation of integrals that must
 \end_layout
 
 \begin_layout Standard
-The trapezoidal rule may be used to approximate 1D integrals of the function
- 
+The trapezoidal rule may be used to approximate 1D integrals of the function 
 \begin_inset Formula $f\left(x\right)$
 \end_inset
 
@@ -3178,8 +3208,7 @@ The endpoints of the 1D integral are defined as
 \end_layout
 
 \begin_layout Standard
-The trapezoidal rule may be extended to approximate 2D integrals of the
- function 
+The trapezoidal rule may be extended to approximate 2D integrals of the function 
 \begin_inset Formula $f\left(x,y\right)$
 \end_inset
 
@@ -3283,11 +3312,13 @@ The edges of the 2D integral are defined as
 \begin_inset Formula $x_{0}=a$
 \end_inset
 
-, 
+,
+ 
 \begin_inset Formula $x_{n}=b$
 \end_inset
 
-, 
+,
+ 
 \begin_inset Formula $y_{0}=c$
 \end_inset
 
@@ -3303,8 +3334,7 @@ Spherical Integration
 \end_layout
 
 \begin_layout Standard
-Spherical integration is the process of evaluating integrals over three-dimensio
-nal regions by converting to spherical coordinates.
+Spherical integration is the process of evaluating integrals over three-dimensional regions by converting to spherical coordinates.
 \end_layout
 
 \begin_layout Standard
@@ -3361,8 +3391,7 @@ Ray Length Visualization
 \end_layout
 
 \begin_layout Standard
-The following diagrams show the ray length from the observer to the atmospheric
- boundary for various heights and viewing angles.
+The following diagrams show the ray length from the observer to the atmospheric boundary for various heights and viewing angles.
 \end_layout
 
 \begin_layout Standard
@@ -3388,13 +3417,11 @@ The following diagrams show the ray length from the observer to the atmospheric
 \end_layout
 
 \begin_layout Standard
-The left side corresponds to rays which intersect the TOA while the right
- side corresponds to rays which intersect the planet surface.
+The left side corresponds to rays which intersect the TOA while the right side corresponds to rays which intersect the planet surface.
  The longest rays originate from the TOA that are directed towards the horizon.
- The longest ray which glances the planet is roughly 2200 km which is somewhat
- surprising given that the atmosphere is only 100 km thick.
- Additionally, the length of rays which originate from the TOA which intersect
- the planet are in the range of 100 km to 1100 km.
+ The longest ray which glances the planet is roughly 2200 km which is somewhat surprising given that the atmosphere is only 100 km thick.
+ Additionally,
+ the length of rays which originate from the TOA which intersect the planet are in the range of 100 km to 1100 km.
 \end_layout
 
 \begin_layout Subsubsection
@@ -3402,16 +3429,13 @@ Linear Sampling
 \end_layout
 
 \begin_layout Standard
-A common practice when performing integration between two points in the
- atmosphere is to subdivide rays by a fixed number of steps.
- However, the very large variation in the ray length leads to widely varying
- step sizes.
- This may cause integration to skip over regions of the atmosphere where
- the gradient of the density functions is the highest.
- This problem is especially noticible for rays which pass through the relatively
- thin Mie scattering layer.
- When rendering, this problem is manifested by banding artifacts in the
- scattering and transmittance textures.
+A common practice when performing integration between two points in the atmosphere is to subdivide rays by a fixed number of steps.
+ However,
+ the very large variation in the ray length leads to widely varying step sizes.
+ This may cause integration to skip over regions of the atmosphere where the gradient of the density functions is the highest.
+ This problem is especially noticible for rays which pass through the relatively thin Mie scattering layer.
+ When rendering,
+ this problem is manifested by banding artifacts in the scattering and transmittance textures.
 \end_layout
 
 \begin_layout Subsubsection
@@ -3419,8 +3443,8 @@ Power Mapping Sampling
 \end_layout
 
 \begin_layout Standard
-In order to address the banding artifacts, we will instead sample the ray
- at heights defined by the power mapping function.
+In order to address the banding artifacts,
+ we will instead sample the ray at heights defined by the power mapping function.
 \end_layout
 
 \begin_layout Standard
@@ -3461,8 +3485,7 @@ x\in\left(0,width-1\right)
 \end_layout
 
 \begin_layout Standard
-The algorithm for sampling a ray at heights defined by the power mapping
- function is as follows.
+The algorithm for sampling a ray at heights defined by the power mapping function is as follows.
 \end_layout
 
 \begin_layout Itemize
@@ -3601,8 +3624,7 @@ P=\left(x_{a}+s\cdot\left(x_{b}-x_{a}\right),y_{a}+s\cdot\left(y_{b}-y_{a}\right
 \end_layout
 
 \begin_layout Standard
-The power mapping sampling procedure should be applied to ray integration
- for transmittance and atmospheric scattering computations.
+The power mapping sampling procedure should be applied to ray integration for transmittance and atmospheric scattering computations.
 \end_layout
 
 \begin_layout Section*
@@ -3615,14 +3637,12 @@ Atmospheric Simulation
 
 \begin_deeper
 \begin_layout Itemize
-Rendering Parametrizable Planetary Atmospheres with Multiple Scattering
- in Real-Time
+Rendering Parametrizable Planetary Atmospheres with Multiple Scattering in Real-Time
 \end_layout
 
 \begin_deeper
 \begin_layout Itemize
-http://www.klayge.org/material/4_0/Atmospheric/Rendering%20Parametrizable%20Planet
-ary%20Atmospheres%20with%20Multiple%20Scattering%20in%20Real-Time.pdf
+http://www.klayge.org/material/4_0/Atmospheric/Rendering%20Parametrizable%20Planetary%20Atmospheres%20with%20Multiple%20Scattering%20in%20Real-Time.pdf
 \end_layout
 
 \end_deeper
@@ -3642,8 +3662,7 @@ Precomputed Atmospheric Scattering
 
 \begin_deeper
 \begin_layout Itemize
-http://www.klayge.org/material/4_0/Atmospheric/Precomputed%20Atmospheric%20Scatter
-ing.pdf
+http://www.klayge.org/material/4_0/Atmospheric/Precomputed%20Atmospheric%20Scattering.pdf
 \end_layout
 
 \begin_layout Itemize
@@ -3681,8 +3700,7 @@ Real-Time Rendering of Planets with Atmospheres
 
 \begin_deeper
 \begin_layout Itemize
-https://naos-be.zcu.cz/server/api/core/bitstreams/235c2478-5bff-4510-b22f-d5d93001
-d574/content
+https://naos-be.zcu.cz/server/api/core/bitstreams/235c2478-5bff-4510-b22f-d5d93001d574/content
 \end_layout
 
 \end_deeper
@@ -3692,8 +3710,7 @@ Accurate Atmospheric Scattering
 
 \begin_deeper
 \begin_layout Itemize
-https://developer.nvidia.com/gpugems/gpugems2/part-ii-shading-lighting-and-shadows
-/chapter-16-accurate-atmospheric-scattering
+https://developer.nvidia.com/gpugems/gpugems2/part-ii-shading-lighting-and-shadows/chapter-16-accurate-atmospheric-scattering
 \end_layout
 
 \end_deeper
@@ -3703,8 +3720,7 @@ Deferred Rendering of Planetary Terrains with Accurate Atmospheres
 
 \begin_deeper
 \begin_layout Itemize
-https://www.gamedevs.org/uploads/deferred-rendering-of-planetary-terrains-with-acc
-urate-atmospheres.pdf
+https://www.gamedevs.org/uploads/deferred-rendering-of-planetary-terrains-with-accurate-atmospheres.pdf
 \end_layout
 
 \end_deeper
@@ -3725,6 +3741,16 @@ Layers of the Atmosphere
 \begin_deeper
 \begin_layout Itemize
 https://www.noaa.gov/jetstream/atmosphere/layers-of-atmosphere
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+A Fitted Radiance and Attenuation Model for Realistic Atmospheres
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+https://cgg.mff.cuni.cz/publications/skymodel-2021/
 \end_layout
 
 \end_deeper
@@ -3794,6 +3820,37 @@ II-perplexity.pdf
 \end_layout
 
 \end_deeper
+\begin_layout Itemize
+Automatic Exposure Using a Luminance Histogram
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+https://bruop.github.io/exposure/
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Implementing a Physically Based Camera:
+ Automatic Exposure
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+https://placeholderart.wordpress.com/2014/12/15/implementing-a-physically-based-camera-automatic-exposure/
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+What every coder should know about gamma
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+https://blog.johnnovak.net/2016/09/21/what-every-coder-should-know-about-gamma/
+\end_layout
+
+\end_deeper
 \end_deeper
 \begin_layout Itemize
 Numerical Integration
@@ -3841,7 +3898,8 @@ https://projects.blender.org/blender/blender/pulls/140480
 
 \end_deeper
 \begin_layout Itemize
-Blender Tutorial: Realistic Earth
+Blender Tutorial:
+ Realistic Earth
 \end_layout
 
 \begin_deeper
@@ -3907,7 +3965,8 @@ https://www.youtube.com/watch?v=5k-7H74Bws4
 
 \end_deeper
 \begin_layout Itemize
-What Makes The Sky Blue And The Grass Green? Brian Cox Explains
+What Makes The Sky Blue And The Grass Green?
+ Brian Cox Explains
 \end_layout
 
 \begin_deeper
@@ -3917,8 +3976,7 @@ https://youtu.be/ZJQ_x7rhPhg?si=HHENuCV0ts36QkQo
 
 \end_deeper
 \begin_layout Itemize
-Physicist Brian Cox Investigates The Accidental Discoveries That Revolutionized
- Science
+Physicist Brian Cox Investigates The Accidental Discoveries That Revolutionized Science
 \end_layout
 
 \begin_deeper

@@ -8,6 +8,7 @@ cd shaders
 glslangValidator -V sky.vert -o sky_vert.spv
 glslangValidator -V sky_flat.frag -o sky_flat_frag.spv
 glslangValidator -V sky_atmo.frag -o sky_atmo_frag.spv
+glslangValidator -V sky_luminance.frag -o sky_luminance_frag.spv
 cd ..
 
 echo ADD-RESOURCES
@@ -15,6 +16,7 @@ bfs $RESOURCE blobSet readme.txt
 bfs $RESOURCE blobSet shaders/sky_vert.spv
 bfs $RESOURCE blobSet shaders/sky_flat_frag.spv
 bfs $RESOURCE blobSet shaders/sky_atmo_frag.spv
+bfs $RESOURCE blobSet shaders/sky_luminance_frag.spv
 
 echo CLEANUP
 rm shaders/*.spv
